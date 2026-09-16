@@ -1,0 +1,432 @@
+/* ─────────────────────────────────────────────
+   ECOSYSTEM SECTION — append to Home.scss
+   (or @use/@forward this file from it)
+───────────────────────────────────────────── */
+
+@keyframes mascotPop {
+  0%   { opacity: 0; transform: translateY(50px) scale(0.7) rotate(-10deg); }
+  55%  { opacity: 1; transform: translateY(-10px) scale(1.06) rotate(4deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes ecoCursorMove {
+  0%   { opacity: 0; transform: translate(-26px, -22px) scale(1); }
+  16%  { opacity: 1; transform: translate(-26px, -22px) scale(1); }
+  56%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  63%  { opacity: 1; transform: translate(0, 0) scale(0.8); }
+  72%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes ecoBtnPress {
+  0%, 60%   { transform: scale(1);    filter: brightness(1); }
+  64%       { transform: scale(0.92); filter: brightness(1.18); }
+  72%, 100% { transform: scale(1);    filter: brightness(1.05); }
+}
+
+@keyframes ecoProgressFill {
+  from { width: 30%; }
+  to   { width: 78%; }
+}
+
+@keyframes ecoSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ecoCheckPop {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Section shell + scroll reveal ── */
+.ecosystem {
+  background: #f4f1ea;
+  padding: 40px 24px 220px;
+  position: relative;
+  overflow: hidden;
+
+  &__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  &__reveal {
+    opacity: 0;
+    transform: translateY(40px) scale(0.97);
+    transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  &--visible &__reveal {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  &__title {
+    font-size: clamp(30px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #111;
+    text-align: center;
+    line-height: 1.15;
+    margin: 0 0 14px;
+
+    &-accent { color: #7c3aed; }
+  }
+
+  &__subtitle {
+    text-align: center;
+    color: #5b5850;
+    font-size: 16px;
+    max-width: 560px;
+    margin: 0 auto 64px;
+    line-height: 1.7;
+  }
+
+  &__cards-wrap {
+    position: relative;
+    padding-left: 80px;
+    padding-top: 90px;
+  }
+
+  &__mascot {
+    position: absolute;
+    left: -220px;
+    top: -165px;
+    z-index: 30;
+    display: block;
+    width: clamp(320px, 27vw, 460px);
+    height: auto;
+    filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.2));
+    user-select: none;
+    cursor: pointer;
+    animation: mascotPop 0.8s ease both;
+    transition: transform 0.25s ease;
+
+    &:hover { transform: scale(1.05); }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    align-items: stretch;
+  }
+
+  &__cta-bar {
+    position: absolute;
+    left: 50%;
+    bottom: -34px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #0b0f1a;
+    border-radius: 999px;
+    padding: 10px 10px 10px 26px;
+    box-shadow: 0 20px 50px -12px rgba(11, 15, 26, 0.45);
+    max-width: calc(100% - 32px);
+  }
+
+  &__cta-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+  }
+
+  &__cta-btn {
+    padding: 12px 22px;
+    border-radius: 999px;
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px rgba(37, 99, 235, 0.38);
+    }
+  }
+}
+
+/* ── Card shell — 3D tilt on hover ── */
+.eco-card {
+  background: #fff;
+  border-radius: 28px;
+  padding: 16px;
+  border: 1px solid #eceae4;
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.04), 0 20px 40px -16px rgba(0, 0, 0, 0.08);
+  cursor: default;
+  transform-style: preserve-3d;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  will-change: transform;
+  /* NEW — makes every card in the row the same height */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &:hover {
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.09);
+    border-color: rgba(37, 99, 235, 0.25);
+  }
+
+  &__title {
+    font-size: 21px;
+    font-weight: 700;
+    color: #111;
+    margin: 24px 10px 10px;
+  }
+
+  &__desc {
+    font-size: 14.5px;
+    color: #6b7280;
+    line-height: 1.65;
+    margin: 0 10px 12px;
+    /* NEW — lets shorter descriptions still push the card to full height */
+    flex: 1;
+  }
+}
+
+/* ── Mockup shell + hover-triggered micro-interactions ──
+   All animations are gated on the PARENT .eco-card:hover so
+   they only play once per hover, same as the original. ── */
+.eco-mock {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 24px;
+  overflow: hidden;
+  padding: 18px;
+
+  &--pro      { background: #fdf3ea; border: 1px solid #f3dfc7; }
+  &--bio      { background: #eefaf3; border: 1px solid #cdebd9; display: flex; flex-direction: column; }
+  &--employee { background: #eef3fd; border: 1px solid #cddbf5; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  &__eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9a7b4f;
+
+    &--standalone { display: block; margin-bottom: 12px; }
+  }
+
+  &__badge-icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  /* progress bar — fills only when the card is hovered */
+  &__track {
+    background: #fff;
+    border-radius: 999px;
+    height: 8px;
+    border: 1px solid #f3dfc7;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  &__fill {
+    display: block;
+    width: 30%;
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+  .eco-card:hover &__fill {
+    animation: ecoProgressFill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.68s forwards;
+  }
+
+  &__caption { font-size: 11px; color: #9a7b4f; margin-bottom: 20px; }
+
+  &__btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: none;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .eco-card:hover &__btn {
+    animation: ecoBtnPress 1.7s ease forwards;
+  }
+
+  /* Bio (chat) mock */
+  &__avatars { display: flex; }
+  &__avatar {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #eefaf3;
+    margin-left: -7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8.5px; font-weight: 700;
+    &:first-child { margin-left: 0; }
+  }
+  &__chat { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; flex: 1; }
+  &__bubble {
+    max-width: 80%;
+    padding: 8px 11px;
+    font-size: 11px;
+    border-radius: 12px 12px 12px 3px;
+
+    &--in {
+      align-self: flex-start;
+      background: #fff;
+      color: #333;
+      border: 1px solid #cdebd9;
+    }
+    &--out {
+      align-self: flex-end;
+      color: #fff;
+      border-radius: 12px 12px 3px 12px;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  .eco-card:hover &__bubble--out {
+    animation: ecoSlideIn 0.45s ease 0.7s forwards;
+  }
+  &__composer { display: flex; gap: 8px; align-items: center; }
+  &__input {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #cdebd9;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #9ca3af;
+  }
+  &__send {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .eco-card:hover &__send {
+    animation: ecoBtnPress 1.7s ease forwards;
+  }
+
+  /* Employee (file list) mock */
+  &__files { display: flex; flex-direction: column; gap: 7px; }
+  &__file {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px;
+    border: 1px solid #cddbf5;
+  }
+  &__file-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: #eef3fd;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  &__file-info { flex: 1; min-width: 0; }
+  &__file-name {
+    display: block;
+    font-size: 10.5px; font-weight: 600; color: #111;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  &__file-size { font-size: 9px; color: #9ca3af; }
+  &__file-action {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none;
+    transition: transform 0.15s ease, filter 0.15s ease;
+
+    &--download { transition: transform 0.15s ease, filter 0.15s ease; }
+    &--check {
+      background: #f0fdf4;
+      color: #16a34a;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+  }
+  .eco-card:hover &__file-action--download {
+    animation: ecoBtnPress 1.7s ease forwards;
+  }
+  .eco-card:hover &__file-action--check {
+    animation: ecoCheckPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.92s forwards;
+  }
+}
+
+/* Cursor-arrow overlay — animates in and "clicks" on card hover */
+.eco-cursor {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+  z-index: 6;
+  transform: translate(-26px, -22px) scale(1);
+  fill: currentColor;
+}
+.eco-card:hover .eco-cursor {
+  animation: ecoCursorMove 1.7s ease forwards;
+}
+
+/* ── Responsive: stack, drop mascot + CTA overlap on small screens ── */
+@media (max-width: 900px) {
+  .ecosystem__cards-wrap { padding-left: 24px; padding-top: 64px; }
+}
+
+@media (max-width: 600px) {
+  .ecosystem {
+    padding: 40px 20px 60px;
+  }
+  .ecosystem__cards-wrap {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .ecosystem__grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    order: 1;
+  }
+  .ecosystem__mascot {
+    display: none;
+  }
+  .ecosystem__cta-bar {
+    order: 2;
+    position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 24px 0 0;
+    justify-content: center;
+    padding: 14px;
+  }
+}

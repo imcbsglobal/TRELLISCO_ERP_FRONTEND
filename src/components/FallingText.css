@@ -1,0 +1,48 @@
+.falling-text-container {
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+
+.falling-text-target {
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+/* On touch/mobile the physics canvas is skipped entirely, so lay the
+   words out as normal wrapping text instead of relying on Matter.js
+   to position each .word span absolutely. */
+.falling-text-target--static {
+  display: block;
+}
+
+.falling-text-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.falling-text-target .word {
+  display: inline-block;
+  font-weight: 400;
+  color: #241528;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+.falling-text-target--static .word {
+  /* undo any leftover absolute positioning from a previous desktop run */
+  position: static !important;
+  transform: none !important;
+}
+
+.falling-text-target .word.fx-bold {
+  font-weight: 700;
+}
+
+/* Default highlight class, kept in case some other usage relies on
+   the component's default highlightClass="highlighted" prop. */
+.falling-text-target .word.highlighted {
+  color: #1b46f5;
+  font-weight: 700;
+}
