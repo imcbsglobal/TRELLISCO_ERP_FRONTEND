@@ -1095,9 +1095,12 @@ export default function Nav() {
         </span>
 
         <span className="nav__banner-text">
-          Trellisco is launching on <strong>19/09/2026</strong> and this time,
-          we're bringing you an even better experience! 🚀{" "}
-          <strong>Discover what's new 🎟️🎉</strong>
+          Trellisco Event is happening on <strong>19/09/2026</strong> and this time,
+          we're bringing you an even better experience!
+          <span className="nav__banner-emoji"> 🚀</span>{" "}
+          <strong>Discover what's new</strong>
+          <span className="nav__banner-emoji"> 🎟️</span>
+          <span className="nav__banner-emoji"> 🎉</span>
         </span>
 
           <button

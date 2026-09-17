@@ -50,10 +50,17 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
     flex-shrink: 0;
     font-size: 14px;
     line-height: 1;
+    margin-right: 2px;
   }
 
   &__banner-text {
     line-height: 1.4;
+    word-spacing: 0.06em;
+  }
+
+  &__banner-emoji {
+    display: inline-block;
+    margin: 0 3px;
   }
 
   &__banner-close {

@@ -181,6 +181,7 @@ export default function Footer() {
                 <PhoneIcon />
               </span>
               <p className="footer__address-text">
+                <strong className="footer__address-label">IMCB Solutions LLP</strong>
                 +91 7591 907 003
                 <br />
                 +91 7594 820 733
@@ -232,10 +233,10 @@ export default function Footer() {
                 <GlobeIcon />
               </span>
               <a
-                href="https://trellisco.in"
+                href="https://trelliscoerp.com"
                 className="footer__address-text footer__address-link"
               >
-                trellisco.in
+                trelliscoerp.com
               </a>
             </div>
             <div className="footer__address-item">
