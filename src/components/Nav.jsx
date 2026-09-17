@@ -378,7 +378,7 @@ const PRODUCTS = [
     eyebrow: "Trellisco Suite",
     desc: "A multi-vendor marketplace platform for running online stores, vendor operations, and property listings from one dashboard.",
     accent: "#e0424a",
-    link: "#",
+    link: "https://www.venuekart.co.in/",
     badge: {
       text: "Built for Marketplaces",
       color: "#e0424a",
