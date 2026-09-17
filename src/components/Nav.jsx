@@ -190,7 +190,7 @@ const PRODUCTS = [
     eyebrow: "Melone Suite",
     desc: "A lightweight, mobile-first point of sale for small-scale businesses — full billing and management, right from your phone.",
     accent: "#e0a700",
-    link: "#",
+    link: "https://melone.in/",
     badge: {
       text: "Built for Small Businesses",
       color: "#2a8d5c",
@@ -240,7 +240,7 @@ const PRODUCTS = [
     eyebrow: "Melone Suite",
     desc: "A hybrid, cloud-based point of sale for large-scale operations — works online or offline, and syncs the moment you're back online.",
     accent: "#7b5cff",
-    link: "#",
+    link: "https://melone.in/",
     badge: {
       text: "Built for Large Operations",
       color: "#7b5cff",
@@ -290,7 +290,7 @@ const PRODUCTS = [
     eyebrow: "Melone Suite",
     desc: "Booking, room, and guest management built for hotels, lodges, resorts, and homestays.",
     accent: "#2a8d5c",
-    link: "#",
+    link: "https://melone.in/",
     badge: {
       text: "Built for Stay Businesses",
       color: "#2a8d5c",

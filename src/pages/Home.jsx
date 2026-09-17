@@ -437,7 +437,7 @@ function Home() {
                 rel="noopener noreferrer"
                 className="btn btn--primary"
               >
-                Try it for free
+                Try Trellisco 
               </a>
               <a
                 href="https://wa.me/917591907003"
@@ -445,7 +445,7 @@ function Home() {
                 rel="noopener noreferrer"
                 className="btn btn--ghost"
               >
-                Chat with sales
+                Chat with team
               </a>
             </div>
           </div>

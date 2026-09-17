@@ -50,10 +50,54 @@ const STYLES = `
   }
   .pf-stat.is-visible { opacity: 1; transform: translateY(0) scale(1); }
 
+  .pf-feature-tag {
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .pf-feature-tag:hover {
+    background: rgba(255,255,255,0.16) !important;
+    border-color: rgba(255,255,255,0.28) !important;
+  }
+
   @media (max-width: 900px) {
     .pf-bento-grid > div { grid-column: 1 / 13 !important; }
   }
 `
+
+/* ─────────────────────────────────────────────
+   Feature tags — small pill row listing the extra
+   capabilities each module covers beyond the
+   single mock shown below it. Purely additive:
+   sits between the description and the mock.
+───────────────────────────────────────────── */
+function FeatureTags({ items }) {
+  if (!items || !items.length) return null
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20, transform: 'translateZ(18px)' }}>
+      {items.map((item) => (
+        <span
+          key={item}
+          className="pf-feature-tag"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.88)',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            borderRadius: 999,
+            padding: '5px 11px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: ACCENT_LIGHT, flexShrink: 0 }} />
+          {item}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 /* ─────────────────────────────────────────────
    Card 1 — HRMS: Smart Shift Scheduling
@@ -253,8 +297,12 @@ function StorefrontMock() {
    Now on a layered blue gradient with a subtle
    top-left sheen + bottom glow for a more
    "designed" feel instead of a flat fill.
+   Accepts an optional `features` list, rendered
+   as small pill tags between the description and
+   the mock — used to show the fuller breadth of
+   each module beyond the single mock shown.
 ───────────────────────────────────────────── */
-function BentoCard({ eyebrow, title, desc, mock, span, minHeight, delay, dir = 'up' }) {
+function BentoCard({ eyebrow, title, desc, features, mock, span, minHeight, delay, dir = 'up' }) {
   const [visible, setVisible] = useState(false)
   const ref = useRef(null)
 
@@ -322,9 +370,10 @@ function BentoCard({ eyebrow, title, desc, mock, span, minHeight, delay, dir = '
       <h3 style={{ fontFamily: FONT, fontSize: 21, fontWeight: 700, color: '#fff', margin: '0 0 10px', lineHeight: 1.25, transform: 'translateZ(16px)' }}>
         {title}
       </h3>
-      <p style={{ fontSize: 13.5, color: 'rgba(214,224,255,0.78)', lineHeight: 1.65, margin: '0 0 20px', maxWidth: 340, transform: 'translateZ(12px)' }}>
+      <p style={{ fontSize: 13.5, color: 'rgba(214,224,255,0.78)', lineHeight: 1.65, margin: '0 0 16px', maxWidth: 360, transform: 'translateZ(12px)' }}>
         {desc}
       </p>
+      <FeatureTags items={features} />
       <div style={{ marginTop: 'auto', transform: 'translateZ(24px)' }}>{mock}</div>
     </div>
   )
@@ -433,12 +482,72 @@ function PlatformFeatures() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 20 }} className="pf-bento-grid">
-          <BentoCard eyebrow="HRMS" title="Smart Shift Scheduling" desc="Teams and employees manage entire shift seasons through a centralized calendar — online and on mobile." mock={<ScheduleMock />} span="1 / 8" minHeight={360} delay={0} dir="left" />
-          <BentoCard eyebrow="Property Management" title="Every Unit, Tracked in One Place" desc="Track units, tenants, rent, and maintenance requests across your whole portfolio without spreadsheets." mock={<PropertyMock />} span="8 / 13" minHeight={360} delay={80} dir="right" />
-          <BentoCard eyebrow="Gym & Fitness" title="Classes, Memberships, Check-ins" desc="Handle class scheduling, memberships, and front-desk check-ins without a whiteboard or a clipboard." mock={<GymMock />} span="1 / 7" minHeight={280} delay={160} dir="left" />
-          <BentoCard eyebrow="Restaurant" title="Orders, Kept in Sync" desc="Keep orders, tables, and the kitchen moving in real time — without leaving the floor." mock={<RestaurantMock />} span="7 / 13" minHeight={280} delay={240} dir="right" />
-          <BentoCard eyebrow="Asset Management" title="Every Asset, One Source of Truth" desc="Track equipment, licenses, and inventory across every team, with a full assignment history." mock={<AssetMock />} span="1 / 8" minHeight={340} delay={320} dir="left" />
-          <BentoCard eyebrow="E-commerce" title="One Storefront, Every Sale" desc="Run a multi-vendor marketplace with products, vendors, and orders in a single dashboard." mock={<StorefrontMock />} span="8 / 13" minHeight={340} delay={400} dir="right" />
+          <BentoCard
+            eyebrow="HRMS"
+            title="Smart Shift Scheduling"
+            desc="Teams and employees manage entire shift seasons through a centralized calendar — online and on mobile."
+            features={['Shift Scheduling', 'Attendance & Time Tracking', 'Leave Management', 'Payroll', 'Performance Reviews', 'Recruitment & Onboarding', 'Employee Self-Service']}
+            mock={<ScheduleMock />}
+            span="1 / 8"
+            minHeight={400}
+            delay={0}
+            dir="left"
+          />
+          <BentoCard
+            eyebrow="Property Management"
+            title="Every Unit, Tracked in One Place"
+            desc="Track units, tenants, rent, and maintenance requests across your whole portfolio without spreadsheets."
+            features={['Units & Tenants', 'Rent Collection', 'Maintenance Requests', 'Lease Tracking', 'Owner Statements']}
+            mock={<PropertyMock />}
+            span="8 / 13"
+            minHeight={400}
+            delay={80}
+            dir="right"
+          />
+          <BentoCard
+            eyebrow="Gym & Fitness"
+            title="Classes, Memberships, Check-ins"
+            desc="Handle class scheduling, memberships, and front-desk check-ins without a whiteboard or a clipboard."
+            features={['Memberships', 'Class Scheduling', 'Check-ins', 'Billing & Renewals', 'Trainer Assignments']}
+            mock={<GymMock />}
+            span="1 / 7"
+            minHeight={330}
+            delay={160}
+            dir="left"
+          />
+          <BentoCard
+            eyebrow="Restaurant"
+            title="Orders, Kept in Sync"
+            desc="Keep orders, tables, and the kitchen moving in real time — without leaving the floor."
+            features={['Order Management', 'Table Tracking', 'Kitchen Sync', 'Billing', 'Menu & Inventory']}
+            mock={<RestaurantMock />}
+            span="7 / 13"
+            minHeight={330}
+            delay={240}
+            dir="right"
+          />
+          <BentoCard
+            eyebrow="Asset Management"
+            title="Every Asset, One Source of Truth"
+            desc="Track equipment, licenses, and inventory across every team, with a full assignment history."
+            features={['Inventory Tracking', 'Assignment History', 'License Management', 'Maintenance Scheduling']}
+            mock={<AssetMock />}
+            span="1 / 8"
+            minHeight={380}
+            delay={320}
+            dir="left"
+          />
+          <BentoCard
+            eyebrow="E-commerce"
+            title="One Storefront, Every Sale"
+            desc="Run a multi-vendor marketplace with products, vendors, and orders in a single dashboard."
+            features={['Multi-Vendor Support', 'Order Management', 'Inventory Sync', 'Payments & Payouts']}
+            mock={<StorefrontMock />}
+            span="8 / 13"
+            minHeight={380}
+            delay={400}
+            dir="right"
+          />
         </div>
       </div>
     </section>
