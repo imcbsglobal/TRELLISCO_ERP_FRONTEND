@@ -27,7 +27,7 @@ const INDUSTRY_TABS = [
   },
   {
     key: 'restaurant',
-    label: 'Restaurant',
+    label: 'Hospitality',
     accent: '#f4923b',
     eyebrow: 'Hospitality',
     title: 'Good food, brighter people',
