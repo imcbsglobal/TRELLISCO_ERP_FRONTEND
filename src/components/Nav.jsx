@@ -1095,13 +1095,12 @@ export default function Nav() {
         </span>
 
         <span className="nav__banner-text">
-          Trellisco Event is happening on <strong>19/09/2026</strong> and this time,
-          we're bringing you an even better experience!
-          <span className="nav__banner-emoji"> 🚀</span>{" "}
-          <strong>Discover what's new</strong>
-          <span className="nav__banner-emoji"> 🎟️</span>
-          <span className="nav__banner-emoji"> 🎉</span>
-        </span>
+  Meet <strong>Trellisco HRMS</strong> — your smarter way to manage employees,
+  attendance, payroll, and more!
+  <span className="nav__banner-emoji"> 🚀</span>{" "}
+  <strong>Explore HRMS</strong>
+  <span className="nav__banner-emoji"> ✨</span>
+</span>
 
           <button
             type="button"
