@@ -19,7 +19,7 @@ const PRODUCTS = [
     eyebrow: "Trellisco Suite",
     desc: "Manage employee records, payroll, attendance, leave, and performance reviews from one connected HR platform.",
     accent: "#2f6fed",
-    link: "https://trellisco.in/",
+    link: "https://trelliscoerp.com/HRMS/",
     badge: {
       text: "Built for Growing Teams",
       color: "#2a8d5c",
@@ -1389,9 +1389,20 @@ export default function Nav() {
                         style={{
                           "--accent": product.accent,
                         }}
-                        onClick={() =>
-                          setActiveKey(itemKey)
-                        }
+                        onClick={() => {
+                          setActiveKey(itemKey);
+                          if (
+                            itemKey === "hrms" &&
+                            product.link &&
+                            product.link !== "#"
+                          ) {
+                            window.open(
+                              product.link,
+                              "_blank",
+                              "noopener,noreferrer"
+                            );
+                          }
+                        }}
                       >
                         <span className="mega__subitem-icon">
                           <ProductIcon type={itemKey} />
