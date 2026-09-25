@@ -1396,11 +1396,7 @@ export default function Nav() {
                             product.link &&
                             product.link !== "#"
                           ) {
-                            window.open(
-                              product.link,
-                              "_blank",
-                              "noopener,noreferrer"
-                            );
+                            window.location.href = product.link;
                           }
                         }}
                       >
