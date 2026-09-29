@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
-import { POSTS, CATEGORY_COVER_MAP } from './Blog'
+import { fetchPublicPost, fetchPublicPosts } from '../api/blogApi'
 import './BlogPost.scss'
 
 /* ───────────────────────────────
@@ -26,10 +26,10 @@ function BackIcon() {
 
 function LinkedinIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
       <path
         fill="currentColor"
-        d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.64h.05c.53-.98 1.83-2.02 3.77-2.02 4.03 0 4.78 2.5 4.78 5.76V21h-4v-5.6c0-1.34-.02-3.06-1.87-3.06-1.87 0-2.16 1.44-2.16 2.96V21H9z"
+        d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.44-2.14 2.94v5.66H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45z"
       />
     </svg>
   )
@@ -37,10 +37,10 @@ function LinkedinIcon() {
 
 function XIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
       <path
         fill="currentColor"
-        d="M18.3 3H21l-6.6 7.55L22.2 21h-6.1l-4.8-6.3L5.8 21H3l7.1-8.1L2.2 3h6.25l4.35 5.75L18.3 3zm-1.07 16.2h1.69L7.85 4.7H6.05l11.18 14.5z"
+        d="M13.6 10.4 21 2h-2.1l-6.4 7.3L7.1 2H1l7.8 11.3L1 22h2.1l6.8-7.8 5.7 7.8H22l-8.4-11.6Zm-2.4 2.7-.8-1.1L3.9 3.4h2.4l5.1 7.3.8 1.1 6.6 9.4h-2.4l-5.2-7.4Z"
       />
     </svg>
   )
@@ -48,12 +48,20 @@ function XIcon() {
 
 function LinkIcon() {
   return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
       <path
-        d="M6.5 9.5a2.5 2.5 0 0 0 3.6.1l2-2a2.5 2.5 0 1 0-3.6-3.5l-1 1M9.5 6.5a2.5 2.5 0 0 0-3.6-.1l-2 2a2.5 2.5 0 1 0 3.6 3.5l1-1"
+        d="M10.5 13.5a3 3 0 0 0 4.24.24l.24-.24 3-3a3 3 0 0 0-4.14-4.34l-.1.1-1.5 1.5"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.4"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13.5 10.5a3 3 0 0 0-4.24-.24l-.24.24-3 3a3 3 0 0 0 4.14 4.34l.1-.1 1.5-1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -123,9 +131,12 @@ function Byline({ post }) {
       </div>
 
       <div className="blog-post__share">
-        <span>{copied ? 'Link copied' : 'Share'}</span>
+        <span className="blog-post__share-label">
+          {copied ? 'Link copied' : 'Share'}
+        </span>
 
         <a
+          className="blog-post__share-btn blog-post__share-btn--linkedin"
           href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
             shareUrl
           )}`}
@@ -137,6 +148,7 @@ function Byline({ post }) {
         </a>
 
         <a
+          className="blog-post__share-btn blog-post__share-btn--x"
           href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
             shareUrl
           )}`}
@@ -149,10 +161,11 @@ function Byline({ post }) {
 
         <button
           type="button"
+          className={`blog-post__share-btn blog-post__share-btn--copy${copied ? ' is-copied' : ''}`}
           onClick={handleCopy}
           aria-label="Copy link"
         >
-          <LinkIcon />
+          {copied ? <CheckIcon /> : <LinkIcon />}
         </button>
       </div>
     </div>
@@ -181,7 +194,7 @@ function TableOfContents({ sections, activeId }) {
 }
 
 /* ───────────────────────────────
-   APP GRID (platform breakdown visual)
+   APP GRID (platform breakdown visual) — legacy sections
 ─────────────────────────────── */
 function AppGrid({ apps }) {
   if (!apps || !apps.length) return null
@@ -203,7 +216,7 @@ function AppGrid({ apps }) {
 }
 
 /* ───────────────────────────────
-   WORKFLOW STEPS (lifecycle visual)
+   WORKFLOW STEPS (lifecycle visual) — legacy sections
 ─────────────────────────────── */
 function WorkflowSteps({ steps }) {
   if (!steps || !steps.length) return null
@@ -240,37 +253,120 @@ function SectionImage({ src, alt, caption }) {
 }
 
 /* ───────────────────────────────
+   SECTION VIDEO — always an uploaded file now, so just <video>
+─────────────────────────────── */
+function SectionVideo({ src, caption }) {
+  if (!src) return null
+
+  return (
+    <figure className="blog-post__video">
+      <video controls src={src} />
+      {caption && <figcaption>{caption}</figcaption>}
+    </figure>
+  )
+}
+
+/* ───────────────────────────────
+   BLOCK RENDERER — new block-based body
+   (heading, paragraph, image, video, quote,
+   bullet_list, numbered_list, code, cta, divider)
+─────────────────────────────── */
+function Block({ block }) {
+  switch (block.type) {
+    case 'heading':
+      return <h2 id={block.id}>{block.text}</h2>
+    case 'paragraph':
+      return <p>{block.text}</p>
+    case 'image':
+      return <SectionImage src={block.image} alt={block.alt} caption={block.caption} />
+    case 'video':
+      return <SectionVideo src={block.video} caption={block.caption} />
+    case 'quote':
+      return (
+        <div className="blog-post__quote">
+          <span className="blog-post__quote-mark" aria-hidden="true">&ldquo;</span>
+          <p>{block.text}</p>
+          <span className="blog-post__quote-dash" aria-hidden="true" />
+        </div>
+      )
+    case 'bullet_list':
+      return (
+        <ul className="blog-post__list">
+          {(block.items || []).map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      )
+    case 'numbered_list':
+      return (
+        <ol className="blog-post__list">
+          {(block.items || []).map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ol>
+      )
+    case 'code':
+      return (
+        <pre className="blog-post__code">
+          <code>{block.code}</code>
+        </pre>
+      )
+    case 'cta':
+      return (
+        <Link to={block.url || '#'} className="blog-post__cta">
+          {block.label}
+        </Link>
+      )
+    case 'divider':
+      return <hr className="blog-post__hr" />
+    default:
+      return null
+  }
+}
+
+/* ───────────────────────────────
    BODY (heading / paragraphs / quote / visuals)
+   Supports both the new flat block list (items with a `type`) and the
+   older section list (heading/paragraphs/apps/workflow/image/quote),
+   so existing posts keep rendering as-is.
 ─────────────────────────────── */
 function PostBody({ post }) {
+  const body = post.body || []
+  const isBlockSchema = body.some((item) => item.type)
+
   return (
     <div className="blog-post__body">
       <p className="blog-post__lead">{post.excerpt}</p>
 
-      {post.body.map((section) => (
-        <div key={section.id} id={section.id} className="blog-post__section">
-          <h2>{section.heading}</h2>
-          {section.paragraphs.map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
-          {section.apps && <AppGrid apps={section.apps} />}
-          {section.workflow && <WorkflowSteps steps={section.workflow} />}
-          {section.image && (
-            <SectionImage
-              src={section.image}
-              alt={section.imageAlt}
-              caption={section.imageCaption}
-            />
-          )}
-          {section.quote && (
-            <div className="blog-post__quote">
-              <span className="blog-post__quote-mark" aria-hidden="true">&ldquo;</span>
-              <p>{section.quote}</p>
-              <span className="blog-post__quote-dash" aria-hidden="true" />
+      {isBlockSchema
+        ? body.map((block) => <Block key={block.id} block={block} />)
+        : body.map((section) => (
+            <div key={section.id} id={section.id} className="blog-post__section">
+              <h2>{section.heading}</h2>
+              {(section.paragraphs || []).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+              {section.apps && <AppGrid apps={section.apps} />}
+              {section.workflow && <WorkflowSteps steps={section.workflow} />}
+              {section.image && (
+                <SectionImage
+                  src={section.image}
+                  alt={section.imageAlt}
+                  caption={section.imageCaption}
+                />
+              )}
+              {section.video && (
+                <SectionVideo src={section.video} caption={section.videoCaption} />
+              )}
+              {section.quote && (
+                <div className="blog-post__quote">
+                  <span className="blog-post__quote-mark" aria-hidden="true">&ldquo;</span>
+                  <p>{section.quote}</p>
+                  <span className="blog-post__quote-dash" aria-hidden="true" />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+          ))}
     </div>
   )
 }
@@ -278,16 +374,16 @@ function PostBody({ post }) {
 /* ───────────────────────────────
    RELATED POSTS
 ─────────────────────────────── */
-function RelatedPosts({ current }) {
+function RelatedPosts({ current, allPosts }) {
   const related = useMemo(() => {
-    const sameCategory = POSTS.filter(
+    const sameCategory = allPosts.filter(
       (p) => p.id !== current.id && p.category === current.category
     )
-    const others = POSTS.filter(
+    const others = allPosts.filter(
       (p) => p.id !== current.id && p.category !== current.category
     )
     return [...sameCategory, ...others].slice(0, 3)
-  }, [current])
+  }, [current, allPosts])
 
   if (!related.length) return null
 
@@ -302,13 +398,11 @@ function RelatedPosts({ current }) {
         <div className="blog-post__related-grid">
           {related.map((post) => (
             <Link key={post.id} to={`/blog/${post.slug}`} className="related-card">
-              <div className="related-card__image">
-                <img
-                  src={CATEGORY_COVER_MAP[post.category] || CATEGORY_COVER_MAP.company}
-                  alt={post.title}
-                  loading="lazy"
-                />
-              </div>
+              {post.coverImage && (
+                <div className="related-card__image">
+                  <img src={post.coverImage} alt={post.title} loading="lazy" />
+                </div>
+              )}
               <span className="related-card__category">{post.categoryLabel}</span>
               <h3>{post.title}</h3>
               <div className="related-card__meta">
@@ -352,14 +446,63 @@ function PostNotFound() {
 ─────────────────────────────── */
 function BlogPost() {
   const { slug } = useParams()
-  const post = POSTS.find((p) => p.slug === slug)
 
+  const [post, setPost] = useState(null)
+  const [allPosts, setAllPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      setNotFound(false)
+      try {
+        const [postData, listData] = await Promise.all([
+          fetchPublicPost(slug),
+          fetchPublicPosts(),
+        ])
+        if (cancelled) return
+        setPost(postData)
+        setAllPosts(Array.isArray(listData) ? listData : listData.results || [])
+      } catch (err) {
+        if (cancelled) return
+        if (err.response?.status === 404) {
+          setNotFound(true)
+        } else {
+          setNotFound(true)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    window.scrollTo({ top: 0 })
+
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  // TOC entries: heading blocks (new schema) or section headings (legacy schema).
   const sections = useMemo(() => {
     if (!post || !post.body) return []
+    const isBlockSchema = post.body.some((item) => item.type)
+    if (isBlockSchema) {
+      return post.body
+        .filter((b) => b.type === 'heading')
+        .map((b) => ({ id: b.id, heading: b.text }))
+    }
     return post.body.map((s) => ({ id: s.id, heading: s.heading }))
   }, [post])
 
-  const [activeId, setActiveId] = useState(sections[0]?.id)
+  const [activeId, setActiveId] = useState(null)
+
+  useEffect(() => {
+    setActiveId(sections[0]?.id)
+  }, [sections])
 
   useEffect(() => {
     if (!sections.length) return
@@ -383,13 +526,23 @@ function BlogPost() {
     return () => observer.disconnect()
   }, [sections])
 
-  useEffect(() => {
-    window.scrollTo({ top: 0 })
-  }, [slug])
+  if (loading) {
+    return (
+      <>
+        <Nav />
+        <div className="blog-post__hero">
+          <div className="blog-post__hero-inner">
+            <p className="blog-post__lead">Loading article…</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    )
+  }
 
-  if (!post) return <PostNotFound />
+  if (notFound || !post) return <PostNotFound />
 
-  const coverSrc = CATEGORY_COVER_MAP[post.category] || CATEGORY_COVER_MAP.company
+  const coverSrc = post.coverImage || ''
 
   return (
     <div className="blog-post">
@@ -406,14 +559,16 @@ function BlogPost() {
         </div>
       </div>
 
-      <div className="blog-post__cover">
-        <img src={coverSrc} alt={post.title} />
-      </div>
+      {coverSrc && (
+        <div className="blog-post__cover">
+          <img src={coverSrc} alt={post.coverImageAlt || post.title} />
+        </div>
+      )}
 
       <div className={`blog-post__layout${sections.length ? ' blog-post__layout--with-toc' : ''}`}>
         {sections.length > 0 && <TableOfContents sections={sections} activeId={activeId} />}
 
-        {post.body ? (
+        {post.body && post.body.length ? (
           <PostBody post={post} />
         ) : (
           <div className="blog-post__body">
@@ -422,7 +577,7 @@ function BlogPost() {
         )}
       </div>
 
-      <RelatedPosts current={post} />
+      <RelatedPosts current={post} allPosts={allPosts} />
 
       <Footer />
     </div>

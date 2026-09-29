@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import TrelliscoLogo from "../assets/Trellisco logo 2.png";
 import HrImg from "../assets/Hr.png";
@@ -10,6 +10,8 @@ import VenukartImg from "../assets/ChatGPT Image Sep 14, 2026, 10_39_24 AM.png";
 import MeloneLogo from "../assets/MELONE PNG (1) (1).png";
 import ClaudesLogo from "../assets/cluadius icon W-01 (1).png";
 import VenukartLogo from "../assets/image.png";
+import { fetchActiveAnnouncement } from "../api/announcements";
+import AnnouncementText from "./AnnouncementText";
 import "./Nav.scss";
 
 const PRODUCTS = [
@@ -336,11 +338,11 @@ const PRODUCTS = [
   },
   {
     key: "claudes",
-    name: "Cluadius",
+    name: "Claudius",
     eyebrow: "Trellisco Suite",
     desc: "An AI assistant that drafts replies, summarizes tickets, manages gym memberships and schedules, and automates busywork.",
     accent: "#e07b39",
-    link: "#",
+    link: "https://claudius.in/",
     badge: {
       text: "Built for Gyms & Fitness Studios",
       color: "#e07b39",
@@ -448,7 +450,7 @@ const GROUPS = [
   },
   {
     key: "claudes",
-    label: "Cluadius",
+    label: "Claudius",
     tagline: "AI assistant for support & ops",
     logo: ClaudesLogo,
     items: ["claudes"],
@@ -1052,12 +1054,110 @@ function CloseIcon() {
   );
 }
 
+function LoginIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+      <path
+        d="M8 4h6a2 2 0 012 2v8a2 2 0 01-2 2H8"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 10h10M9 6.5L12.5 10 9 13.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function Nav() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [activeGroup, setActiveGroup] = useState(GROUPS[0].key);
   const [activeKey, setActiveKey] = useState(GROUPS[0].items[0]);
+  const [announcement, setAnnouncement] = useState(null);
   const [bannerOpen, setBannerOpen] = useState(true);
+  const [bannerScrolls, setBannerScrolls] = useState(false);
+  const [bannerDuration, setBannerDuration] = useState(20);
+  const bannerViewportRef = useRef(null);
+  const bannerTextRef = useRef(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Load the announcement the admin has switched on (if any).
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchActiveAnnouncement()
+      .then((data) => {
+        if (cancelled || !data) return;
+
+        let dismissed = false;
+        try {
+          dismissed =
+            sessionStorage.getItem(`announcement-dismissed-${data.id}`) === "1";
+        } catch {
+          /* storage unavailable — just show the banner */
+        }
+
+        setAnnouncement(data);
+        setBannerOpen(!dismissed);
+      })
+      .catch(() => {
+        /* no banner if the API is unreachable */
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Long announcements scroll across the bar (like a news ticker);
+  // ones that fit stay still and centred. Re-checked whenever the
+  // text or the window size changes.
+  useEffect(() => {
+    if (!announcement || !bannerOpen) return undefined;
+
+    const viewport = bannerViewportRef.current;
+    const text = bannerTextRef.current;
+    if (!viewport || !text) return undefined;
+
+    const BANNER_GAP = 64; // px between the end of one pass and the start of the next
+    const SPEED = 60; // px per second
+
+    const measure = () => {
+      const textWidth = text.offsetWidth;
+      const overflows = textWidth > viewport.clientWidth;
+
+      setBannerScrolls(overflows);
+      setBannerDuration(Math.max(8, (textWidth + BANNER_GAP) / SPEED));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    observer.observe(text);
+    return () => observer.disconnect();
+  }, [announcement, bannerOpen]);
+
+  const dismissBanner = () => {
+    setBannerOpen(false);
+    if (!announcement) return;
+    try {
+      sessionStorage.setItem(`announcement-dismissed-${announcement.id}`, "1");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const toggleMenu = (key) => {
     setActiveMenu((current) =>
@@ -1088,42 +1188,49 @@ export default function Nav() {
 
   return (
   <header className="nav">
-    {bannerOpen && (
+    {bannerOpen && announcement && (
       <div className="nav__banner">
-        <span className="nav__banner-icon" aria-hidden="true">
-          ✨
-        </span>
-
-        <span className="nav__banner-text">
-  Meet <strong>Trellisco HRMS</strong> — your smarter way to manage employees,
-  attendance, payroll, and more!
-  <span className="nav__banner-emoji"> 🚀</span>{" "}
-  <strong>Explore HRMS</strong>
-  <span className="nav__banner-emoji"> ✨</span>
-</span>
-
-          <button
-            type="button"
-            className="nav__banner-close"
-            aria-label="Dismiss banner"
-            onClick={() => setBannerOpen(false)}
+        <div
+          ref={bannerViewportRef}
+          className={`nav__banner-viewport${bannerScrolls ? " is-scrolling" : ""}`}
+        >
+          <div
+            className={`nav__banner-track${bannerScrolls ? " is-scrolling" : ""}`}
+            style={{ "--marquee-duration": `${bannerDuration}s` }}
           >
-            <svg
-              viewBox="0 0 20 20"
-              width="14"
-              height="14"
-              fill="none"
-            >
-              <path
-                d="M5 5l10 10M15 5L5 15"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+            <span ref={bannerTextRef} className="nav__banner-text">
+              <AnnouncementText message={announcement.message} />
+            </span>
+
+            {/* Second copy makes the scroll loop seamlessly. */}
+            {bannerScrolls && (
+              <span
+                className="nav__banner-text nav__banner-text--clone"
+                aria-hidden="true"
+              >
+                <AnnouncementText message={announcement.message} />
+              </span>
+            )}
+          </div>
         </div>
-      )}
+
+        <button
+          type="button"
+          className="nav__banner-close"
+          aria-label="Dismiss banner"
+          onClick={dismissBanner}
+        >
+          <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+            <path
+              d="M5 5l10 10M15 5L5 15"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+    )}
 
       <div className="nav__bar">
         <button
@@ -1195,6 +1302,11 @@ export default function Nav() {
         </nav>
 
         <div className="nav__right">
+          <Link className="nav__login" to="/login">
+            <LoginIcon />
+            Login
+          </Link>
+
           <Link className="nav__contact" to="/contact">
             Contact Us
 
@@ -1269,6 +1381,17 @@ export default function Nav() {
                 )}
               </li>
             ))}
+
+            <li className="nav__mobile-item nav__mobile-item--login">
+              <Link
+                className="nav__mobile-login"
+                to="/login"
+                onClick={closeMobileNav}
+              >
+                <LoginIcon />
+                Login
+              </Link>
+            </li>
 
             <li className="nav__mobile-item nav__mobile-item--contact">
               <Link

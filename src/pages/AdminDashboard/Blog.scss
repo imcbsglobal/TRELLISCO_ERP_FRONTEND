@@ -1,0 +1,1496 @@
+// src/pages/AdminDashboard/Blog.scss
+// Matches the provided admin dashboard screenshot: soft blue-gray canvas,
+// white rounded cards, bright blue accent, pill status/action controls.
+
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+$c-bg: #eef1f7;
+$c-card: #ffffff;
+$c-border: #e6e9f0;
+$c-border-strong: #ccd2df;
+$c-text: #10162b;
+$c-muted: #667085;
+$c-subtle: #98a2b3;
+
+$c-blue: #2954e5;
+$c-blue-dark: #1f3fc0;
+$c-blue-light: #e3e9fd;
+$c-blue-lighter: #f2f5fe;
+
+$c-red: #e0362f;
+$c-red-light: #fde9e8;
+$c-green: #17a05a;
+$c-green-bg: #dcfae6;
+$c-green-text: #15803d;
+$c-warning: #b6650a;
+$c-warning-bg: #fdf0d5;
+
+$c-purple: #7c5cff;
+$c-teal: #0f9b8e;
+$c-pink: #d6409f;
+
+$c-panel-bg: #f8f9fc;
+
+$font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+$radius-sm: 8px;
+$radius: 10px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-pill: 999px;
+
+$shadow-card: 0 1px 2px rgba(16, 22, 43, 0.04);
+
+.admin-blog {
+  min-height: 100vh;
+  background: $c-bg;
+  color: $c-text;
+  font-family: $font;
+  font-weight: 400;
+
+  // ── Shell (sidebar + content) ────────
+  &__shell {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+
+    // Pins the sidebar to the viewport so only the content column (__main)
+    // scrolls. Targets Sidebar's rendered root as the shell's first child,
+    // since Sidebar itself isn't styled from this file. Sticky (not fixed)
+    // so it still respects the flex layout's own width/order instead of
+    // needing a hardcoded offset for __main.
+    > *:first-child {
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    margin: 0 auto;
+    padding: 28px 32px 64px;
+    // Establishes a containing block for the fixed editor header below,
+    // so `position: fixed` on __editor-head is scoped to this content
+    // column (i.e. it never covers the sidebar) instead of the whole
+    // viewport, while still staying pinned through scroll.
+    transform: translateZ(0);
+  }
+
+  // ── Hero / toolbar panel ─────────────
+  &__hero {
+    position: relative;
+    overflow: hidden;
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: 0;
+    box-shadow: $shadow-card;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  &__hero-top {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  &__hero-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__hero-heading {
+    h2 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      color: $c-text;
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-size: 14.5px;
+      color: $c-muted;
+      font-weight: 400;
+    }
+  }
+
+  &__hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  // ── Toolbar row (search + filter selects) ──
+  &__toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: $radius;
+    padding: 10px 14px;
+    flex: 1 1 260px;
+    min-width: 220px;
+    color: $c-subtle;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus-within {
+      border-color: $c-blue;
+      box-shadow: 0 0 0 3px color-mix(in srgb, $c-blue 15%, white);
+    }
+
+    svg {
+      flex-shrink: 0;
+      color: $c-subtle;
+    }
+
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 400;
+      color: $c-text;
+
+      &::placeholder {
+        color: $c-subtle;
+      }
+    }
+  }
+
+  &__select {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: $radius;
+    padding: 10px 14px;
+    color: $c-muted;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: $c-border-strong;
+    }
+
+    &:focus-within {
+      border-color: $c-blue;
+      box-shadow: 0 0 0 3px color-mix(in srgb, $c-blue 15%, white);
+    }
+
+    > svg:first-child {
+      flex-shrink: 0;
+      color: $c-subtle;
+    }
+
+    > svg:last-child {
+      flex-shrink: 0;
+      color: $c-subtle;
+    }
+
+    select {
+      appearance: none;
+      border: none;
+      outline: none;
+      background: transparent;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: $c-text;
+      cursor: pointer;
+      padding-right: 2px;
+    }
+  }
+
+  // ── Filter tabs ──
+  &__tabs {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid $c-border;
+  }
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: $c-muted;
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 8px 2px 12px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    &:hover:not(.is-active) {
+      color: $c-text;
+    }
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: $radius-pill;
+      background: #eef0f4;
+      color: $c-muted;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    &.is-active {
+      color: $c-blue;
+      border-bottom-color: $c-blue;
+
+      span {
+        background: $c-blue-light;
+        color: $c-blue;
+      }
+    }
+  }
+
+  &__hint {
+    color: $c-muted;
+    font-size: 14.5px;
+    font-weight: 400;
+  }
+
+  &__error {
+    background: $c-red-light;
+    border: 1px solid color-mix(in srgb, $c-red 25%, white);
+    color: #a5171a;
+    border-radius: $radius;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  &__empty {
+    background: $c-card;
+    border: 1px dashed $c-border-strong;
+    border-radius: $radius-lg;
+    padding: 56px 24px;
+    text-align: center;
+    color: $c-muted;
+    font-size: 14.5px;
+    font-weight: 400;
+  }
+
+  // ── Buttons ──────────────────────────
+  &__primary,
+  &__ghost,
+  &__danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 11px 18px;
+    border-radius: $radius;
+    cursor: pointer;
+    border: 1px solid $c-border;
+    background: $c-card;
+    color: $c-text;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__primary {
+    background: $c-blue;
+    border-color: $c-blue;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(41, 84, 229, 0.25);
+
+    &:hover:not(:disabled) {
+      background: $c-blue-dark;
+      border-color: $c-blue-dark;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__ghost {
+    background: $c-card;
+    border-color: $c-border;
+    color: $c-text;
+    text-decoration: none;
+
+    &:hover:not(:disabled) {
+      border-color: $c-blue;
+      color: $c-blue;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__danger {
+    background: none;
+    border: none;
+    color: $c-red;
+    padding: 7px 9px;
+    border-radius: $radius-pill;
+
+    &:hover:not(:disabled) {
+      background: $c-red-light;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  // ── Table ────────────────────────────
+  &__table {
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    overflow: hidden;
+  }
+
+  &__table-head,
+  &__row {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: center;
+    gap: 0;
+    padding: 0 16px;
+
+    > span {
+      padding: 9px 14px;
+      border-right: 1px solid $c-border;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      min-height: 42px;
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+  }
+
+  &__table-head {
+    background: $c-panel-bg;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $c-subtle;
+    border-bottom: 1px solid $c-border;
+
+    > span {
+      min-height: 32px;
+      padding: 7px 10px;
+    }
+
+    > span {
+      color: #1c2333;
+    }
+  }
+
+  &__sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+  }
+
+  &__row {
+    border-top: 1px solid $c-border-strong;
+    font-size: 13px;
+    font-weight: 400;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: $c-blue-lighter;
+    }
+  }
+
+  // Grid cell for the cover column. This is the element that participates
+  // in the grid/border layout — it must stay full-width (like every other
+  // cell) so its border-right lines up with the header divider. The actual
+  // fixed-size thumbnail box lives in __cover-thumb below.
+  &__cover {
+    display: flex;
+    align-items: center;
+  }
+
+  &__cover-thumb {
+    width: 40px;
+    height: 28px;
+    overflow: hidden;
+    border-radius: $radius-sm;
+    background: $c-blue-light;
+    display: block;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__cover-placeholder {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, $c-blue-light, color-mix(in srgb, $c-blue 30%, white));
+  }
+
+  &__title-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    min-width: 0;
+    gap: 3px;
+    width: 100%;
+
+    strong {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0b0f1f;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    small {
+      color: $c-subtle;
+      font-size: 11.5px;
+      font-weight: 400;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+  }
+
+  &__category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: $c-muted;
+    font-size: 12.5px;
+    font-weight: 400;
+    white-space: nowrap;
+
+    svg {
+      flex-shrink: 0;
+      color: $c-subtle;
+    }
+  }
+
+  // Status — soft pill with dot, like the screenshot
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    border-radius: $radius-pill;
+    background: $c-warning-bg;
+    color: $c-warning;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    &:hover:not(:disabled) {
+      opacity: 0.8;
+    }
+
+    &.is-published {
+      background: $c-green-bg;
+      color: $c-green-text;
+    }
+
+    // NEW — scheduled posts (waiting for their publish time)
+    &.is-scheduled {
+      background: $c-blue-light;
+      color: $c-blue;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: $c-muted;
+
+    svg {
+      flex-shrink: 0;
+      color: $c-subtle;
+      margin-top: 1px;
+    }
+  }
+
+  &__updated-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+
+    strong {
+      font-size: 12px;
+      font-weight: 700;
+      color: $c-text;
+    }
+
+    span {
+      font-size: 10.5px;
+      font-weight: 400;
+      color: $c-subtle;
+    }
+  }
+
+  &__row-actions {
+    display: flex;
+    gap: 4px;
+
+    button {
+      background: $c-blue-light;
+      border: none;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      cursor: pointer;
+      color: $c-blue;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease, color 0.15s ease;
+
+      &:hover {
+        background: color-mix(in srgb, $c-blue 22%, white);
+      }
+
+      &.admin-blog__danger {
+        background: $c-red-light;
+        color: $c-red;
+
+        &:hover:not(:disabled) {
+          background: color-mix(in srgb, $c-red 16%, white);
+        }
+      }
+
+      &.admin-blog__more {
+        background: #f1f2f4;
+        color: $c-muted;
+
+        &:hover {
+          background: color-mix(in srgb, #f1f2f4 60%, #cfd2d8);
+        }
+      }
+    }
+  }
+
+  // ── Pagination footer ──
+  &__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  &__pagination-summary {
+    font-size: 13.5px;
+    color: $c-muted;
+    font-weight: 400;
+  }
+
+  &__pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $radius-sm;
+    border: 1px solid $c-border;
+    background: $c-card;
+    color: $c-muted;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      border-color: $c-blue;
+      color: $c-blue;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__page-current {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    border-radius: $radius-sm;
+    background: $c-blue;
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 0 8px;
+  }
+
+  // ── Editor shell ─────────────────────
+  &__editor {
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    // Clearance so content isn't hidden under the fixed header: header
+    // height (~64px) + its 12px offset from the viewport top + a clean
+    // 24px breathing gap before the first panel starts.
+    padding-top: 100px;
+  }
+
+  &__editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: 0;
+    box-shadow: 0 8px 20px rgba(16, 22, 43, 0.1);
+    padding: 18px 22px;
+    // Fixed relative to the transformed __main ancestor (see above), so it
+    // stays pinned to the top of the content column while the page scrolls,
+    // without ever overlapping the sidebar. left/right match __main's own
+    // horizontal padding so the header's edges line up exactly with the
+    // panels below it instead of running full-bleed.
+    position: fixed;
+    top: 12px;
+    left: 32px;
+    right: 32px;
+    z-index: 20;
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  &__editor-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  // ── Panels ──
+  &__panel {
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-left: 4px solid $c-border-strong;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: 22px;
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      font-size: 15px;
+      font-weight: 700;
+      color: $c-text;
+      padding-bottom: 12px;
+      border-bottom: 1px solid $c-border;
+
+      &::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+      }
+    }
+
+    // Section accents — each panel gets its own accent color (left edge +
+    // the dot beside its title) so the form reads as distinct sections
+    // instead of one long stack of identical white cards.
+    &--details {
+      border-left-color: $c-blue;
+      h3 { color: $c-blue; }
+    }
+
+    &--cover {
+      border-left-color: $c-purple;
+      h3 { color: $c-purple; }
+    }
+
+    &--content {
+      border-left-color: $c-teal;
+      h3 { color: $c-teal; }
+    }
+
+    &--seo {
+      border-left-color: $c-pink;
+      h3 { color: $c-pink; }
+    }
+
+    &--publishing {
+      border-left-color: $c-green;
+      h3 { color: $c-green; }
+    }
+  }
+
+  // ── Fields ───────────────────────────
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+    min-width: 0;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    span {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: $c-muted;
+    }
+
+    // NEW — helper / summary text under a field (schedule summary)
+    small {
+      font-size: 12.5px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: $c-muted;
+    }
+
+    // NEW — "Clear schedule" button inside a field: compact, left-aligned
+    > .admin-blog__ghost {
+      align-self: flex-start;
+      padding: 7px 12px;
+      font-size: 13px;
+    }
+
+    input[type='text'],
+    input[type='email'],
+    input[type='datetime-local'],
+    textarea,
+    select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid $c-border;
+      border-radius: $radius;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 14.5px;
+      font-weight: 400;
+      color: $c-text;
+      background: $c-card;
+      resize: vertical;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+      &::placeholder {
+        color: $c-subtle;
+      }
+
+      &:hover:not(:disabled) {
+        border-color: $c-border-strong;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: $c-blue;
+        box-shadow: 0 0 0 3px color-mix(in srgb, $c-blue 15%, white);
+      }
+
+      &:disabled {
+        background: $c-panel-bg;
+        cursor: not-allowed;
+      }
+    }
+
+    input[type='file'] {
+      font-size: 13.5px;
+    }
+  }
+
+  &__field-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: $c-muted;
+  }
+
+  &__field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14.5px;
+    font-weight: 400;
+    margin-bottom: 20px;
+  }
+
+  &__cover-preview {
+    margin-top: 8px;
+    width: 160px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: $radius-md;
+    border: 1px solid $c-border;
+  }
+
+  // ── Fieldset / radio ──
+  &__fieldset {
+    border: 1px solid $c-border;
+    border-radius: $radius;
+    padding: 12px 14px 14px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: $c-panel-bg;
+
+    legend {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: $c-muted;
+      padding: 0 4px;
+    }
+  }
+
+  &__radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+
+    input[type='radio'] {
+      accent-color: $c-blue;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+  }
+
+  // ── Chips ──
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid $c-border;
+    border-radius: $radius;
+    padding: 7px 10px;
+    background: $c-card;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      border-color: $c-border-strong;
+    }
+
+    &:focus-within {
+      border-color: $c-blue;
+      box-shadow: 0 0 0 3px color-mix(in srgb, $c-blue 15%, white);
+    }
+
+    input {
+      flex: 1 1 120px;
+      min-width: 100px;
+      border: none;
+      outline: none;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 400;
+      padding: 4px 2px;
+      background: transparent;
+
+      &:disabled {
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: $c-blue-light;
+    color: $c-blue;
+    border-radius: $radius-pill;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 6px 4px 12px;
+
+    button {
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px;
+      border-radius: 50%;
+      display: inline-flex;
+
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, $c-blue 22%, white);
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  // ── File drop field ──
+  &__file-drop {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  &__file-drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 140px;
+    border: 1px dashed $c-border-strong;
+    border-radius: $radius-md;
+    background: $c-panel-bg;
+    color: $c-muted;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: center;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    overflow: hidden;
+
+    &:hover {
+      border-color: $c-blue;
+      background: $c-blue-lighter;
+      color: $c-blue;
+    }
+
+    small {
+      color: $c-subtle;
+      font-size: 12px;
+      font-weight: 400;
+    }
+  }
+
+  &__file-drop-preview {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: $radius-sm;
+  }
+
+  // ── Content blocks ──
+  &__blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__block {
+    background: $c-panel-bg;
+    border: 1px solid $c-border;
+    border-left: 3px solid $c-border-strong;
+    border-radius: $radius-md;
+    padding: 16px;
+    transition: border-left-color 0.15s ease;
+
+    &:hover {
+      border-left-color: $c-blue;
+    }
+
+    // Blocks with real content get a green accent; empty ones get a soft
+    // amber accent, so a stack of same-type blocks doesn't look identical
+    // and it's obvious at a glance what's filled in vs. still needs work.
+    &.is-filled {
+      border-left-color: $c-green;
+    }
+
+    &.is-empty {
+      border-left-color: $c-warning-bg;
+    }
+
+    input[type='text'],
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid $c-border;
+      border-radius: $radius;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 14.5px;
+      font-weight: 400;
+      color: $c-text;
+      background: $c-card;
+      resize: vertical;
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: $c-blue;
+        box-shadow: 0 0 0 3px color-mix(in srgb, $c-blue 15%, white);
+      }
+
+      &:disabled {
+        background: $c-panel-bg;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__block-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  &__block-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__block-type {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $c-blue;
+    background: $c-blue-light;
+    border-radius: $radius-pill;
+    padding: 4px 10px;
+  }
+
+  // Small status dot next to the type badge — gray/empty until the block
+  // has content, then flips to green so filled blocks are scannable
+  // without reading every field.
+  &__block-status-dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: $c-border-strong;
+
+    &.is-filled {
+      background: $c-green;
+    }
+  }
+
+  &__block-preview {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: $c-muted;
+  }
+
+  &__block-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    button {
+      background: $c-card;
+      border: 1px solid $c-border;
+      border-radius: $radius-pill;
+      color: $c-muted;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+
+      &:hover:not(:disabled) {
+        border-color: $c-blue;
+        color: $c-blue;
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      &.admin-blog__danger {
+        border-color: transparent;
+        background: none;
+        color: $c-red;
+
+        &:hover:not(:disabled) {
+          background: $c-red-light;
+        }
+      }
+    }
+  }
+
+  &__block-image,
+  &__block-video,
+  &__block-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__block-video-preview {
+    width: 100%;
+    max-height: 260px;
+    background: #000;
+    border-radius: $radius-md;
+  }
+
+  &__block-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    > button {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: $c-card;
+      border: 1px dashed $c-border-strong;
+      border-radius: $radius-pill;
+      color: $c-blue;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background: $c-blue-lighter;
+        border-color: $c-blue;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__block-list-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    input {
+      margin-bottom: 0 !important;
+      flex: 1;
+    }
+
+    button {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      border-radius: 50%;
+      color: $c-red;
+      font-size: 16px;
+      line-height: 1;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background: $c-red-light;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__block-divider {
+    border: none;
+    border-top: 1px dashed $c-border-strong;
+    margin: 4px 0;
+  }
+
+  &__block-add {
+    border: 1px dashed $c-border;
+    border-radius: $radius-md;
+    padding: 16px;
+    text-align: center;
+    background: $c-panel-bg;
+
+    > span {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: $c-muted;
+      margin-bottom: 12px;
+    }
+  }
+
+  &__block-add-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+
+    button {
+      background: $c-card;
+      border: 1px solid $c-border;
+      border-radius: $radius-pill;
+      color: $c-text;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+      &:hover:not(:disabled) {
+        background: $c-blue;
+        border-color: $c-blue;
+        color: #fff;
+      }
+
+      // The type that was last added stays highlighted so it's clear
+      // which one is selected instead of every pill looking the same.
+      &.is-active {
+        background: $c-blue;
+        border-color: $c-blue;
+        color: #fff;
+        box-shadow: 0 1px 2px rgba(41, 84, 229, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-blog {
+    &__shell {
+      flex-direction: column;
+      min-height: 0;
+
+      > *:first-child {
+        position: static;
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+
+    &__main {
+      padding: 20px 16px 60px;
+    }
+
+    &__hero {
+      padding: 20px;
+    }
+
+    &__hero-top {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__hero-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__toolbar-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__search {
+      min-width: 0;
+    }
+
+    &__table-head {
+      display: none;
+    }
+
+    &__row {
+      grid-template-columns: 1fr;
+      padding: 10px 14px;
+
+      > span {
+        border-right: none;
+        padding: 4px 0;
+        min-height: 0;
+      }
+
+      row-gap: 4px;
+      border-radius: 0;
+    }
+
+    &__field-grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__editor-head {
+      flex-direction: column;
+      align-items: stretch;
+      position: static;
+    }
+
+    &__editor {
+      padding-top: 0;
+    }
+
+    &__editor-head-actions {
+      justify-content: flex-end;
+    }
+
+    &__fieldset {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    &__pagination {
+      justify-content: center;
+    }
+
+    &__block-toolbar {
+      flex-wrap: wrap;
+    }
+
+    &__block-heading {
+      width: 100%;
+    }
+
+    &__block-preview {
+      white-space: normal;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-blog * {
+    transition: none !important;
+  }
+}

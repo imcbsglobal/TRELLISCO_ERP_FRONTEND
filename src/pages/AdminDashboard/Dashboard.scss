@@ -1,0 +1,366 @@
+// src/pages/AdminDashboard/Dashboard.scss
+// Shares the design system used on Blog.scss / Announcement.scss:
+// Manrope, soft blue-gray canvas, white rounded cards, blue accent.
+
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+$c-bg: #eef1f7;
+$c-card: #ffffff;
+$c-border: #e6e9f0;
+$c-text: #10162b;
+$c-muted: #667085;
+$c-subtle: #98a2b3;
+
+$c-blue: #2954e5;
+$c-blue-dark: #1f3fc0;
+$c-blue-light: #e3e9fd;
+
+$c-red: #e0362f;
+$c-red-light: #fde9e8;
+$c-green: #17a05a;
+$c-green-bg: #dcfae6;
+$c-green-text: #15803d;
+$c-warning: #b6650a;
+$c-warning-bg: #fdf0d5;
+$c-panel-bg: #f8f9fc;
+
+$font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+$radius: 10px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-pill: 999px;
+$shadow-card: 0 1px 2px rgba(16, 22, 43, 0.04);
+
+.admin-dash {
+  min-height: 100vh;
+  background: $c-bg;
+  color: $c-text;
+  font-family: $font;
+
+  // ── Shell (sidebar + content), matches admin-blog__shell / ann-shell ──
+  &__shell {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+
+    > *:first-child {
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    padding: 28px 32px 64px;
+  }
+
+  // ── Hero ──
+  &__hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: $c-card;
+    border: 1px solid $c-border;
+    box-shadow: $shadow-card;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  &__hero-heading {
+    h2 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-size: 14.5px;
+      color: $c-muted;
+    }
+  }
+
+  &__hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  &__primary,
+  &__ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 11px 18px;
+    border-radius: $radius;
+    cursor: pointer;
+    border: 1px solid $c-border;
+    background: $c-card;
+    color: $c-text;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  &__primary {
+    background: $c-blue;
+    border-color: $c-blue;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(41, 84, 229, 0.25);
+
+    &:hover {
+      background: $c-blue-dark;
+      border-color: $c-blue-dark;
+    }
+  }
+
+  &__ghost:hover {
+    border-color: $c-blue;
+    color: $c-blue;
+  }
+
+  &__error {
+    background: $c-red-light;
+    border: 1px solid color-mix(in srgb, $c-red 25%, white);
+    color: #a5171a;
+    border-radius: $radius;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  // ── Stat cards ──
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  &__stat-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+
+    &:hover {
+      border-color: $c-blue;
+      transform: translateY(-1px);
+    }
+  }
+
+  &__stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: $radius;
+    background: $c-blue-light;
+    color: $c-blue;
+    margin-bottom: 6px;
+  }
+
+  &__stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: $c-text;
+  }
+
+  &__stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: $c-muted;
+  }
+
+  &__stat-hint {
+    font-size: 12px;
+    font-weight: 600;
+    color: $c-blue;
+  }
+
+  // ── Panel (recent posts) ──
+  &__panel {
+    background: $c-card;
+    border: 1px solid $c-border;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
+    padding: 20px 22px;
+  }
+
+  &__panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: $c-blue;
+    text-decoration: none;
+
+    &:hover {
+      color: $c-blue-dark;
+    }
+  }
+
+  &__hint {
+    color: $c-muted;
+    font-size: 14.5px;
+  }
+
+  &__empty {
+    background: $c-panel-bg;
+    border: 1px dashed $c-border;
+    border-radius: $radius-md;
+    padding: 32px 20px;
+    text-align: center;
+    color: $c-muted;
+    font-size: 14px;
+    margin: 0;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid $c-border;
+    border-radius: $radius;
+    background: $c-panel-bg;
+  }
+
+  &__list-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__list-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: $c-text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__list-meta {
+    font-size: 12.5px;
+    color: $c-muted;
+    text-transform: capitalize;
+  }
+
+  &__pill {
+    flex-shrink: 0;
+    padding: 3px 12px;
+    border-radius: $radius-pill;
+    font-size: 12px;
+    font-weight: 700;
+    background: #eef0f4;
+    color: $c-muted;
+
+    &--published {
+      background: $c-green-bg;
+      color: $c-green-text;
+    }
+
+    &--draft {
+      background: #eef0f4;
+      color: $c-muted;
+    }
+
+    &--scheduled {
+      background: $c-warning-bg;
+      color: $c-warning;
+    }
+
+    &--archived {
+      background: $c-red-light;
+      color: #a5171a;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-dash {
+    &__shell {
+      flex-direction: column;
+      min-height: 0;
+
+      > *:first-child {
+        position: static;
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+
+    &__main {
+      padding: 20px 16px 60px;
+    }
+
+    &__hero {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__hero-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__list-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-dash * {
+    transition: none !important;
+  }
+}

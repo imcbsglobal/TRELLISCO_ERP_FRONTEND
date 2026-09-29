@@ -184,7 +184,9 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
 
 .featured-post {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: 0.85fr 1fr;
+  max-width: 980px;
+  margin: 0 auto;
   background: $white;
   border-radius: $radius-lg;
   overflow: hidden;
@@ -197,7 +199,8 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
   }
 
   &__cover {
-    min-height: 340px;
+    min-height: 220px;
+    max-height: 300px;
     overflow: hidden;
 
     img {
@@ -208,18 +211,19 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
     }
 
     @media (max-width: 760px) {
-      min-height: 220px;
+      min-height: 180px;
+      max-height: 220px;
     }
   }
 
   &__body {
-    padding: 44px 48px;
+    padding: 32px 36px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
 
     @media (max-width: 760px) {
-      padding: 30px 26px 36px;
+      padding: 24px 22px 28px;
     }
   }
 
@@ -228,23 +232,23 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
 
   &__title {
     font-weight: 800;
-    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    font-size: clamp(1.3rem, 2.2vw, 1.7rem);
     line-height: 1.28;
     letter-spacing: -0.01em;
     color: $ink;
-    margin: 0 0 16px;
+    margin: 0 0 12px;
   }
 
   &__excerpt {
-    font-size: 0.98rem;
-    line-height: 1.7;
+    font-size: 0.94rem;
+    line-height: 1.65;
     color: $sky-muted;
-    margin: 0 0 22px;
+    margin: 0 0 16px;
     max-width: 46ch;
   }
 
@@ -252,9 +256,9 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: rgba(20, 30, 60, 0.5);
-    margin-bottom: 26px;
+    margin-bottom: 18px;
   }
 
   &__dot {
