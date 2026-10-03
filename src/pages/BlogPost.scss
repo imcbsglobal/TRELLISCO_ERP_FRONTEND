@@ -8,14 +8,22 @@ $radius-lg: 20px;
 $radius-md: 14px;
 $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
 $font-quote: Georgia, 'Times New Roman', serif;
+// tweak this to match your navbar height so the back button sits just below it
+$nav-offset: 152px; // clears the navbar even when the announcement banner is showing
+$font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 
 .blog-post {
   font-family: $font-display;
   background: #fff;
   color: $ink;
+  overflow-x: hidden;
 
   &__hero {
     padding: 52px 24px 44px;
+
+    @media (max-width: 1099px) {
+      padding-top: 96px;
+    }
     background: linear-gradient(180deg, #fafbff 0%, #fff 65%);
   }
 
@@ -25,8 +33,12 @@ $font-quote: Georgia, 'Times New Roman', serif;
     margin: 0 auto;
   }
 
-  // ---- back button: pill control, docks to the far edge on wide screens --
+  // ---- back button: always fixed, stays in view while scrolling ----------
   &__back {
+    position: fixed;
+    top: $nav-offset;
+    left: 32px;
+    z-index: 900; // below the navbar + mega menu, but above page content
     display: flex;
     width: fit-content;
     align-items: center;
@@ -35,12 +47,15 @@ $font-quote: Georgia, 'Times New Roman', serif;
     font-weight: 700;
     color: $ink;
     text-decoration: none;
-    background: #fff;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     border: 1.5px solid $border;
     border-radius: 999px;
     padding: 10px 18px 10px 14px;
-    margin: 0 0 28px;
-    box-shadow: 0 2px 6px rgba(18, 23, 44, 0.05);
+    margin: 0;
+    box-shadow: 0 6px 16px -8px rgba(18, 23, 44, 0.25);
     transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease,
       box-shadow 0.15s ease;
 
@@ -56,15 +71,12 @@ $font-quote: Georgia, 'Times New Roman', serif;
       text-decoration: none;
     }
 
-    // On roomy viewports, dock it to the far left edge of the viewport,
-    // fully detached from the text column, and keep it in view on scroll.
-    @media (min-width: 1100px) {
-      position: fixed;
-      top: 96px;
-      left: 32px;
-      margin: 0;
-      z-index: 30;
-      white-space: nowrap;
+    // tablets / phones: tuck it closer to the corner and make it compact
+    @media (max-width: 1099px) {
+      top: $nav-offset - 8px;
+      left: 12px;
+      font-size: 0.78rem;
+      padding: 8px 14px 8px 11px;
     }
   }
 
@@ -99,6 +111,7 @@ $font-quote: Georgia, 'Times New Roman', serif;
     letter-spacing: -0.02em;
     color: $ink;
     margin: 0 0 28px;
+    overflow-wrap: anywhere;
   }
 
   &__byline {
@@ -118,6 +131,8 @@ $font-quote: Georgia, 'Times New Roman', serif;
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+    flex: 1 1 0;
   }
 
   &__avatar {
@@ -141,6 +156,7 @@ $font-quote: Georgia, 'Times New Roman', serif;
   &__meta {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
     font-size: 0.85rem;
     color: $muted;
@@ -149,13 +165,14 @@ $font-quote: Georgia, 'Times New Roman', serif;
   &__author-name {
     font-weight: 700;
     color: $ink;
+    overflow-wrap: anywhere;
   }
 
   &__dot {
     opacity: 0.5;
   }
 
-  // ---- share row (bigger, higher-contrast buttons) -----------------------
+  // ---- share row ---------------------------------------------------------
   &__share {
     display: flex;
     align-items: center;
@@ -217,7 +234,7 @@ $font-quote: Georgia, 'Times New Roman', serif;
 
   &__cover {
     position: relative;
-    max-width: 900px;
+    max-width: 808px; // same column as hero + body (760 + 2 x 24)
     margin: 12px auto 0;
     padding: 0 24px 8px;
 
@@ -240,32 +257,27 @@ $font-quote: Georgia, 'Times New Roman', serif;
     filter: drop-shadow(0 14px 24px rgba(18, 23, 44, 0.18));
   }
 
+  // ---- layout: ONE centered column, same axis as hero + byline ----------
   &__layout {
-    max-width: 1040px;
+    position: relative;
+    max-width: 808px; // 760 text column + 2 x 24 padding (matches hero-inner)
     margin: 0 auto;
     padding: 48px 24px 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
-    align-items: start;
-
-    &--with-toc {
-      grid-template-columns: 200px minmax(0, 1fr);
-      gap: 64px;
-
-      @media (max-width: 860px) {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 32px;
-      }
-    }
   }
 
+  // ---- TOC: lives in the left gutter so it never pushes the text off-center
   &__toc {
-    position: sticky;
-    top: 32px;
+    display: none;
 
-    @media (max-width: 860px) {
-      display: none;
+    @media (min-width: 1440px) {
+      display: block;
+      position: absolute;
+      top: 48px;
+      bottom: 0;
+      right: 100%;
+      width: 200px;
+      margin-right: 8px; // leaves a clean gutter before the text column
+      overflow: hidden;
     }
   }
 
@@ -277,12 +289,22 @@ $font-quote: Georgia, 'Times New Roman', serif;
     text-transform: uppercase;
     color: $muted;
     margin-bottom: 16px;
+
+    @media (min-width: 1440px) {
+      position: sticky;
+      top: 232px;
+    }
   }
 
   &__toc nav {
     display: flex;
     flex-direction: column;
     border-left: 1px solid $border;
+
+    @media (min-width: 1440px) {
+      position: sticky;
+      top: 264px;
+    }
 
     a {
       padding: 8px 0 8px 16px;
@@ -292,6 +314,8 @@ $font-quote: Georgia, 'Times New Roman', serif;
       color: $muted;
       text-decoration: none;
       line-height: 1.4;
+      overflow-wrap: anywhere;
+      word-break: break-word;
       transition: color 0.15s ease, border-color 0.15s ease;
 
       &:hover {
@@ -306,8 +330,39 @@ $font-quote: Georgia, 'Times New Roman', serif;
     }
   }
 
+  // ---- body column -------------------------------------------------------
   &__body {
-    max-width: 700px;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+
+    // every direct child sits flush in the column
+    > * {
+      max-width: 100%;
+    }
+
+    // block-schema headings + paragraphs (rendered directly inside body)
+    > h2 {
+      font-weight: 800;
+      font-size: 1.4rem;
+      line-height: 1.3;
+      color: $ink;
+      margin: 40px 0 14px;
+      scroll-margin-top: 32px;
+    }
+
+    > p {
+      font-size: 1rem;
+      line-height: 1.75;
+      color: $body-text;
+      margin: 0 0 16px;
+    }
+
+    > .blog-post__lead + h2 {
+      margin-top: 8px;
+    }
   }
 
   &__lead {
@@ -317,6 +372,7 @@ $font-quote: Georgia, 'Times New Roman', serif;
     margin: 0 0 32px;
   }
 
+  // legacy section schema
   &__section {
     margin-bottom: 40px;
     scroll-margin-top: 32px;
@@ -340,7 +396,6 @@ $font-quote: Georgia, 'Times New Roman', serif;
     }
   }
 
-  // ---- app grid (Trellisco Pro / Bio / ESS cards) ----------------------
   &__app-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -348,26 +403,20 @@ $font-quote: Georgia, 'Times New Roman', serif;
     margin: 24px 0 32px;
   }
 
-  // ---- workflow / feature list (bullet-style checklist) -----------------
   &__workflow {
     display: flex;
     flex-direction: column;
     margin: 20px 0 32px;
   }
 
-  // ---- inline section image (e.g. comparison snapshot) ------------------
-  &__image {
+  // ---- inline media (image + video share the same frame) -----------------
+  &__image,
+  &__video {
+    display: block;
+    width: 100%;
+    max-width: 100%;
     margin: 24px 0 32px;
-
-    img {
-      width: 100%;
-      max-height: 380px;
-      height: auto;
-      object-fit: cover;
-      display: block;
-      border-radius: $radius-md;
-      border: 1px solid $border;
-    }
+    padding: 0;
 
     figcaption {
       margin-top: 10px;
@@ -378,12 +427,41 @@ $font-quote: Georgia, 'Times New Roman', serif;
     }
   }
 
+  &__image {
+    img {
+      width: 100%;
+      max-height: 380px;
+      height: auto;
+      object-fit: cover;
+      display: block;
+      border-radius: $radius-md;
+      border: 1px solid $border;
+    }
+  }
+
+  &__video {
+    video {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      max-height: 480px;
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
+      background: #0b1020;
+      border-radius: $radius-md;
+      border: 1px solid $border;
+      box-shadow: 0 20px 40px -26px rgba(18, 23, 44, 0.4);
+    }
+  }
+
+  // ---- quote -------------------------------------------------------------
   &__quote {
     position: relative;
     background: $blue-pale;
     border-radius: $radius-md;
     padding: 28px 32px 32px 56px;
-    margin: 28px 0 8px;
+    margin: 28px 0 32px;
 
     p {
       font-family: $font-quote;
@@ -416,6 +494,79 @@ $font-quote: Georgia, 'Times New Roman', serif;
     opacity: 0.6;
   }
 
+  // ---- bullet / numbered lists ------------------------------------------
+  &__list {
+    margin: 0 0 24px;
+    padding-left: 24px;
+
+    li {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: $body-text;
+      margin-bottom: 8px;
+      padding-left: 4px;
+
+      &::marker {
+        color: $blue;
+        font-weight: 700;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  // ---- code block --------------------------------------------------------
+  &__code {
+    margin: 24px 0 32px;
+    padding: 20px 22px;
+    background: #0b1020;
+    color: #e6ebff;
+    border-radius: $radius-md;
+    overflow-x: auto;
+    font-family: $font-mono;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    -webkit-overflow-scrolling: touch;
+
+    code {
+      font-family: inherit;
+      white-space: pre;
+    }
+  }
+
+  // ---- CTA button --------------------------------------------------------
+  &__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 8px 0 32px;
+    padding: 13px 28px;
+    background: $blue;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 999px;
+    box-shadow: 0 12px 24px -12px rgba(43, 87, 245, 0.6);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 28px -12px rgba(43, 87, 245, 0.7);
+    }
+  }
+
+  // ---- divider -----------------------------------------------------------
+  &__hr {
+    border: 0;
+    height: 1px;
+    background: $border;
+    margin: 36px 0;
+  }
+
+  // ---- related -----------------------------------------------------------
   &__related {
     background: #fafbff;
     border-top: 1px solid $border;
@@ -464,7 +615,7 @@ $font-quote: Georgia, 'Times New Roman', serif;
   }
 }
 
-// ---- app card (used inside .blog-post__app-grid) -------------------------
+// ---- app card ------------------------------------------------------------
 .app-card {
   border: 1px solid $border;
   border-radius: $radius-md;
@@ -515,7 +666,7 @@ $font-quote: Georgia, 'Times New Roman', serif;
   }
 }
 
-// ---- workflow step (used inside .blog-post__workflow) --------------------
+// ---- workflow step ---------------------------------------------------------
 .workflow-step {
   position: relative;
   display: flex;
