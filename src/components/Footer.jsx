@@ -205,7 +205,7 @@ export default function Footer() {
         <div className="footer__address-divider" aria-hidden="true" />
 
         <div className="footer__address-col">
-          <span className="footer__address-office">International office</span>
+          <span className="footer__address-office"> Office</span>
 
           <div className="footer__address-group">
             <div className="footer__address-item">

@@ -3,18 +3,127 @@ import ChatbotImg from '../assets/ChatGPT Image Aug 20, 2026, 01_07_33 PM.png'
 import './FloatingChatbot.scss'
 
 /* ─────────────────────────────────────────────
-   KNOWLEDGE BASE — Trellisco covers everything:
-   Gym, HRMS, Property, Restaurant management
+   CONTACT DETAILS
 ───────────────────────────────────────────── */
+const SUPPORT_EMAIL = 'enquiry@trellisco.in'
+const SUPPORT_PHONE_DISPLAY = '75919 07003'
+const SUPPORT_PHONE_TEL = '7591907003'
+
+const CONTACT_RE = new RegExp(
+  `(${SUPPORT_EMAIL.replace(/\./g, '\\.')}|${SUPPORT_PHONE_DISPLAY})`,
+  'g'
+)
+
+const renderLine = (line) =>
+  line.split(CONTACT_RE).map((part, i) => {
+    if (part === SUPPORT_EMAIL)
+      return (
+        <a key={i} href={`mailto:${SUPPORT_EMAIL}`} className="floating-chatbot__link">
+          {part}
+        </a>
+      )
+    if (part === SUPPORT_PHONE_DISPLAY)
+      return (
+        <a key={i} href={`tel:${SUPPORT_PHONE_TEL}`} className="floating-chatbot__link">
+          {part}
+        </a>
+      )
+    return part
+  })
+
+/* ─────────────────────────────────────────────
+   KNOWLEDGE BASE
+   (software list matches the navbar products)
+───────────────────────────────────────────── */
+const SOFTWARE_QUESTION = 'Which software do you want to know about?'
+const SUPPORT_QUESTION = 'How do I contact support?'
+
+// Brands shown when the user taps "Which software..."
+const SOFTWARE_OPTIONS = ['Trellisco Suite', 'Melone Suite', 'Claudius', 'Venukart']
+
 const QUICK_QUESTIONS = [
   'What is Trellisco?',
+  SOFTWARE_QUESTION,
   'What features do you offer?',
   'How much does it cost?',
   'How do I book a demo?',
-  'How do I contact support?',
+  SUPPORT_QUESTION,
 ]
 
+// After a product answer: contact support, or go back to the software list
+const PRODUCT_FOLLOW_UPS = [SUPPORT_QUESTION, SOFTWARE_QUESTION]
+
 const KB = [
+  /* ── Software picker ── */
+  {
+    keywords: ['which software'],
+    answer: 'Sure! Which software would you like to know about?',
+    options: SOFTWARE_OPTIONS,
+  },
+
+  /* ── Brands ── */
+  {
+    keywords: ['trellisco suite'],
+    answer: 'The Trellisco Suite has three products. Which one would you like to know about?',
+    options: ['Trellisco HRMS', 'Trellisco CRM', 'Trellis Asset'],
+  },
+  {
+    keywords: ['melone suite'],
+    answer: 'The Melone Suite has three point-of-sale and booking products. Which one would you like to know about?',
+    options: ['Melone Lite', 'Melone POS', 'Melone Stay'],
+  },
+
+  /* ── Products ── */
+  {
+    keywords: ['trellisco hrms'],
+    answer:
+      'Trellisco HRMS: manage employee records, payroll, attendance, leave, and performance reviews from one connected HR platform. It also includes a self-service portal for employees.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['trellisco crm', 'crm'],
+    answer:
+      'Trellisco CRM: track leads, deals, and customer relationships in one pipeline built for fast-moving sales teams. It includes automatic calling, follow-up automation, team collaboration, and reports & analytics.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['trellis asset', 'trellisco asset'],
+    answer:
+      'Trellis Asset: track, assign, and maintain every piece of company equipment, software license, and inventory item from one place. It covers asset inventory, assignment tracking, maintenance scheduling, check-in / check-out, and depreciation tracking.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['melone lite'],
+    answer:
+      'Melone Lite: a lightweight, mobile-first point of sale for small-scale businesses — full billing and management, right from your phone. It includes simple inventory, quick checkout, daily sales reports, and customer records.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['melone pos'],
+    answer:
+      "Melone POS: a hybrid, cloud-based point of sale for large-scale operations — works online or offline, and syncs the moment you're back online. It supports multi-outlet management, inventory & stock, centralized reports, and staff & role access.",
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['melone stay'],
+    answer:
+      'Melone Stay: booking, room, and guest management built for hotels, lodges, resorts, and homestays. It covers room & booking management, guest check-in / check-out, rates & availability, housekeeping tracking, and multi-property support.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['claudius', 'claudis'],
+    answer:
+      'Claudius: an AI assistant built for gyms & fitness studios. It handles gym management, membership management, automated fee identification (flags pending or overdue fees), and automated messaging to members and staff.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+  {
+    keywords: ['venukart', 'venuekart'],
+    answer:
+      'Venukart: a multi-vendor marketplace platform for running online stores, vendor operations, and property listings from one dashboard. It covers vendor onboarding, product catalog, order management, property management, payments & payouts, and analytics.',
+    options: PRODUCT_FOLLOW_UPS,
+  },
+
+  /* ── General ── */
   {
     keywords: ['what is trellisco', 'about trellisco', 'trellisco?'],
     answer:
@@ -48,7 +157,7 @@ const KB = [
   {
     keywords: ['cost', 'price', 'pricing', 'how much'],
     answer:
-      'Pricing depends on your team size and the modules you need. Book a quick demo and our team will walk you through a plan that fits your HR setup.',
+      'Pricing depends on your team size and the modules you need. Book a quick demo and our team will walk you through a plan that fits your setup.',
   },
   {
     keywords: ['demo', 'book', 'trial', 'try it'],
@@ -57,18 +166,19 @@ const KB = [
   },
   {
     keywords: ['support', 'contact', 'help', 'reach'],
-    answer:
-      'You can reach our support team anytime at support@trellisco.com, or use the "Chat with sales" button on the homepage for a faster response.',
+    answer: `You can reach our support team anytime:\nEmail: ${SUPPORT_EMAIL}\nCustomer support: ${SUPPORT_PHONE_DISPLAY}`,
   },
 ]
 
-const FALLBACK =
-  "I didn't quite catch that — I can help with Trellisco's Gym, HRMS, Property, or Restaurant management modules, pricing, demos, or support. Could you rephrase?"
+const FALLBACK = {
+  answer:
+    "I didn't quite catch that — I can help with our software, pricing, demos, or support. Could you rephrase?",
+}
 
 function getReply(text) {
   const lower = text.toLowerCase()
   const match = KB.find((entry) => entry.keywords.some((k) => lower.includes(k)))
-  return match ? match.answer : FALLBACK
+  return match || FALLBACK
 }
 
 function FloatingChatbot() {
@@ -98,7 +208,7 @@ function FloatingChatbot() {
       ([entry]) => {
         const inView = entry.isIntersecting
         setVisible(!inView)
-        if (inView) setOpen(false) // close the panel too if it was open
+        if (inView) setOpen(false)
       },
       { threshold: 0.15 }
     )
@@ -126,7 +236,11 @@ function FloatingChatbot() {
     setTyping(true)
 
     setTimeout(() => {
-      setMessages((prev) => [...prev, { from: 'bot', text: getReply(trimmed) }])
+      const reply = getReply(trimmed)
+      setMessages((prev) => [
+        ...prev,
+        { from: 'bot', text: reply.answer, options: reply.options },
+      ])
       setTyping(false)
     }, 650 + Math.random() * 500)
   }
@@ -139,6 +253,11 @@ function FloatingChatbot() {
   if (!visible) return null
 
   const remainingQuestions = QUICK_QUESTIONS.filter((q) => !askedQuestions.includes(q))
+
+  // Follow-up options attached to the latest bot message (e.g. software choices)
+  const lastMessage = messages[messages.length - 1]
+  const followUpOptions =
+    lastMessage && lastMessage.from === 'bot' && lastMessage.options ? lastMessage.options : []
 
   return (
     <div className="floating-chatbot">
@@ -170,7 +289,7 @@ function FloatingChatbot() {
               >
                 {m.text.split('\n').map((line, j) => (
                   <span key={j} className="floating-chatbot__line">
-                    {line}
+                    {renderLine(line)}
                   </span>
                 ))}
               </div>
@@ -186,18 +305,30 @@ function FloatingChatbot() {
 
             {!typing && (
               <div className="floating-chatbot__quick">
-                {remainingQuestions.map((q) => (
+                {followUpOptions.map((opt) => (
                   <button
-                    key={q}
+                    key={opt}
                     type="button"
                     className="floating-chatbot__quick-btn"
-                    onClick={() => sendMessage(q, true)}
+                    onClick={() => sendMessage(opt)}
                   >
-                    {q}
+                    {opt}
                   </button>
                 ))}
 
-                {askedQuestions.length > 0 && (
+                {followUpOptions.length === 0 &&
+                  remainingQuestions.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      className="floating-chatbot__quick-btn"
+                      onClick={() => sendMessage(q, true)}
+                    >
+                      {q}
+                    </button>
+                  ))}
+
+                {followUpOptions.length === 0 && askedQuestions.length > 0 && (
                   <button
                     type="button"
                     className="floating-chatbot__quick-btn floating-chatbot__quick-btn--reset"
