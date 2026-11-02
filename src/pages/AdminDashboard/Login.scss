@@ -49,9 +49,9 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
       $hero-blue-pale 100%
     );
 
+    // mobile: no image panel, only the sign-in form
     @media (max-width: 900px) {
-      padding: 28px 0 0 24px;
-      min-height: 480px;
+      display: none;
     }
   }
 
@@ -77,10 +77,6 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
     object-position: bottom;
     display: block;
     margin-top: 12px;
-
-    @media (max-width: 900px) {
-      max-width: 480px;
-    }
   }
 
   // ---- right form panel -------------------------------------------------
@@ -91,12 +87,51 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
     justify-content: center;
     padding: 48px 24px;
     background: $white;
+
+    // mobile: soft tinted backdrop so the white card stands out
+    @media (max-width: 900px) {
+      align-items: center;
+      padding: 16px;
+      background: linear-gradient(160deg, #eef3ff 0%, #dfe8ff 100%);
+    }
   }
 
   &__card {
     width: 100%;
     max-width: 420px;
     text-align: center;
+
+    // mobile: form sits inside a white card
+    @media (max-width: 900px) {
+      // taller card (about 3/4 of the screen height), form centered inside
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 75vh;
+      min-height: 75dvh;
+      max-width: none;
+      background: $white;
+      border: 1px solid rgba(27, 70, 245, 0.08);
+      border-radius: $radius-lg;
+      padding: 32px 24px 28px;
+      box-shadow:
+        0 2px 6px rgba(10, 20, 60, 0.06),
+        0 24px 48px -16px rgba(27, 70, 245, 0.22);
+
+      // keep the form a comfortable width on wider (tablet) screens
+      .login__card-head,
+      .login__error,
+      .login__form {
+        width: 100%;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .login__card-head {
+        margin-bottom: 32px;
+      }
+    }
   }
 
   &__card-head {

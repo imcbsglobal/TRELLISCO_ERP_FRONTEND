@@ -7,6 +7,7 @@ import Login from './pages/AdminDashboard/Login'
 import Dashboard from './pages/AdminDashboard/Dashboard'
 import AdminBlogDashboard from './pages/AdminDashboard/Blog'
 import Announcement from './pages/AdminDashboard/Announcement'
+import PromoVideo from './pages/AdminDashboard/Promovideo'
 import FloatingChatbot from './components/FloatingChatbot'
 import { isAuthenticated } from './api/auth'
 
@@ -50,6 +51,14 @@ function App() {
           element={
             <RequireAuth>
               <Announcement />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/promo-video"
+          element={
+            <RequireAuth>
+              <PromoVideo />
             </RequireAuth>
           }
         />

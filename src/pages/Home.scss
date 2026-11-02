@@ -12,6 +12,7 @@ $hero-blue-deep: #050b2e;
 $hero-blue-mid: #0b1a4d;
 $hero-blue-light: #123a8c;
 $hero-blue-pale: #1b46f5;
+$hero-cyan: #12a4ff; // "Enterprise Growth" accent
 $hero-glow: rgba(70, 110, 220, 0.35);
 $hero-glow-transparent: rgba(70, 110, 220, 0);
 
@@ -24,124 +25,362 @@ $radius-lg: 22px;
 $radius-md: 14px;
 $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
 
-// ---- hero banner ---------------------------------------------------------
+// breakpoints used for mobile layout
+$bp-tablet: 860px;
+$bp-mobile: 640px;
+$bp-small: 400px;
+
+// ---- phones: stop the page from scrolling sideways ------------------------
+// Something on the page is wider than the screen, so mobile browsers widen the
+// layout viewport and every position:fixed element (the promo video) gets
+// pushed off the right edge. Clipping the overflow keeps the viewport at
+// device width. (Phones only, so the desktop sticky hero is unaffected.)
+@media (max-width: $bp-mobile) {
+  html {
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+}
+
+// ---- hero banner (dark blue: centered copy, floating icons, laptop) ------
 .hero-banner {
   position: relative;
   overflow: hidden;
-  min-height: 92vh;
+  min-height: calc(100vh - 92px);
+  min-height: calc(100svh - 92px); // stable on mobile browsers with a collapsing address bar
   display: flex;
-  align-items: center;
-  padding: 120px 24px 48px;
-  background: radial-gradient(120% 140% at 8% 0%, $hero-blue-deep 0%, $hero-blue-mid 32%, $hero-blue-light 52%, $hero-blue-pale 78%, $hero-blue-pale 100%);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 44px 24px 40px;
+  background: transparent; // the .hero-flow wrapper paints the gradient
   color: $white;
   isolation: isolate;
   font-family: $font-display;
 
-  &__glow {
+  // bright blue glow behind the laptop
+  &::before {
+    content: '';
     position: absolute;
-    inset: -20% -10% auto auto;
-    width: 60%;
+    left: 50%;
+    bottom: 0;
+    width: 90%;
     height: 70%;
-    background: radial-gradient(circle, $hero-glow 0%, $hero-glow-transparent 65%);
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse closest-side, rgba(40, 120, 255, 0.55) 0%, rgba(40, 120, 255, 0) 100%);
     pointer-events: none;
     z-index: 0;
   }
 
   &__inner {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     width: 100%;
-    max-width: 1240px;
+    max-width: 1100px;
     margin: 0 auto;
-    display: grid;
-    grid-template-columns: minmax(0, 440px) 1fr;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 32px;
-    min-height: 560px;
-
-    @media (max-width: 980px) {
-      grid-template-columns: 1fr;
-      text-align: center;
-      gap: 12px;
-      min-height: 0;
-    }
-  }
-
-  &__content {
-    @media (max-width: 980px) {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+    text-align: center;
   }
 
   &__title {
     font-family: $font-display;
-    font-weight: 700;
-    font-size: clamp(2.4rem, 4.4vw, 3.5rem);
+    font-weight: 800;
+    font-size: clamp(2.2rem, 4.4vw, 3.6rem);
     line-height: 1.1;
-    letter-spacing: -0.01em;
-    margin: 0 0 20px;
+    letter-spacing: -0.03em;
+    color: $white;
+    margin: 0 0 14px;
+  }
+
+  &__title-accent {
+    color: $hero-cyan;
   }
 
   &__subtitle {
     font-family: $font-display;
-    font-size: 1.05rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.88);
-    max-width: 440px;
-    margin: 0 0 32px;
-
-    @media (max-width: 980px) {
-      max-width: 460px;
-    }
+    font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 640px;
+    margin: 0 0 22px;
   }
 
   &__actions {
     display: flex;
-    gap: 14px;
+    gap: 16px;
     flex-wrap: wrap;
-
-    @media (max-width: 980px) {
-      justify-content: center;
-    }
+    justify-content: center;
+    margin-bottom: 28px;
   }
 
   &__visual {
     position: relative;
+    width: 100%;
     display: flex;
     justify-content: center;
-    align-items: center;
-    align-self: stretch;
-    height: 100%;
-
-    @media (max-width: 980px) {
-      margin-top: 20px;
-    }
   }
 
   &__image {
-    height: 100%;
-    max-height: 620px;
     width: auto;
     max-width: 100%;
+    max-height: 44vh;
+    height: auto;
     object-fit: contain;
     display: block;
-    filter: drop-shadow(0 30px 44px rgba(3, 8, 40, 0.5));
+    filter: drop-shadow(0 40px 50px rgba(0, 10, 60, 0.6));
+  }
 
-    @media (max-width: 980px) {
-      height: auto;
-      max-height: none;
-      max-width: 380px;
+  // ---- mobile ----
+  @media (max-width: $bp-mobile) {
+    padding: 28px 20px 40px;
+    min-height: 0;
+    visibility: visible !important; // animation is off on phones, the hero is always shown
+
+    &__title {
+      font-size: clamp(1.85rem, 8.2vw, 2.4rem);
+      margin-bottom: 12px;
     }
 
-    @media (max-width: 560px) {
-      max-width: 300px;
+    &__subtitle {
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
+
+    &__actions {
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    &__image {
+      max-height: none;
     }
   }
 }
 
-// ---- buttons --------------------------------------------------------------
+// primary (blue pill) / ghost (white pill) buttons for the dark hero only
+.hero-banner .btn {
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+
+  &--primary {
+    background: linear-gradient(180deg, #1f7bff 0%, #1250e8 100%);
+    color: $white;
+    box-shadow: 0 12px 30px -8px rgba(31, 123, 255, 0.7);
+
+    &:hover {
+      background: linear-gradient(180deg, #3b8cff 0%, #1a5cf5 100%);
+    }
+  }
+
+  &--ghost {
+    background: $white;
+    color: $hero-blue-deep;
+    border: none;
+
+    &:hover {
+      background: #eaf1ff;
+    }
+  }
+
+  @media (max-width: $bp-mobile) {
+    padding: 11px 22px;
+    font-size: 0.9rem;
+  }
+}
+
+// ---- floating icons around the hero copy ----------------------------------
+.hero-float {
+  position: absolute;
+  z-index: 2;
+  will-change: transform, opacity; // scroll-driven by Home.jsx
+
+  &__body {
+    rotate: var(--rot, 0deg);
+    filter: drop-shadow(0 18px 24px rgba(0, 10, 60, 0.55));
+    animation: heroBob 6s ease-in-out infinite alternate;
+    animation-delay: var(--bd, 0s);
+  }
+
+  svg { display: block; width: 100%; height: auto; }
+
+  &--gym    { width: 132px; top: 16%; left: 11%;  --rot: -22deg; --bd: 0s; }
+  &--funnel { width: 88px;  top: 20%; right: 13%; --rot: 8deg;   --bd: 0.8s; }
+  &--box    { width: 112px; top: 50%; left: 14%;  --rot: -6deg;  --bd: 1.4s; }
+  &--crm    { width: 146px; top: 52%; right: 11%; --rot: -8deg;  --bd: 0.4s; }
+  &--chat   { width: 100px; top: 6%;  right: 6%;  --rot: 6deg;   --bd: 2s; }
+
+  @media (max-width: 980px) {
+    &--box, &--crm, &--chat { display: none; }
+    &--gym    { width: 80px; left: 3%; top: 16%; }
+    &--funnel { width: 56px; right: 4%; top: 19%; }
+  }
+}
+
+// ---- hero flow: pinned stage over the hero; objects fall into a box ----
+.hero-flow {
+  position: relative;
+  min-height: 100vh; // wrapper always contains the full-height stage
+  min-height: 100svh;
+  overflow: clip;    // nothing from the stage paints past the wrapper (keeps sticky working, unlike hidden)
+  background:
+    radial-gradient(ellipse 60% 50% at 12% 28%, rgba(27, 100, 255, 0.45) 0%, rgba(27, 100, 255, 0) 70%),
+    radial-gradient(ellipse 70% 45% at 50% 100%, rgba(30, 110, 255, 0.55) 0%, rgba(30, 110, 255, 0) 72%),
+    radial-gradient(ellipse 50% 40% at 90% 70%, rgba(20, 80, 230, 0.4) 0%, rgba(20, 80, 230, 0) 70%),
+    linear-gradient(180deg, $hero-blue-deep 0%, #081652 45%, #0a2a8f 100%);
+  font-family: $font-display;
+
+  // phones: no scroll animation, just the plain hero banner
+  @media (max-width: $bp-mobile) {
+    min-height: 0;
+  }
+
+  // sticks to the viewport while the hero scrolls away underneath it
+  &__stage {
+    --bw: clamp(250px, 30vw, 400px);
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    pointer-events: none;
+
+    // soft blue glows painted behind the box and headline
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 55% 45% at 82% 12%, rgba(70, 140, 255, 0.25) 0%, rgba(70, 140, 255, 0) 70%),
+        radial-gradient(ellipse 60% 50% at 50% 100%, rgba(60, 130, 255, 0.35) 0%, rgba(60, 130, 255, 0) 72%);
+    }
+
+    &.is-falling .hero-float__body { animation-play-state: paused; }
+
+    // phones: the whole animated scene (box + falling icons) is hidden
+    @media (max-width: $bp-mobile) {
+      display: none;
+    }
+  }
+
+  // pull the hero up so it overlaps the stage (the stage keeps its own 100vh,
+  // so it un-pins exactly when this wrapper ends)
+  &__stage + .hero-banner {
+    margin-top: -100vh;
+    margin-top: -100svh;
+
+    @media (max-width: $bp-mobile) {
+      margin-top: 0;
+    }
+  }
+
+  // scroll room is no longer needed: the sequence is time-based now,
+  // so the wrapper ends right after the stage / hero.
+  &__runway {
+    height: 0;
+  }
+
+  // headline sits above the closed box
+  &__copy {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: clamp(72px, 12vh, 150px);
+    z-index: 4;
+    padding: 0 24px;
+    text-align: center;
+    opacity: var(--to, 0);
+    transform: translateY(var(--ty, 24px));
+
+    @media (max-width: $bp-mobile) {
+      top: clamp(64px, 10vh, 100px);
+      padding: 0 20px;
+    }
+  }
+
+  &__eyebrow {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $hero-cyan;
+    margin-bottom: 10px;
+  }
+
+  &__title {
+    font-family: $font-display;
+    font-weight: 800;
+    font-size: clamp(1.7rem, 3.4vw, 2.7rem);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: $white;
+    margin: 0 0 10px;
+
+    @media (max-width: $bp-mobile) {
+      font-size: clamp(1.45rem, 6.6vw, 1.8rem);
+    }
+  }
+
+  &__title-accent {
+    color: $hero-cyan;
+  }
+
+  &__text {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 540px;
+    margin: 0 auto;
+
+    @media (max-width: $bp-mobile) {
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+  }
+}
+
+// the box is anchored to the bottom of the stage, below the hero content.
+// --by (set by Home.jsx) keeps it tucked under the hero's bottom edge until it's in place.
+// The stage starts below the nav, so its bottom edge sits ~92px past the viewport bottom;
+// --nav-h lifts the box by that amount so it is fully visible.
+.hero-dropbox {
+  --nav-h: 92px; // same offset used in .hero-banner min-height
+  position: absolute;
+  left: 50%;
+  bottom: calc(5vh + var(--nav-h)); // lifted so the box clears the nav offset
+  width: var(--bw);
+  margin-left: calc(var(--bw) / -2);
+  transform: translateY(var(--by, 100vh));
+  filter: drop-shadow(0 30px 28px rgba(0, 10, 60, 0.55));
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+  &--back  { z-index: 1; }
+  &--front { z-index: 3; }
+}
+
+@keyframes heroBob {
+  from { translate: 0 0; }
+  to   { translate: 0 -14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-float__body { animation: none; }
+  .hero-flow__runway,
+  .hero-flow__copy,
+  .hero-dropbox { display: none; }
+}
+
+// ---- buttons (base) -------------------------------------------------------
 .btn {
   display: inline-block;
   border: none;
@@ -367,6 +606,68 @@ $font-display: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
     border-radius: $radius-lg;
     animation: solutionsFadeIn 0.35s ease;
   }
+
+  // ---- mobile ----
+  @media (max-width: $bp-mobile) {
+    min-height: 0; // don't force a full screen of height on short content
+    padding: 56px 16px 64px;
+
+    &__title {
+      font-size: clamp(1.75rem, 8vw, 2.2rem);
+    }
+
+    &__subtitle {
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+    }
+
+    &__tabs {
+      max-width: 100%;
+      margin-bottom: 32px;
+    }
+
+    &__tab {
+      padding: 9px 15px;
+      font-size: 0.84rem;
+    }
+
+    &__panel {
+      gap: 28px;
+    }
+
+    &__panel-title {
+      font-size: 1.55rem;
+    }
+
+    &__lead {
+      font-size: 0.95rem;
+      max-width: 100%;
+      margin-bottom: 22px;
+    }
+
+    &__includes {
+      margin-bottom: 22px;
+    }
+
+    &__includes-list {
+      gap: 8px 14px;
+    }
+
+    &__includes-item {
+      font-size: 0.85rem;
+    }
+
+    &__image {
+      border-radius: 16px;
+    }
+  }
+
+  @media (max-width: $bp-small) {
+    &__tab {
+      padding: 8px 11px;
+      font-size: 0.8rem;
+    }
+  }
 }
 
 @keyframes solutionsFadeIn {
@@ -583,78 +884,55 @@ $faq-pink-bg: #fde9f1;
     background: $faq-blue;
     color: $white;
   }
-}
 
-// ---- product showcase section (Papermark-style headline + framed screenshot) --
-.showcase {
-  background: #ffffff;
-  padding: 88px 24px 120px;
-  font-family: $font-display;
+  // ---- mobile ----
+  @media (max-width: $bp-mobile) {
+    padding: 64px 16px 72px;
 
-  &__inner {
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  &__text {
-    font-size: clamp(1.5rem, 2.6vw, 2rem);
-    line-height: 1.45;
-    letter-spacing: -0.01em;
-    margin: 0 0 56px;
-
-    // the dark ink "runs" left-to-right across the whole line on scroll-in.
-    // a gradient is clipped to the text itself and slid into place, so both
-    // the bold lead-in and the lighter sentence pick up the same sweep.
-    background-image: linear-gradient(
-      90deg,
-      $ink 0%,
-      $ink 42%,
-      rgba(36, 21, 40, 0.4) 58%,
-      rgba(36, 21, 40, 0.4) 100%
-    );
-    background-size: 250% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    transition: background-position 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-
-    strong {
-      font-weight: 700;
+    &__eyebrow-row {
+      margin-bottom: 14px;
     }
 
-    span {
-      font-weight: 500;
+    &__eyebrow-line {
+      width: 28px;
     }
 
-    &--visible {
-      background-position: 0% 0;
+    &__title {
+      font-size: clamp(1.7rem, 7.6vw, 2.1rem);
     }
-  }
-  &__falling {
-  position: relative;
-  height: 220px;
-  margin: 0 0 56px;
 
-  @media (max-width: 640px) {
-    height: 280px;
-  }
-}
+    &__subtitle {
+      font-size: 0.94rem;
+      margin-bottom: 32px;
+    }
 
-  &__frame {
-    position: relative;
-    background: #0b0b0f;
-    border-radius: 22px;
-    padding: 14px;
-    box-shadow: 0 50px 90px -30px rgba(20, 20, 30, 0.35);
-  }
+    &__list {
+      gap: 10px;
+    }
 
-  &__image {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
+    &__row {
+      gap: 12px;
+      padding: 14px;
+    }
+
+    &__icon {
+      width: 38px;
+      height: 38px;
+    }
+
+    &__question {
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    &__answer {
+      font-size: 0.85rem;
+    }
+
+    &__chevron {
+      width: 28px;
+      height: 28px;
+    }
   }
 }
 
@@ -1518,7 +1796,9 @@ $eco-muted-2: #9ca3af;
 @keyframes ecoCheckPop {
   to { opacity: 1; transform: scale(1); }
 }
-// ---- product showcase section ---------------------------------------
+
+// ---- product showcase section (FallingText headline + framed screenshot) --
+// (the two earlier duplicate .showcase blocks are merged into this one)
 .showcase {
   position: relative;
   overflow: hidden;
@@ -1585,40 +1865,11 @@ $eco-muted-2: #9ca3af;
     opacity: 1;
   }
 
-  &__text {
+  &__inner {
     position: relative;
     z-index: 1;
-    font-size: clamp(1.5rem, 2.6vw, 2rem);
-    line-height: 1.45;
-    letter-spacing: -0.01em;
-    margin: 0 0 56px;
-
-    background-image: linear-gradient(
-      90deg,
-      $ink 0%,
-      $ink 42%,
-      rgba(36, 21, 40, 0.4) 58%,
-      rgba(36, 21, 40, 0.4) 100%
-    );
-    background-size: 250% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    transition: background-position 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-
-    strong {
-      font-weight: 700;
-    }
-
-    span {
-      font-weight: 500;
-    }
-
-    &--visible {
-      background-position: 0% 0;
-    }
+    max-width: 900px;
+    margin: 0 auto;
   }
 
   &__falling {
@@ -1648,11 +1899,24 @@ $eco-muted-2: #9ca3af;
     border-radius: 12px;
   }
 
-  &__inner {
-    position: relative;
-    z-index: 1;
-    max-width: 900px;
-    margin: 0 auto;
+  // ---- mobile ----
+  @media (max-width: $bp-mobile) {
+    padding: 56px 16px 72px;
+
+    &__falling {
+      height: 260px;
+      margin-bottom: 36px;
+    }
+
+    &__frame {
+      border-radius: 14px;
+      padding: 8px;
+      box-shadow: 0 30px 50px -24px rgba(20, 20, 30, 0.35);
+    }
+
+    &__image {
+      border-radius: 8px;
+    }
   }
 }
 

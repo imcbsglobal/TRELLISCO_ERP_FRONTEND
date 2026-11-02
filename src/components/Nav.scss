@@ -327,16 +327,64 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
   }
 }
 
-// ---------- Mobile nav panel ----------
+// ---------- Mobile sidebar (drawer) ----------
 
-.nav__mobile-panel {
+// Hidden on desktop; switched on inside the 900px media query below.
+.nav__drawer-backdrop,
+.nav__drawer {
   display: none;
+}
+
+.nav__drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 68px;
+  border-bottom: 1px solid $c-border;
+}
+
+.nav__drawer-logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.nav__drawer-logo-img {
+  display: block;
+  height: 44px;
+  width: auto;
+}
+
+.nav__drawer-close {
+  @include no-select-btn;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid $c-border;
+  border-radius: 50%;
+  background: #fff;
+  color: $c-text;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: color-mix(in srgb, $c-blue 8%, white);
+    color: $c-blue;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $c-blue;
+    outline-offset: 2px;
+  }
 }
 
 .nav__mobile-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 8px 0 0;
   display: flex;
   flex-direction: column;
 }
@@ -1244,8 +1292,29 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
   }
 
   .mega,
-  .nav__mobile-panel {
+  .nav__drawer,
+  .nav__drawer-backdrop {
     animation: none;
+  }
+}
+
+@keyframes nav-drawer-slide {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes nav-drawer-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -1292,12 +1361,33 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
     display: flex;
   }
 
-  .nav__mobile-panel {
+  // Sidebar slides in from the left over a dimmed backdrop
+  .nav__drawer-backdrop {
     display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(15, 23, 42, 0.45);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    animation: nav-drawer-fade 0.2s ease-out;
+  }
+
+  .nav__drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 91;
+    width: min(86vw, 340px);
+    padding: 0 20px 24px;
     background: #fff;
-    border-bottom: 1px solid $c-border;
-    padding: 8px 16px 12px;
-    animation: mega-drop 0.16s ease-out;
+    box-shadow: 12px 0 40px rgba(15, 23, 42, 0.18);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    animation: nav-drawer-slide 0.26s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .nav__banner {
@@ -1415,5 +1505,22 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
   .nav__contact {
     padding: 9px 16px;
     font-size: 14px;
+  }
+}
+
+@media (max-width: 380px) {
+  .nav__bar {
+    padding: 0 12px;
+    column-gap: 8px;
+  }
+
+  .nav__logo-img {
+    height: 46px;
+  }
+
+  .nav__contact {
+    padding: 8px 12px;
+    font-size: 13px;
+    gap: 6px;
   }
 }

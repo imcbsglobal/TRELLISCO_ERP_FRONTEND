@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: 'grid' },
   { to: '/admin/dashboard', label: 'Blog posts', icon: 'document' },
   { to: '/admin/announcements', label: 'Announcements', icon: 'megaphone' },
+  { to: '/admin/promo-video', label: 'Promo video', icon: 'video' },
 ]
 
 function GridIcon() {
@@ -60,7 +61,22 @@ function MegaphoneIcon() {
   )
 }
 
-const ICONS = { grid: GridIcon, document: DocumentIcon, megaphone: MegaphoneIcon }
+function VideoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M16 10.5l5-3v9l-5-3z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+const ICONS = { grid: GridIcon, document: DocumentIcon, megaphone: MegaphoneIcon, video: VideoIcon }
 
 function ExternalLinkIcon() {
   return (

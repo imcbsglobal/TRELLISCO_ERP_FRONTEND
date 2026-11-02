@@ -79,58 +79,17 @@ function BlogHero({ active, onChange }) {
 /* ─────────────────────────────────────────────
    POST CARDS
 ───────────────────────────────────────────── */
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
-      <path
-        d="M2.5 8h11M9 3.5L13.5 8 9 12.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 function PostCover({ post }) {
   const cover = getPostCover(post)
-  if (!cover) return null
-  return (
-    <div className="blog-card__cover">
-      <img src={cover} alt={post.coverImageAlt || post.title} loading="lazy" />
-    </div>
-  )
-}
-
-function FeaturedPost({ post }) {
   const accent = CATEGORY_ACCENT[post.category] || CATEGORY_ACCENT.company
   return (
-    <Link to={`/blog/${post.slug}`} className="featured-post">
-      {getPostCover(post) && (
-        <div className="featured-post__cover">
-          <img src={getPostCover(post)} alt={post.coverImageAlt || post.title} />
-        </div>
+    <div className="blog-card__cover" style={{ '--accent': accent }}>
+      {cover ? (
+        <img src={cover} alt={post.coverImageAlt || post.title} loading="lazy" />
+      ) : (
+        <span className="blog-card__cover-placeholder" aria-hidden="true" />
       )}
-      <div className="featured-post__body">
-        <span className="featured-post__category" style={{ color: accent }}>
-          {post.categoryLabel}
-        </span>
-        <h2 className="featured-post__title">{post.title}</h2>
-        <p className="featured-post__excerpt">{post.excerpt}</p>
-        <div className="featured-post__meta">
-          <span>{post.date}</span>
-          <span className="featured-post__dot" aria-hidden="true">&middot;</span>
-          <span>{post.readTime}</span>
-          <span className="featured-post__dot" aria-hidden="true">&middot;</span>
-          <span>{post.author}</span>
-        </div>
-        <span className="featured-post__link">
-          READ ARTICLE <ArrowIcon />
-        </span>
-      </div>
-    </Link>
+    </div>
   )
 }
 
@@ -140,37 +99,36 @@ function PostCard({ post }) {
     <Link to={`/blog/${post.slug}`} className="blog-card">
       <PostCover post={post} />
       <div className="blog-card__body">
-        <span className="blog-card__category" style={{ color: accent }}>
-          {post.categoryLabel}
-        </span>
-        <h3 className="blog-card__title">{post.title}</h3>
         <div className="blog-card__meta">
+          <span className="blog-card__category" style={{ color: accent }}>
+            {post.categoryLabel}
+          </span>
+          <span className="blog-card__dot" aria-hidden="true">&middot;</span>
           <span>{post.date}</span>
-          <span className="blog-card__dot" aria-hidden="true">&middot;</span>
-          <span>{post.readTime}</span>
-          <span className="blog-card__dot" aria-hidden="true">&middot;</span>
-          <span>{post.author}</span>
+          {post.readTime && (
+            <>
+              <span className="blog-card__dot" aria-hidden="true">&middot;</span>
+              <span>{post.readTime}</span>
+            </>
+          )}
         </div>
-        <span className="blog-card__link">
-          READ ARTICLE <ArrowIcon />
-        </span>
+        <h3 className="blog-card__title">{post.title}</h3>
+        {post.excerpt && <p className="blog-card__excerpt">{post.excerpt}</p>}
       </div>
     </Link>
   )
 }
 
-function BlogGrid({ posts, showFeatured }) {
-  const featured = showFeatured ? posts.find((p) => p.featured) : null
-  const rest = featured ? posts.filter((p) => p.id !== featured.id) : posts
+function BlogGrid({ posts }) {
+  // Featured posts float to the top, everything else keeps its order.
+  const ordered = [...posts].sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
 
   return (
     <section className="blog-grid">
       <div className="blog-grid__inner">
-        {featured && <FeaturedPost post={featured} />}
-
-        {rest.length > 0 ? (
+        {ordered.length > 0 ? (
           <div className="blog-grid__cards">
-            {rest.map((post) => (
+            {ordered.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
           </div>
@@ -349,7 +307,7 @@ function Blog() {
       ) : error ? (
         <p className="blog-grid__empty">{error}</p>
       ) : (
-        <BlogGrid posts={filteredPosts} showFeatured={activeCategory === 'all'} />
+        <BlogGrid posts={filteredPosts} />
       )}
 
       <Comparison />

@@ -1,0 +1,557 @@
+// Brand colours (match the Trellisco site buttons)
+$c-blue: #1f4ff5;
+$c-blue-dark: #1739c4;
+$c-blue-light: #4a7bff;
+
+$glass: rgba(15, 20, 40, 0.42);
+$glass-hover: rgba(15, 20, 40, 0.65);
+
+.promo-video {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  width: 250px; // was 300px originally
+  overflow: hidden;
+  color: #fff;
+  background: #0b1020;
+  border-radius: 22px;
+  box-shadow:
+    0 2px 6px rgba(10, 20, 60, 0.18),
+    0 24px 60px -12px rgba(10, 20, 60, 0.5);
+  animation: promo-video-in 0.6s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  transition:
+    width 0.3s ease,
+    border-radius 0.3s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+
+  // hidden while the navbar mega menu is open
+  &.is-hidden {
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    animation: none;
+  }
+
+  // thin light ring around the card
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 4px 10px rgba(10, 20, 60, 0.2),
+      0 32px 70px -12px rgba(10, 20, 60, 0.6);
+  }
+
+  // small mode: applied once the page is scrolled
+  &.is-compact {
+    width: 130px; // was 150px originally
+    border-radius: 16px;
+
+    // blue outline while small
+    &::after {
+      border: 2px solid $c-blue-light;
+    }
+
+    box-shadow:
+      0 0 0 3px rgba(31, 79, 245, 0.25),
+      0 2px 6px rgba(10, 20, 60, 0.18),
+      0 16px 40px -12px rgba(10, 20, 60, 0.5);
+
+    .promo-video__overlay,
+    .promo-video__mute-text {
+      display: none;
+    }
+
+    .promo-video__close {
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .promo-video__mute {
+      top: 8px;
+      right: 38px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .promo-video__play {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  // the card sizes itself to the video (no forced 9:16 box)
+  &__frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: auto;
+    max-height: 72vh;
+    background: transparent;
+
+    // soft dark fade behind the top controls so they stay readable on any video
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      z-index: 2;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0));
+      pointer-events: none;
+    }
+  }
+
+  &__media {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 72vh;
+    object-fit: cover;
+    cursor: pointer;
+  }
+
+  // close sits top-right so it never covers a logo in the video's top-left
+  &__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: $glass;
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
+    backdrop-filter: blur(10px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.2s ease;
+
+    &:hover {
+      background: $glass-hover;
+      transform: rotate(90deg);
+    }
+  }
+
+  &__mute {
+    position: absolute;
+    top: 10px;
+    right: 44px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px 0 9px;
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #fff;
+    background: $glass;
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
+    backdrop-filter: blur(10px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: $glass-hover;
+    }
+
+    // gentle pulse while muted so people notice there is sound
+    &.is-muted {
+      animation: promo-video-pulse 2.2s ease-out infinite;
+    }
+  }
+
+  &__close:focus-visible,
+  &__mute:focus-visible,
+  &__play:focus-visible,
+  &__cta:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+
+  &__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.22);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 50%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    &.is-paused {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  &__frame:hover &__play,
+  &__play:focus-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  // title / subtitle / button sit on top of the video, at the bottom
+  &__overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 56px 12px 12px;
+    background: linear-gradient(
+      to top,
+      rgba(5, 10, 30, 0.82) 0%,
+      rgba(5, 10, 30, 0.5) 55%,
+      rgba(5, 10, 30, 0) 100%
+    );
+    pointer-events: none;
+  }
+
+  &__head {
+    padding: 0 2px;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 15px; // was 17px
+    font-weight: 800;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    opacity: 0.88;
+  }
+
+  &__cta {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 14px; // was 13px 16px
+    font-size: 13.5px; // was 14.5px
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+    background: linear-gradient(135deg, $c-blue-light, $c-blue 55%, $c-blue-dark);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    box-shadow: 0 8px 20px -6px rgba(31, 79, 245, 0.7);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+
+    svg {
+      transition: transform 0.2s ease;
+    }
+
+    &:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 12px 26px -6px rgba(31, 79, 245, 0.85);
+
+      svg {
+        transform: translateX(3px);
+      }
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+@keyframes promo-video-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes promo-video-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.45);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+}
+
+// ---- phones ----------------------------------------------------------------
+@media (max-width: 600px) {
+  .promo-video {
+    right: 12px;
+    bottom: 12px;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    width: 148px;
+    max-width: calc(100vw - 24px); // never wider than the screen
+    border-radius: 16px;
+
+    &.is-compact {
+      width: 92px;
+      border-radius: 14px;
+    }
+
+    // keep the card short so it doesn't cover the page; the video is cropped to fit
+    &__frame {
+      max-height: 36vh;
+      max-height: 36dvh;
+      overflow: hidden;
+    }
+
+    &__media {
+      max-height: 36vh;
+      max-height: 36dvh;
+    }
+
+    &__close {
+      top: 6px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+    }
+
+    // label hidden on small screens so the pill fits in the narrower card
+    &__mute {
+      top: 6px;
+      right: 36px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    &__mute-text {
+      display: none;
+    }
+
+    &__play {
+      width: 40px;
+      height: 40px;
+    }
+
+    // title + button only; the subtitle is too cramped at this width
+    &__overlay {
+      padding: 32px 8px 8px;
+      gap: 6px;
+    }
+
+    &__subtitle {
+      display: none;
+    }
+
+    &__title {
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    &__cta {
+      padding: 7px 10px;
+      font-size: 11.5px;
+      gap: 6px;
+    }
+  }
+}
+
+// very narrow phones
+@media (max-width: 380px) {
+  .promo-video {
+    width: 128px;
+
+    &.is-compact {
+      width: 84px;
+    }
+  }
+}
+
+// touch devices have no hover: don't lift the card or rely on hover for controls
+@media (hover: none) {
+  .promo-video:hover {
+    transform: none;
+  }
+}
+
+// ---- expanded (big) view: tap the card on desktop or mobile -----------------
+.promo-video-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(5, 10, 30, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: promo-video-fade 0.25s ease both;
+}
+
+.promo-video__media {
+  cursor: zoom-in;
+}
+
+// centred with inset + auto margins (no transform, so the entrance animation can't fight it)
+.promo-video.is-expanded {
+  inset: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
+  width: min(92vw, 480px);
+  max-width: none;
+  height: fit-content;
+  max-height: 92vh;
+  max-height: 92dvh;
+  border-radius: 20px;
+  animation: promo-video-grow 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  &:hover {
+    transform: none;
+  }
+
+  &::after {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+  }
+
+  .promo-video__frame {
+    max-height: 92vh;
+    max-height: 92dvh;
+    background: #000;
+  }
+
+  // the whole video is visible, not cropped
+  .promo-video__media {
+    max-height: 92vh;
+    max-height: 92dvh;
+    object-fit: contain;
+    cursor: pointer;
+  }
+
+  .promo-video__close {
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .promo-video__mute {
+    top: 10px;
+    right: 50px;
+    width: auto;
+    height: 32px;
+    padding: 0 12px 0 10px;
+    justify-content: flex-start;
+  }
+
+  .promo-video__mute-text {
+    display: inline;
+  }
+
+  .promo-video__play {
+    width: 56px;
+    height: 56px;
+  }
+
+  .promo-video__overlay {
+    display: flex;
+    padding: 64px 16px 16px;
+    gap: 10px;
+  }
+
+  .promo-video__title {
+    font-size: 18px;
+  }
+
+  .promo-video__subtitle {
+    display: block;
+    font-size: 13px;
+  }
+
+  .promo-video__cta {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 900px) {
+  .promo-video.is-expanded {
+    width: min(70vw, 560px);
+  }
+}
+
+@keyframes promo-video-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes promo-video-grow {
+  from {
+    opacity: 0.6;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promo-video {
+    animation: none;
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+
+    &__mute.is-muted {
+      animation: none;
+    }
+  }
+}

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   fetchPosts,
+  fetchPost,
   createPost,
   updatePost,
   deletePost,
@@ -51,6 +52,17 @@ const BLOCK_TYPES = [
   { type: 'cta', label: 'Button / CTA' },
   { type: 'divider', label: 'Divider' },
 ]
+
+// Blocks that only exist when migrating older posts. They can't be added
+// from the editor, but they're kept (and rendered publicly) so editing an
+// old post doesn't wipe its platform cards / workflow visuals.
+const PRESERVED_BLOCK_LABELS = {
+  app_grid: 'Platform cards',
+  workflow: 'Workflow steps',
+}
+
+const blockLabel = (type) =>
+  BLOCK_TYPES.find((t) => t.type === type)?.label || PRESERVED_BLOCK_LABELS[type] || type
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
@@ -132,6 +144,8 @@ function isBlockFilled(block) {
     case 'cta':
       return Boolean(block.label && block.label.trim())
     case 'divider':
+    case 'app_grid':
+    case 'workflow':
       return true
     default:
       return false
@@ -160,6 +174,10 @@ function blockPreviewText(block) {
       return block.label?.trim() || 'No button text yet'
     case 'divider':
       return 'Divider'
+    case 'app_grid':
+      return `${(block.apps || []).length} cards (kept as-is)`
+    case 'workflow':
+      return `${(block.steps || []).length} steps (kept as-is)`
     default:
       return ''
   }
@@ -189,14 +207,24 @@ function emptyBlock(type) {
   }
 }
 
-// Migrates an older heading/paragraphs/image/video/quote section into
-// the new block list, so editing an existing post doesn't lose content.
+// Migrates an older heading/paragraphs/apps/workflow/image/video/quote
+// section into the block list WITHOUT losing anything: same order the
+// public page used, heading keeps the section id (so anchors/TOC stay
+// the same), and apps/workflow are carried over as preserved blocks.
 function sectionToBlocks(section) {
   const blocks = []
-  if (section.heading) blocks.push({ id: uid(), type: 'heading', text: section.heading })
+  if (section.heading) {
+    blocks.push({ id: section.id || uid(), type: 'heading', text: section.heading })
+  }
   ;(section.paragraphs || []).forEach((p) =>
     blocks.push({ id: uid(), type: 'paragraph', text: p })
   )
+  if (section.apps && section.apps.length) {
+    blocks.push({ id: uid(), type: 'app_grid', apps: section.apps })
+  }
+  if (section.workflow && section.workflow.length) {
+    blocks.push({ id: uid(), type: 'workflow', steps: section.workflow })
+  }
   if (section.image) {
     blocks.push({
       id: uid(),
@@ -216,6 +244,11 @@ function sectionToBlocks(section) {
   }
   if (section.quote) blocks.push({ id: uid(), type: 'quote', text: section.quote })
   return blocks
+}
+
+// Drops editor-only flags (like `uploading`) before sending to the API.
+function cleanBlocks(blocks) {
+  return blocks.map(({ uploading, ...rest }) => rest)
 }
 
 function emptyForm() {
@@ -396,13 +429,6 @@ function PostList({
         const note = scheduleNote(post)
         return (
           <div className="admin-blog__row" key={post.id}>
-            {/*
-              Cover cell: the outer <span className="admin-blog__cover"> is the
-              actual grid cell — it must stay full width so its border-right
-              divider lines up with every other column's divider. The fixed
-              40x28 thumbnail box lives inside as __cover-thumb so its size
-              doesn't collapse the cell itself.
-            */}
             <span className="admin-blog__cover">
               <span className="admin-blog__cover-thumb">
                 {post.coverImage ? (
@@ -563,9 +589,6 @@ function FileDropField({ label, hint, previewUrl, accept, onFile, uploading, dis
    CONTENT BLOCK EDITOR
 ─────────────────────────────── */
 function BlockEditor({ blocks, onChange, disabled }) {
-  // Which "add content block" type button is currently highlighted — set
-  // to whichever type was added last, so it's clear which one is selected
-  // instead of every button looking identical.
   const [activeAddType, setActiveAddType] = useState(null)
 
   const update = (id, patch) =>
@@ -607,7 +630,7 @@ function BlockEditor({ blocks, onChange, disabled }) {
           <div className="admin-blog__block-toolbar">
             <div className="admin-blog__block-heading">
               <span className="admin-blog__block-type">
-                {BLOCK_TYPES.find((t) => t.type === block.type)?.label}
+                {blockLabel(block.type)}
               </span>
               <span className={`admin-blog__block-status-dot${filled ? ' is-filled' : ''}`} aria-hidden="true" />
               <span className="admin-blog__block-preview" title={blockPreviewText(block)}>
@@ -752,6 +775,20 @@ function BlockEditor({ blocks, onChange, disabled }) {
           )}
 
           {block.type === 'divider' && <hr className="admin-blog__block-divider" />}
+
+          {block.type === 'app_grid' && (
+            <small>
+              Existing platform cards from the original post. They're kept exactly as they were
+              and still show on the live page.
+            </small>
+          )}
+
+          {block.type === 'workflow' && (
+            <small>
+              Existing workflow steps from the original post. They're kept exactly as they were
+              and still show on the live page.
+            </small>
+          )}
         </div>
         )
       })}
@@ -879,7 +916,10 @@ function PostEditor({ initialPost, onCancel, onSaved }) {
       formData.append('readTime', form.readTime)
       formData.append('coverImageAlt', form.coverImageAlt)
       formData.append('coverImageCaption', form.coverImageCaption)
-      formData.append('body', JSON.stringify(form.body))
+      // Never send an unloaded body when editing — it would overwrite saved content.
+      if (!initialPost || Array.isArray(initialPost.body)) {
+        formData.append('body', JSON.stringify(cleanBlocks(form.body)))
+      }
       formData.append('seoTitle', form.seoTitle)
       formData.append('metaDescription', form.metaDescription)
       formData.append('seoKeywords', JSON.stringify(form.seoKeywords))
@@ -1248,9 +1288,18 @@ export default function AdminBlogDashboard() {
     setView('editor')
   }
 
-  const handleEdit = (post) => {
-    setEditingPost(post)
-    setView('editor')
+  const handleEdit = async (post) => {
+    setBusySlug(post.slug)
+    try {
+      // List endpoint omits `body`, so load the full post first.
+      const full = await fetchPost(post.slug)
+      setEditingPost(full)
+      setView('editor')
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Could not load this post for editing.')
+    } finally {
+      setBusySlug(null)
+    }
   }
 
   const handleSaved = () => {

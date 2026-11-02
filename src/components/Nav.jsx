@@ -7,6 +7,7 @@ import AssetImg from "../assets/ChatGPT Image Sep 16, 2026, 10_44_40 AM.png";
 import ClaudesImg from "../assets/ChatGPT Image Sep 14, 2026, 10_23_27 AM.png";
 import MeloneLiteImg from "../assets/ChatGPT Image Sep 16, 2026, 11_09_30 AM.png";
 import VenukartImg from "../assets/ChatGPT Image Sep 14, 2026, 10_39_24 AM.png";
+import ImsImg from "../assets/Cheerful Warehouse Robot Inventory Scene.png";
 import MeloneLogo from "../assets/MELONE PNG (1) (1).png";
 import ClaudesLogo from "../assets/cluadius icon W-01 (1).png";
 import VenukartLogo from "../assets/image.png";
@@ -185,6 +186,63 @@ const PRODUCTS = [
       { label: "Due for Replacement", value: "9", variant: "orange" },
     ],
     previewChartLabel: "Asset Condition Overview",
+  },
+  {
+    key: "ims",
+    name: "Trellisco IMS",
+    eyebrow: "Trellisco Suite",
+    desc: "Track stock, purchases, and suppliers across every warehouse and store from one inventory management system.",
+    accent: "#0891b2",
+    link: "https://trellisco.in/",
+    badge: {
+      text: "Built for Stock-Driven Teams",
+      color: "#0891b2",
+    },
+    features: [
+      {
+        icon: "box",
+        color: "#0891b2",
+        title: "Stock Management",
+        desc: "Monitor quantities, SKUs, and stock movement in real time.",
+      },
+      {
+        icon: "building",
+        color: "#2f6fed",
+        title: "Multi-Warehouse",
+        desc: "Manage stock across several warehouses and locations.",
+      },
+      {
+        icon: "swap",
+        color: "#e0424a",
+        title: "Stock In / Stock Out",
+        desc: "Log purchases, sales, and transfers with a full history.",
+      },
+      {
+        icon: "clock",
+        color: "#e0a700",
+        title: "Low-Stock Alerts",
+        desc: "Get reminded to reorder before items run out.",
+      },
+      {
+        icon: "people",
+        color: "#7b5cff",
+        title: "Supplier Management",
+        desc: "Keep supplier details and purchase orders in one place.",
+      },
+      {
+        icon: "chart",
+        color: "#2a8d5c",
+        title: "Reports & Analytics",
+        desc: "See stock value, turnover, and movement at a glance.",
+      },
+    ],
+    previewStats: [
+      { label: "Total SKUs", value: "1,830", variant: "blue" },
+      { label: "In Stock", value: "1,642", variant: "green" },
+      { label: "Low Stock", value: "37", variant: "orange" },
+      { label: "Warehouses", value: "5", variant: "purple" },
+    ],
+    previewChartLabel: "Stock Movement Overview",
   },
   {
     key: "late",
@@ -439,7 +497,7 @@ const GROUPS = [
     label: "Trellisco",
     tagline: "Integrated suite for modern businesses",
     logo: TrelliscoLogo,
-    items: ["hrms", "crm", "asset"],
+    items: ["hrms", "crm", "asset", "ims"],
   },
   {
     key: "melone",
@@ -476,6 +534,7 @@ const PREVIEW_IMAGES = {
   hrms: HrImg,
   crm: CrmImg,
   asset: AssetImg,
+  ims: ImsImg,
   late: MeloneLiteImg,
   pose: MeloneLiteImg,
   stay: MeloneLiteImg,
@@ -727,6 +786,39 @@ function ProductIcon({ type }) {
             stroke="currentColor"
             strokeWidth="2.3"
             strokeLinecap="round"
+          />
+        </svg>
+      );
+
+    case "ims":
+      return (
+        <svg viewBox="0 0 40 40" width="20" height="20" fill="none">
+          <path
+            d="M4 16L20 6l16 10"
+            stroke="currentColor"
+            strokeWidth="2.3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M7 15v18h26V15"
+            stroke="currentColor"
+            strokeWidth="2.3"
+            strokeLinejoin="round"
+          />
+          <rect
+            x="13"
+            y="21"
+            width="14"
+            height="12"
+            rx="1.5"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <path
+            d="M13 27h14"
+            stroke="currentColor"
+            strokeWidth="2"
           />
         </svg>
       );
@@ -1174,6 +1266,32 @@ export default function Nav() {
 
   const closeMobileNav = () => setMobileNavOpen(false);
 
+  // Sidebar: lock page scroll while open, close on Esc, and close
+  // automatically when the screen is widened to desktop size.
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    const mq = window.matchMedia("(min-width: 901px)");
+    const onChange = (e) => {
+      if (e.matches) setMobileNavOpen(false);
+    };
+
+    window.addEventListener("keydown", onKey);
+    mq.addEventListener("change", onChange);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+      mq.removeEventListener("change", onChange);
+    };
+  }, [mobileNavOpen]);
+
   const selectGroup = (groupKey) => {
     const nextGroup = getGroup(groupKey);
 
@@ -1329,81 +1447,113 @@ export default function Nav() {
       </div>
 
       {mobileNavOpen && (
-        <div className="nav__mobile-panel">
-          <ul className="nav__mobile-list">
-            {NAV_LINKS.map((link) => (
-              <li key={link.key} className="nav__mobile-item">
-                {link.path ? (
-                  <Link
-                    to={link.path}
-                    className="nav__mobile-link"
-                    onClick={closeMobileNav}
-                  >
-                    {link.label}
-                  </Link>
-                ) : link.hasMega ? (
-                  <button
-                    type="button"
-                    className={`nav__mobile-link${
-                      activeMenu === link.key ? " is-active" : ""
-                    }`}
-                    onClick={() => {
-                      toggleMenu(link.key);
-                      closeMobileNav();
-                    }}
-                  >
-                    {link.label}
+        <>
+          <div
+            className="nav__drawer-backdrop"
+            onClick={closeMobileNav}
+            aria-hidden="true"
+          />
 
-                    <svg
-                      className="nav__chevron"
-                      viewBox="0 0 12 8"
-                      width="10"
-                      height="7"
+          <aside
+            className="nav__drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site menu"
+          >
+            <div className="nav__drawer-head">
+              <a className="nav__drawer-logo" href="/" onClick={closeMobileNav}>
+                <img
+                  src={TrelliscoLogo}
+                  alt="Trellisco"
+                  className="nav__drawer-logo-img"
+                />
+              </a>
+
+              <button
+                type="button"
+                className="nav__drawer-close"
+                aria-label="Close menu"
+                onClick={closeMobileNav}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            <ul className="nav__mobile-list">
+              {NAV_LINKS.map((link) => (
+                <li key={link.key} className="nav__mobile-item">
+                  {link.path ? (
+                    <Link
+                      to={link.path}
+                      className="nav__mobile-link"
+                      onClick={closeMobileNav}
                     >
-                      <path
-                        d="M1 1l5 5 5-5"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="nav__mobile-link"
-                    onClick={closeMobileNav}
-                  >
-                    {link.label}
-                  </button>
-                )}
+                      {link.label}
+                    </Link>
+                  ) : link.hasMega ? (
+                    <button
+                      type="button"
+                      className={`nav__mobile-link${
+                        activeMenu === link.key ? " is-active" : ""
+                      }`}
+                      onClick={() => {
+                        toggleMenu(link.key);
+                        closeMobileNav();
+                      }}
+                    >
+                      {link.label}
+
+                      <svg
+                        className="nav__chevron"
+                        viewBox="0 0 12 8"
+                        width="10"
+                        height="7"
+                      >
+                        <path
+                          d="M1 1l5 5 5-5"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="nav__mobile-link"
+                      onClick={closeMobileNav}
+                    >
+                      {link.label}
+                    </button>
+                  )}
+                </li>
+              ))}
+
+              <li className="nav__mobile-item nav__mobile-item--login">
+                <Link
+                  className="nav__mobile-login"
+                  to="/login"
+                  onClick={closeMobileNav}
+                >
+                  <LoginIcon />
+                  Login
+                </Link>
               </li>
-            ))}
 
-            <li className="nav__mobile-item nav__mobile-item--login">
-              <Link
-                className="nav__mobile-login"
-                to="/login"
-                onClick={closeMobileNav}
-              >
-                <LoginIcon />
-                Login
-              </Link>
-            </li>
-
-            <li className="nav__mobile-item nav__mobile-item--contact">
-              <Link
-                className="nav__mobile-contact"
-                to="/contact"
-                onClick={closeMobileNav}
-              >
-                Contact Us
-              </Link>
-            </li>
-          </ul>
-        </div>
+              <li className="nav__mobile-item nav__mobile-item--contact">
+                <Link
+                  className="nav__mobile-contact"
+                  to="/contact"
+                  onClick={closeMobileNav}
+                >
+                  Contact Us
+                </Link>
+              </li>
+            </ul>
+          </aside>
+        </>
       )}
 
       {activeMenu === "products" && (
