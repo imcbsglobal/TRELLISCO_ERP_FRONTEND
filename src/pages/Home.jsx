@@ -3,144 +3,253 @@ import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import FallingText from '../components/FallingText'
 import HeroImg from '../assets/Trellisco ERP Laptop Dashboard Illustration.png'
-import HRMSImg from '../assets/HRMS.png'
-import RestaurantImg from '../assets/Restuart.png'
-import PropertyImg from '../assets/propertymanagment.png'
-import GymImg from '../assets/gym.png'
+import AboutImg from '../assets/ChatGPT Image Sep 12, 2026, 04_26_49 PM.png'
 import ShowcaseImg from '../assets/ChatGPT Image Sep 14, 2026, 11_36_58 AM.png'
+import HrmsLogo from '../assets/Trellisco logo 2.png'
+import HospitalityLogo from '../assets/MELONE PNG (1) (1).png'
+import PropertyLogo from '../assets/image.png'
+import GymLogo from '../assets/cluadius icon W-01 (1).png'
 import PlatformFeatures from './PlatformFeatures'
 import PromoVideoPlayer from './Promovideoplayer'
 import './Home.scss'
 
 /* ─────────────────────────────────────────────
-   INDUSTRY SOLUTIONS SECTION
+   ABOUT US SECTION
 ───────────────────────────────────────────── */
-const INDUSTRY_TABS = [
+const ABOUT_CHECKS = [
+  'All-in-one ERP management',
+  'HRMS, payroll & employee management',
+  'Inventory, sales & purchase management',
+  'CRM, customers & supplier management',
+  'Restaurant  management',
+  'Secure access & role-based permissions',
+]
+
+const AboutIcon = ({ children }) => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+    {children}
+  </svg>
+)
+
+const ABOUT_INDUSTRIES = [
   {
     key: 'hrms',
-    label: 'HRMS',
+    logo: HrmsLogo,
+    title: 'HRMS',
     accent: '#1b46f5',
-    eyebrow: 'Workforce',
-    title: 'People, process, progress',
-    lead: 'Run recruitment, attendance, payroll, leave, and performance from one system — instead of five spreadsheets.',
-    includes: ['Employees', 'Attendance', 'Payroll', 'Leave', 'Performance'],
-    image: HRMSImg,
+    tint: '#e9f0ff',
+    text: 'Run recruitment, attendance, payroll, leave, and performance from one system.',
+    includes: ['Employees', 'Attendance', 'Payroll'],
     href: 'https://trelliscoerp.com/HRMS/',
+    icon: (
+      <AboutIcon>
+        <circle cx="9" cy="8.5" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M3 19c.4-3.2 2.8-5 6-5s5.6 1.8 6 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.5 14.4c2 .6 3.2 2.1 3.5 4.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </AboutIcon>
+    ),
   },
   {
-    key: 'restaurant',
-    label: 'Hospitality',
+    key: 'hospitality',
+    logo: HospitalityLogo,
+    title: 'Hospitality',
     accent: '#f4923b',
-    eyebrow: 'Hospitality',
-    title: 'Good food, brighter people',
-    lead: 'Keep orders, inventory, staff schedules, and reports moving without leaving the floor.',
-    includes: ['Orders', 'Inventory', 'Staff', 'Reports'],
-    image: RestaurantImg,
+    tint: '#fdf1de',
+    text: 'Keep orders, inventory, staff schedules, and reports moving without leaving the floor.',
+    includes: ['Orders', 'Inventory', 'Staff'],
     href: 'https://melone.in/',
+    icon: (
+      <AboutIcon>
+        <path d="M3.5 17.5h17M5 17.5a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 7.5V10M10.5 7.5h3M3 20.5h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </AboutIcon>
+    ),
   },
   {
     key: 'property',
-    label: 'Property',
+    logo: PropertyLogo,
+    title: 'Property',
     accent: '#1fa37e',
-    eyebrow: 'Real Estate',
-    title: 'Manage properties, grow value',
-    lead: 'Track units, tenants, and maintenance requests across your whole portfolio in one dashboard.',
-    includes: ['Units', 'Tenants', 'Maintenance', 'Reporting'],
-    image: PropertyImg,
+    tint: '#e3f9ef',
+    text: 'Track units, tenants, and maintenance requests across your whole portfolio.',
+    includes: ['Units', 'Tenants', 'Maintenance'],
     href: 'https://www.venuekart.co.in/',
+    icon: (
+      <AboutIcon>
+        <path d="M5 20.5V5.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15M15 10.5h3a1 1 0 0 1 1 1v9M3.5 20.5h17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8.5 8h3M8.5 11.5h3M8.5 15h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </AboutIcon>
+    ),
   },
   {
     key: 'gym',
-    label: 'Gym',
+    logo: GymLogo,
+    title: 'Gym',
     accent: '#e2461f',
-    eyebrow: 'Fitness',
-    title: 'Stronger than yesterday',
-    lead: 'Handle class scheduling, memberships, and check-ins without a whiteboard or a spreadsheet.',
-    includes: ['Classes', 'Memberships', 'Check-ins', 'Billing'],
-    image: GymImg,
+    hover: '#76ff03', // fluorescent green on hover
+    hoverInk: '#10200a',
+    tint: '#fde9e3',
+    text: 'Handle class scheduling, memberships, and check-ins without a whiteboard.',
+    includes: ['Classes', 'Memberships', 'Check-ins'],
     href: 'https://claudius.in/',
+    icon: (
+      <AboutIcon>
+        <path d="M3 10v4M6 7.5v9M18 7.5v9M21 10v4M6 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </AboutIcon>
+    ),
   },
 ]
 
-function IndustrySolutions() {
-  const [activeKey, setActiveKey] = useState(INDUSTRY_TABS[0].key)
-  const active = INDUSTRY_TABS.find((tab) => tab.key === activeKey)
+function AboutUs() {
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true)
+      return undefined
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.15 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   return (
-    <section className="solutions">
-      <div className="solutions__inner">
-        <h2 className="solutions__title">Built for how your industry runs</h2>
-        <p className="solutions__subtitle">
-          One platform, tuned to the day-to-day of your business.
-        </p>
-
-        <div className="solutions__tabs" role="tablist">
-          {INDUSTRY_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={tab.key === activeKey}
-              className={`solutions__tab${tab.key === activeKey ? ' solutions__tab--active' : ''}`}
-              style={tab.key === activeKey ? { background: tab.accent } : undefined}
-              onClick={() => setActiveKey(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="solutions__panel">
-          <div className="solutions__copy">
-            <span className="solutions__eyebrow" style={{ color: active.accent }}>
-              {active.eyebrow}
-            </span>
-            <h3 className="solutions__panel-title">{active.title}</h3>
-            <p className="solutions__lead">{active.lead}</p>
-
-            <div className="solutions__includes">
-              <span className="solutions__includes-label">Includes</span>
-              <ul className="solutions__includes-list">
-                {active.includes.map((item) => (
-                  <li key={item} className="solutions__includes-item">
-                    <span
-                      className="solutions__includes-dot"
-                      style={{ background: active.accent }}
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+    <section id="about" className={`about${visible ? ' about--in' : ''}`} ref={ref}>
+      <div className="about__inner">
+        {/* 1 — image + story */}
+        <div className="about__top">
+          <div className="about__media">
+            <div className="about__frame">
+              <img src={AboutImg} alt="Trellisco ERP dashboard" className="about__image" />
+            </div>
+            <div className="about__badge">
+              <strong>10+</strong>
+              <span>Industries</span>
             </div>
 
-            <a
-              href={active.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="solutions__link"
-              style={{ color: active.accent }}
-            >
-              Explore {active.label}
-              <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
-                <path
-                  d="M7 4l6 6-6 6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </a>
+            <span className="about__float about__float--a" aria-hidden="true">HRMS</span>
+            <span className="about__float about__float--b" aria-hidden="true">Inventory</span>
+            <span className="about__float about__float--c" aria-hidden="true">CRM</span>
           </div>
 
-          <div className="solutions__media">
-            <img
-              key={active.key}
-              src={active.image}
-              alt={`Trellisco for ${active.label}`}
-              className="solutions__image"
-            />
+          <div className="about__copy">
+            <span className="about__eyebrow">About Trellisco ERP</span>
+            <h2 className="about__title">
+              One ERP for every part of{' '}
+              <span className="about__title-accent">your business</span>
+            </h2>
+            <p className="about__text">
+              Trellisco ERP brings HR, inventory, CRM, and industry-specific operations into a
+              single platform, so your team works from one source of truth instead of juggling
+              spreadsheets and disconnected apps. Start with the modules you need today and add
+              more as you grow.
+            </p>
+
+            <ul className="about__checks">
+              {ABOUT_CHECKS.map((item) => (
+                <li key={item} className="about__check">
+                  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+                    <circle cx="10" cy="10" r="10" fill="#1b46f5" />
+                    <path d="M5.8 10.2l2.8 2.8 5.6-5.8" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <a href="https://wa.me/917591907003" target="_blank" rel="noopener noreferrer" className="about__btn">
+              Explore the ERP
+            </a>
+          </div>
+        </div>
+
+        {/* 3 — industry solutions */}
+        <div className="about__bottom">
+          <div className="about__bottom-copy">
+            <span className="about__eyebrow">Industry solutions</span>
+            <h3 className="about__subtitle">Built for how your industry runs</h3>
+            <p className="about__text">
+              One platform, tuned to the day-to-day of your business. Pick your industry and jump
+              straight into the solution built for it.
+            </p>
+          </div>
+
+          <div className="about__cards">
+            {ABOUT_INDUSTRIES.map((c, i) => (
+              <div
+                key={c.key}
+                className="about__card"
+                style={{
+                  '--accent': c.accent,
+                  '--tint': c.tint,
+                  ...(c.hover && { '--hover': c.hover, '--hover-ink': c.hoverInk }),
+                  transitionDelay: `${i * 90}ms`,
+                }}
+              >
+                <div className="about__card-head">
+                  <span className={`about__card-icon${c.logo ? ' about__card-icon--logo' : ''}`}>
+                    {c.logo ? (
+                      <img src={c.logo} alt={`${c.title} logo`} className="about__card-logo" />
+                    ) : (
+                      c.icon
+                    )}
+                  </span>
+                  <span className="about__card-corner" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" width="14" height="14">
+                      <path
+                        d="M6 14L14 6M7 6h7v7"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </div>
+                <h4 className="about__card-title">{c.title}</h4>
+                <p className="about__card-text">{c.text}</p>
+
+                <ul className="about__chips">
+                  {c.includes.map((item) => (
+                    <li key={item} className="about__chip">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  href={c.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="about__arrow"
+                  aria-label={`Explore ${c.title}`}
+                >
+                  Learn more
+                  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+                    <path
+                      d="M4 10h12M11 5l5 5-5 5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </a>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -878,6 +987,18 @@ function HeroFlow({ children }) {
     let dir = 0 // 1 = playing in, -1 = playing back
     let last = 0
     let loop = 0
+    // render caches: only touch the DOM when a value really changed
+    let lastHp = -1
+    let lastBy = ''
+    let lastCb = -1
+    let lastCf = -1
+    let lastTi = -1
+    let lastFalling = null
+    // scroll-gesture bookkeeping (swallows trackpad momentum right after a handoff)
+    let lastWheel = 0
+    let settling = false
+    let away = !atTop()
+    let blocking = false
 
     // rest position of every object (its hero spot) -> where it lands inside the box
     const measure = () => {
@@ -919,12 +1040,19 @@ function HeroFlow({ children }) {
     const render = () => {
       // hero lifts away
       const hp = easeOut(clamp(time / HERO_OUT_DUR))
-      wrap.style.setProperty('--hp', String(hp))
-      if (hero) hero.style.visibility = hp >= 1 ? 'hidden' : ''
+      if (hp !== lastHp) {
+        lastHp = hp
+        wrap.style.setProperty('--hp', String(hp))
+        if (hero) hero.style.visibility = hp >= 1 ? 'hidden' : ''
+      }
 
       // box slides up from below the screen
       const be = smooth(clamp((time - BOX_START) / BOX_DUR))
-      stage.style.setProperty('--by', `${(1 - be) * (window.innerHeight - restTop + 24)}px`)
+      const by = `${(1 - be) * (window.innerHeight - restTop + 24)}px`
+      if (by !== lastBy) {
+        lastBy = by
+        stage.style.setProperty('--by', by)
+      }
 
       // objects fall into the box
       geo.forEach((g) => {
@@ -934,30 +1062,45 @@ function HeroFlow({ children }) {
         const y = g.dy * t * t
         const r = g.cfg.drot * easeOut(t) + g.cfg.dir * 60 * Math.sin(Math.PI * t)
         const s = 1 + (g.cfg.sc - 1) * t
-        g.el.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg) scale(${s})`
+        const tf = `translate(${x}px, ${y}px) rotate(${r}deg) scale(${s})`
+        if (tf !== g.last) {
+          g.last = tf
+          g.el.style.transform = tf
+        }
       })
 
       // flaps close: back flaps first, then the front ones
       const c = clamp((time - CLOSE_START) / CLOSE_DUR)
       const cb = smooth(clamp(c / 0.6))
       const cf = smooth(clamp((c - 0.4) / 0.6))
-      flapNodes.forEach(({ f, nodes }) => {
-        const deg = f.open * (1 - (f.back ? cb : cf))
-        const pts = flapPoints(f, deg)
-        nodes.forEach((node) => {
-          node.setAttribute('points', pts)
-          if (f.back) {
-            const show = (node.dataset.layer === 'back') === deg >= 90
-            node.style.display = show ? '' : 'none'
-          }
+      if (cb !== lastCb || cf !== lastCf) {
+        lastCb = cb
+        lastCf = cf
+        flapNodes.forEach(({ f, nodes }) => {
+          const deg = f.open * (1 - (f.back ? cb : cf))
+          const pts = flapPoints(f, deg)
+          nodes.forEach((node) => {
+            node.setAttribute('points', pts)
+            if (f.back) {
+              const show = (node.dataset.layer === 'back') === deg >= 90
+              node.style.display = show ? '' : 'none'
+            }
+          })
         })
-      })
+      }
 
       // headline
       const ti = clamp((time - COPY_START) / COPY_DUR)
-      stage.style.setProperty('--to', String(ti))
-      stage.style.setProperty('--ty', `${(1 - ti) * 24}px`)
-      stage.classList.toggle('is-falling', time > FALL_START - 0.05)
+      if (ti !== lastTi) {
+        lastTi = ti
+        stage.style.setProperty('--to', String(ti))
+        stage.style.setProperty('--ty', `${(1 - ti) * 24}px`)
+      }
+      const falling = time > FALL_START - 0.05
+      if (falling !== lastFalling) {
+        lastFalling = falling
+        stage.classList.toggle('is-falling', falling)
+      }
     }
 
     const running = () => (dir > 0 && time < TOTAL) || (dir < 0 && time > 0)
@@ -968,7 +1111,13 @@ function HeroFlow({ children }) {
       last = now
       time = Math.min(Math.max(time + dir * dt, 0), TOTAL)
       render()
-      if (running()) loop = requestAnimationFrame(tick)
+      if (running()) {
+        loop = requestAnimationFrame(tick)
+      } else {
+        // finished: swallow the tail of the user's scroll momentum
+        settling = true
+        lastWheel = performance.now()
+      }
     }
 
     const play = (d) => {
@@ -980,9 +1129,21 @@ function HeroFlow({ children }) {
 
     // ---- triggers: the next scroll gesture from the banner starts everything ----
     const onWheel = (e) => {
+      const now = performance.now()
+      const gap = now - lastWheel
+      lastWheel = now
       if (running()) {
         e.preventDefault()
         return
+      }
+      // trackpad momentum from the flick that just landed must not start a reverse play.
+      // This only ever gates the *upward* trigger, normal downward scrolling is never blocked.
+      if (settling) {
+        if (gap < 90) {
+          if (e.deltaY < 0) return
+        } else {
+          settling = false
+        }
       }
       if (!atTop()) return
       if (e.deltaY > 0 && time === 0) {
@@ -1036,11 +1197,45 @@ function HeroFlow({ children }) {
       }
     }
 
-    const onScroll = () => {
-      if (running()) {
-        if (window.scrollY !== 0) window.scrollTo(0, 0) // e.g. scrollbar drag
-        return
+    // wheel/touchmove must be non-passive to be able to block scrolling, which makes the
+    // browser wait for JS on every scroll tick. They only act at the top of the page,
+    // so they are attached there and detached everywhere else.
+    const setBlocking = (on) => {
+      if (on === blocking) return
+      blocking = on
+      if (on) {
+        window.addEventListener('wheel', onWheel, { passive: false })
+        window.addEventListener('touchmove', onTouchMove, { passive: false })
+      } else {
+        window.removeEventListener('wheel', onWheel)
+        window.removeEventListener('touchmove', onTouchMove)
       }
+    }
+
+    const onScroll = () => {
+      if (atTop()) {
+        if (away) {
+          away = false
+          settling = true // just flicked back up to the top: don't instantly replay in reverse
+          lastWheel = performance.now()
+        }
+      } else {
+        away = true
+      }
+      if (running() && !atTop()) {
+        // moved by something we can't block (scrollbar drag, track click, anchor jump):
+        // finish the scene instantly and let the page scroll on, instead of fighting it
+        // with scrollTo(0, 0) every frame (that tug-of-war was the shivering)
+        if (loop) {
+          cancelAnimationFrame(loop)
+          loop = 0
+        }
+        dir = 0
+        time = TOTAL
+        render()
+      }
+      setBlocking(running() || atTop())
+      if (running()) return
       // jumped past the banner (anchor link, reload, scrollbar): show the finished scene
       if (!atTop() && time < TOTAL) {
         time = TOTAL
@@ -1058,9 +1253,8 @@ function HeroFlow({ children }) {
 
     measure()
     render()
-    window.addEventListener('wheel', onWheel, { passive: false })
+    setBlocking(atTop())
     window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
     window.addEventListener('keydown', onKey)
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onResize)
@@ -1177,7 +1371,7 @@ function Home() {
       </section>
       </HeroFlow>
 
-      <IndustrySolutions />
+      <AboutUs />
       <PlatformFeatures />
       <Faq />
       <ProductShowcase />

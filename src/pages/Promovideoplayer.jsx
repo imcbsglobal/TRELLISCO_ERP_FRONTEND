@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getActivePromoVideo } from "../api/promoVideoApi";
 import "./Promovideoplayer.scss";
 
@@ -9,6 +9,46 @@ const dismissedThisLoad = new Set();
 // Scroll distance (px) after which the card shrinks.
 const COMPACT_AFTER = 80;
 
+// ---- drag to move ------------------------------------------------------------
+// The card is anchored bottom-right in CSS; dragging only changes an offset from that
+// anchor (--drag-x / --drag-y -> `translate`). The offset is kept in memory so the card
+// stays where you left it while browsing (Home -> Blog -> Home).
+const savedOffset = { x: 0, y: 0 };
+const DRAG_MARGIN = 8; // px kept between the card and the screen edge
+const DRAG_THRESHOLD = 5; // px of movement before a press counts as a drag (below = a normal click)
+
+const clampTo = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max));
+
+// how far the card may move from its anchor while staying fully on screen
+function dragBounds(el) {
+  const root = document.documentElement;
+  const vw = root.clientWidth;
+  const vh = root.clientHeight;
+  const cs = window.getComputedStyle(el);
+  const right = parseFloat(cs.right) || 0;
+  const bottom = parseFloat(cs.bottom) || 0;
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+  return {
+    minX: DRAG_MARGIN - (vw - right - w),
+    maxX: right - DRAG_MARGIN,
+    minY: DRAG_MARGIN - (vh - bottom - h),
+    maxY: bottom - DRAG_MARGIN,
+  };
+}
+
+function applyOffset(el, x, y) {
+  savedOffset.x = x;
+  savedOffset.y = y;
+  el.style.setProperty("--drag-x", `${x}px`);
+  el.style.setProperty("--drag-y", `${y}px`);
+}
+
+function clampIntoView(el) {
+  const b = dragBounds(el);
+  applyOffset(el, clampTo(savedOffset.x, b.minX, b.maxX), clampTo(savedOffset.y, b.minY, b.maxY));
+}
+
 export default function PromoVideoPlayer() {
   const [promo, setPromo] = useState(null);
   const [muted, setMuted] = useState(true);
@@ -16,7 +56,11 @@ export default function PromoVideoPlayer() {
   const [compact, setCompact] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const videoRef = useRef(null);
+  const asideRef = useRef(null);
+  const stopDragRef = useRef(null);
+  const justDragged = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +91,41 @@ export default function PromoVideoPlayer() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
+
+  // Put the card back where it was left (before paint, so it doesn't flash at the corner).
+  useLayoutEffect(() => {
+    const el = asideRef.current;
+    if (el && (savedOffset.x || savedOffset.y)) applyOffset(el, savedOffset.x, savedOffset.y);
+  }, [promo]);
+
+  // Keep the card on screen when the window is resized or the card changes size
+  // (small <-> normal when scrolling).
+  useEffect(() => {
+    if (!promo || expanded) return undefined;
+    let t;
+    const reclamp = () => {
+      const el = asideRef.current;
+      if (el) clampIntoView(el);
+    };
+    const onResize = () => {
+      clearTimeout(t);
+      t = setTimeout(reclamp, 120);
+    };
+    window.addEventListener("resize", onResize);
+    t = setTimeout(reclamp, 350); // after the width transition has finished
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [promo, expanded, compact]);
+
+  // Never leave drag listeners behind if the card unmounts mid-drag.
+  useEffect(
+    () => () => {
+      if (stopDragRef.current) stopDragRef.current();
+    },
+    []
+  );
 
   // While expanded: lock page scroll and let Esc shrink the video back.
   useEffect(() => {
@@ -101,8 +180,65 @@ export default function PromoVideoPlayer() {
     else v.pause();
   };
 
+  // press and drag anywhere on the small card (except its buttons) to move it
+  const onPointerDown = (e) => {
+    if (expanded) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.target.closest(".promo-video__close, .promo-video__mute, .promo-video__cta")) return;
+    const el = asideRef.current;
+    if (!el) return;
+
+    const bounds = dragBounds(el);
+    const prevUserSelect = document.body.style.userSelect;
+    const start = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: savedOffset.x, oy: savedOffset.y, moved: false };
+
+    const onMove = (ev) => {
+      if (ev.pointerId !== start.id) return;
+      const dx = ev.clientX - start.x;
+      const dy = ev.clientY - start.y;
+      if (!start.moved) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        start.moved = true;
+        document.body.style.userSelect = "none";
+        setDragging(true);
+      }
+      applyOffset(
+        el,
+        clampTo(start.ox + dx, bounds.minX, bounds.maxX),
+        clampTo(start.oy + dy, bounds.minY, bounds.maxY)
+      );
+    };
+
+    const stop = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      document.body.style.userSelect = prevUserSelect;
+      stopDragRef.current = null;
+    };
+
+    const onEnd = (ev) => {
+      if (ev.pointerId !== start.id) return;
+      stop();
+      setDragging(false);
+      if (start.moved) {
+        // the click that follows a drag must not enlarge / pause the video
+        justDragged.current = true;
+        setTimeout(() => {
+          justDragged.current = false;
+        }, 0);
+      }
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    stopDragRef.current = stop;
+  };
+
   // tap the small card -> make it big; tap the big one -> play / pause
   const onVideoClick = () => {
+    if (justDragged.current) return;
     if (expanded) togglePlay();
     else expand();
   };
@@ -114,8 +250,10 @@ export default function PromoVideoPlayer() {
       {expanded && <div className="promo-video-backdrop" onClick={() => setExpanded(false)} aria-hidden="true" />}
 
       <aside
-        className={`promo-video${compact && !expanded ? " is-compact" : ""}${expanded ? " is-expanded" : ""}${navMenuOpen ? " is-hidden" : ""}`}
+        ref={asideRef}
+        className={`promo-video${compact && !expanded ? " is-compact" : ""}${expanded ? " is-expanded" : ""}${navMenuOpen ? " is-hidden" : ""}${dragging ? " is-dragging" : ""}`}
         aria-label="Promo video"
+        onPointerDown={onPointerDown}
       >
         <div className="promo-video__frame">
           <button
@@ -161,7 +299,11 @@ export default function PromoVideoPlayer() {
           <button
             type="button"
             className={`promo-video__play${paused ? " is-paused" : ""}`}
-            onClick={expanded ? togglePlay : expand}
+            onClick={() => {
+              if (justDragged.current) return;
+              if (expanded) togglePlay();
+              else expand();
+            }}
             aria-label={expanded ? (paused ? "Play video" : "Pause video") : "Enlarge video"}
           >
             {paused ? (

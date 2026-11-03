@@ -11,7 +11,14 @@ $glass-hover: rgba(15, 20, 40, 0.65);
   right: 24px;
   bottom: 24px;
   z-index: 1000;
-  width: 250px; // was 300px originally
+  // drag-to-move offset, set from Promovideoplayer.jsx (independent of `transform`,
+  // so it never fights the entrance animation)
+  translate: var(--drag-x, 0px) var(--drag-y, 0px);
+  touch-action: none; // lets a finger drag the card instead of scrolling the page
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  width: 210px; // was 250px (300px originally)
   overflow: hidden;
   color: #fff;
   background: #0b1020;
@@ -34,6 +41,17 @@ $glass-hover: rgba(15, 20, 40, 0.65);
     animation: none;
   }
 
+  // while being dragged: follow the cursor with no easing
+  &.is-dragging {
+    cursor: grabbing;
+    transition: none;
+    will-change: translate;
+
+    * {
+      cursor: grabbing !important;
+    }
+  }
+
   // thin light ring around the card
   &::after {
     content: "";
@@ -54,7 +72,7 @@ $glass-hover: rgba(15, 20, 40, 0.65);
 
   // small mode: applied once the page is scrolled
   &.is-compact {
-    width: 130px; // was 150px originally
+    width: 110px; // was 130px (150px originally)
     border-radius: 16px;
 
     // blue outline while small
@@ -255,7 +273,7 @@ $glass-hover: rgba(15, 20, 40, 0.65);
 
   &__title {
     margin: 0;
-    font-size: 15px; // was 17px
+    font-size: 14px; // was 15px (17px originally)
     font-weight: 800;
     line-height: 1.22;
     letter-spacing: -0.01em;
@@ -264,7 +282,7 @@ $glass-hover: rgba(15, 20, 40, 0.65);
 
   &__subtitle {
     margin: 4px 0 0;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 500;
     line-height: 1.4;
     opacity: 0.88;
@@ -276,8 +294,8 @@ $glass-hover: rgba(15, 20, 40, 0.65);
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 11px 14px; // was 13px 16px
-    font-size: 13.5px; // was 14.5px
+    padding: 10px 12px; // was 11px 14px
+    font-size: 13px; // was 13.5px
     font-weight: 700;
     color: #fff;
     text-decoration: none;
@@ -334,12 +352,12 @@ $glass-hover: rgba(15, 20, 40, 0.65);
     bottom: 12px;
     right: max(12px, env(safe-area-inset-right, 0px));
     bottom: max(12px, env(safe-area-inset-bottom, 0px));
-    width: 148px;
+    width: 130px;
     max-width: calc(100vw - 24px); // never wider than the screen
     border-radius: 16px;
 
     &.is-compact {
-      width: 92px;
+      width: 80px;
       border-radius: 14px;
     }
 
@@ -407,10 +425,10 @@ $glass-hover: rgba(15, 20, 40, 0.65);
 // very narrow phones
 @media (max-width: 380px) {
   .promo-video {
-    width: 128px;
+    width: 116px;
 
     &.is-compact {
-      width: 84px;
+      width: 74px;
     }
   }
 }
@@ -434,7 +452,7 @@ $glass-hover: rgba(15, 20, 40, 0.65);
 }
 
 .promo-video__media {
-  cursor: zoom-in;
+  cursor: grab; // drag to move; a plain click still enlarges
 }
 
 // centred with inset + auto margins (no transform, so the entrance animation can't fight it)
@@ -450,6 +468,11 @@ $glass-hover: rgba(15, 20, 40, 0.65);
   max-height: 92dvh;
   border-radius: 20px;
   animation: promo-video-grow 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  translate: none; // the big view is always centred, not draggable
+  touch-action: auto;
+  user-select: auto;
+  -webkit-user-select: auto;
+  cursor: auto;
 
   &:hover {
     transform: none;

@@ -434,7 +434,7 @@ const PRODUCTS = [
   },
   {
     key: "cart",
-    name: "Venukart",
+    name: "Venuekart",
     eyebrow: "Trellisco Suite",
     desc: "A multi-vendor marketplace platform for running online stores, vendor operations, and property listings from one dashboard.",
     accent: "#e0424a",
@@ -515,7 +515,7 @@ const GROUPS = [
   },
   {
     key: "cart",
-    label: "Venukart",
+    label: "Venuekart",
     tagline: "Multi-vendor commerce platform",
     logo: VenukartLogo,
     items: ["cart"],
