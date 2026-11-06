@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import TrelliscoLogo from "../assets/Trellisco logo 2.png";
 import HrImg from "../assets/Hr.png";
-import CrmImg from "../assets/ChatGPT Image Sep 16, 2026, 10_40_36 AM.png";
-import AssetImg from "../assets/ChatGPT Image Sep 16, 2026, 10_44_40 AM.png";
+// import CrmImg from "../assets/ChatGPT Image Sep 16, 2026, 10_40_36 AM.png"; // hidden
+// import AssetImg from "../assets/ChatGPT Image Sep 16, 2026, 10_44_40 AM.png"; // hidden
 import ClaudesImg from "../assets/ChatGPT Image Sep 14, 2026, 10_23_27 AM.png";
 import MeloneLiteImg from "../assets/ChatGPT Image Sep 16, 2026, 11_09_30 AM.png";
 import VenukartImg from "../assets/ChatGPT Image Sep 14, 2026, 10_39_24 AM.png";
@@ -11,6 +11,9 @@ import ImsImg from "../assets/Cheerful Warehouse Robot Inventory Scene.png";
 import MeloneLogo from "../assets/MELONE PNG (1) (1).png";
 import ClaudesLogo from "../assets/cluadius icon W-01 (1).png";
 import VenukartLogo from "../assets/image.png";
+// NEW: Tixelise assets (add these two files to ../assets)
+import TixeliseLogo from "../assets/tixelise-logo.png";
+import TixeliseImg from "../assets/tixelise-preview.png";
 import { fetchActiveAnnouncement } from "../api/announcements";
 import AnnouncementText from "./AnnouncementText";
 import "./Nav.scss";
@@ -73,6 +76,7 @@ const PRODUCTS = [
     ],
     previewChartLabel: "Attendance Overview",
   },
+  /* HIDDEN: Trellisco CRM (uncomment to show again)
   {
     key: "crm",
     name: "Trellisco CRM",
@@ -130,6 +134,8 @@ const PRODUCTS = [
     ],
     previewChartLabel: "Call Activity Overview",
   },
+  */
+  /* HIDDEN: Trellis Asset (uncomment to show again)
   {
     key: "asset",
     name: "Trellis Asset",
@@ -187,6 +193,7 @@ const PRODUCTS = [
     ],
     previewChartLabel: "Asset Condition Overview",
   },
+  */
   {
     key: "ims",
     name: "Trellisco IMS",
@@ -244,6 +251,7 @@ const PRODUCTS = [
     ],
     previewChartLabel: "Stock Movement Overview",
   },
+  /* HIDDEN: Melone Lite (uncomment to show again)
   {
     key: "late",
     name: "Melone Lite",
@@ -294,6 +302,7 @@ const PRODUCTS = [
       },
     ],
   },
+  */
   {
     key: "pose",
     name: "Melone POS",
@@ -344,6 +353,7 @@ const PRODUCTS = [
       },
     ],
   },
+  /* HIDDEN: Melone Stay (uncomment to show again)
   {
     key: "stay",
     name: "Melone Stay",
@@ -394,6 +404,7 @@ const PRODUCTS = [
       },
     ],
   },
+  */
   {
     key: "claudes",
     name: "Claudius",
@@ -489,6 +500,45 @@ const PRODUCTS = [
     ],
     previewChartLabel: "Marketplace Overview",
   },
+  // NEW: Tixelise
+  {
+    key: "tixelise",
+    name: "Tixelise",
+    eyebrow: "Trellisco Suite",
+    desc: "Create events, sell tickets online, and check guests in at the gate, all from one ticketing platform.",
+    accent: "#d9336b",
+    link: "https://tixelise.trelliscoerp.com/login",
+    badge: {
+      text: "Built for Event Organizers",
+      color: "#d9336b",
+    },
+    features: [
+      {
+        icon: "calendar",
+        color: "#d9336b",
+        title: "Event Management",
+        desc: "Create and schedule events, shows, and sessions with ease.",
+      },
+      {
+        icon: "ticket",
+        color: "#2f6fed",
+        title: "Online Ticketing",
+        desc: "Sell tickets online with multiple types and price tiers.",
+      },
+      {
+        icon: "swap",
+        color: "#e0a700",
+        title: "Entry Check-in",
+        desc: "Scan tickets at the gate and prevent duplicate entries.",
+      },
+      {
+        icon: "chart",
+        color: "#1f9c8a",
+        title: "Reports & Analytics",
+        desc: "Monitor sales, attendance, and revenue at a glance.",
+      },
+    ],
+  },
 ];
 
 const GROUPS = [
@@ -497,14 +547,17 @@ const GROUPS = [
     label: "Trellisco",
     tagline: "Integrated suite for modern businesses",
     logo: TrelliscoLogo,
-    items: ["hrms", "crm", "asset", "ims"],
+    // items: ["hrms", "crm", "asset", "ims"], // CRM & Asset hidden
+    items: ["hrms", "ims"],
   },
   {
     key: "melone",
     label: "Melone",
     tagline: "Suite for logistics, media & hospitality",
     logo: MeloneLogo,
-    items: ["late", "pose", "stay"],
+    // items: ["late", "pose", "stay"], // Melone Lite hidden
+    // items: ["pose", "stay"], // Melone Stay hidden
+    items: ["pose"],
   },
   {
     key: "claudes",
@@ -520,6 +573,14 @@ const GROUPS = [
     logo: VenukartLogo,
     items: ["cart"],
   },
+  // NEW: Tixelise brand, directly under Venuekart
+  {
+    key: "tixelise",
+    label: "Tixelise",
+    tagline: "Event ticketing platform",
+    logo: TixeliseLogo,
+    items: ["tixelise"],
+  },
 ];
 
 const getProduct = (key) =>
@@ -532,14 +593,15 @@ const IMAGE_ONLY_PANELS = {};
 
 const PREVIEW_IMAGES = {
   hrms: HrImg,
-  crm: CrmImg,
-  asset: AssetImg,
+  // crm: CrmImg, // Trellisco CRM hidden
+  // asset: AssetImg, // Trellis Asset hidden
   ims: ImsImg,
-  late: MeloneLiteImg,
+  // late: MeloneLiteImg, // Melone Lite hidden
   pose: MeloneLiteImg,
-  stay: MeloneLiteImg,
+  // stay: MeloneLiteImg, // Melone Stay hidden
   cart: VenukartImg,
   claudes: ClaudesImg,
+  tixelise: TixeliseImg,
 };
 
 const NAV_LINKS = [
@@ -819,6 +881,26 @@ function ProductIcon({ type }) {
             d="M13 27h14"
             stroke="currentColor"
             strokeWidth="2"
+          />
+        </svg>
+      );
+
+    // NEW: Tixelise (ticket)
+    case "tixelise":
+      return (
+        <svg viewBox="0 0 40 40" width="20" height="20" fill="none">
+          <path
+            d="M5 13a2 2 0 012-2h26a2 2 0 012 2v4a3 3 0 000 6v4a2 2 0 01-2 2H7a2 2 0 01-2-2v-4a3 3 0 000-6v-4z"
+            stroke="currentColor"
+            strokeWidth="2.3"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M24 11v18"
+            stroke="currentColor"
+            strokeWidth="2.1"
+            strokeDasharray="2.5 3"
+            strokeLinecap="round"
           />
         </svg>
       );
@@ -1111,6 +1193,26 @@ function FeatureIcon({ type }) {
             height="5"
             stroke="currentColor"
             strokeWidth="2"
+          />
+        </svg>
+      );
+
+    // NEW: ticket icon for Tixelise features
+    case "ticket":
+      return (
+        <svg viewBox="0 0 40 40" width="20" height="20" fill="none">
+          <path
+            d="M5 13a2 2 0 012-2h26a2 2 0 012 2v4a3 3 0 000 6v4a2 2 0 01-2 2H7a2 2 0 01-2-2v-4a3 3 0 000-6v-4z"
+            stroke="currentColor"
+            strokeWidth="2.3"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M24 11v18"
+            stroke="currentColor"
+            strokeWidth="2.1"
+            strokeDasharray="2.5 3"
+            strokeLinecap="round"
           />
         </svg>
       );
@@ -1601,7 +1703,14 @@ export default function Nav() {
                       }`}
                       onClick={() => selectGroup(g.key)}
                     >
-                      <span className="mega__group-icon">
+                      <span
+                        className="mega__group-icon"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          boxShadow: "none",
+                        }}
+                      >
                         <CategoryLogo
                           src={g.logo}
                           name={g.label}
@@ -1802,6 +1911,7 @@ export default function Nav() {
                           }
                           style={{
                             "--accent": active.accent,
+                            borderRadius: 0,
                           }}
                         >
                           Try {active.name}
@@ -1839,6 +1949,7 @@ export default function Nav() {
                           }
                           style={{
                             "--accent": active.accent,
+                            borderRadius: 0,
                           }}
                         >
                           Learn more
@@ -1864,6 +1975,7 @@ export default function Nav() {
                       }
                       style={{
                         "--accent": active.accent,
+                            borderRadius: 0,
                       }}
                     >
                       Try Now
