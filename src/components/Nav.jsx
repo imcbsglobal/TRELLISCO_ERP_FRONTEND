@@ -409,7 +409,7 @@ const PRODUCTS = [
     key: "claudes",
     name: "Claudius",
     eyebrow: "Trellisco Suite",
-    desc: "An AI assistant that drafts replies, summarizes tickets, manages gym memberships and schedules, and automates busywork.",
+    desc: "Manage memberships, schedules, equipment, and fee collection from one gym management platform, built for gyms and fitness studios.",
     accent: "#e07b39",
     link: "https://claudius.in/",
     badge: {
@@ -545,6 +545,7 @@ const GROUPS = [
   {
     key: "trellisco",
     label: "Trellisco",
+    slogan: "Comprehensive HR Management, Simplified.",
     tagline: "Integrated suite for modern businesses",
     logo: TrelliscoLogo,
     // items: ["hrms", "crm", "asset", "ims"], // CRM & Asset hidden
@@ -553,6 +554,7 @@ const GROUPS = [
   {
     key: "melone",
     label: "Melone",
+    slogan: "Seamless Restaurant Reservations and Management.",
     tagline: "Suite for logistics, media & hospitality",
     logo: MeloneLogo,
     // items: ["late", "pose", "stay"], // Melone Lite hidden
@@ -562,13 +564,15 @@ const GROUPS = [
   {
     key: "claudes",
     label: "Claudius",
-    tagline: "AI assistant for support & ops",
+    slogan: "Intelligent Gym Management Solutions.",
+    tagline: "Gym management for fitness businesses",
     logo: ClaudesLogo,
     items: ["claudes"],
   },
   {
     key: "cart",
     label: "Venuekart",
+    slogan: "Smart and Efficient Property Management.",
     tagline: "Multi-vendor commerce platform",
     logo: VenukartLogo,
     items: ["cart"],
@@ -577,6 +581,7 @@ const GROUPS = [
   {
     key: "tixelise",
     label: "Tixelise",
+    slogan: "Complete Event Management and Ticketing Solutions.",
     tagline: "Event ticketing platform",
     logo: TixeliseLogo,
     items: ["tixelise"],
@@ -1685,7 +1690,7 @@ export default function Nav() {
             {/* Column 1 — groups */}
             <aside className="mega__groups">
               <span className="mega__col-label">
-                Brands
+                Our Software Solutions
               </span>
               <span className="mega__col-sub">
                 Our products for every business
@@ -1717,8 +1722,13 @@ export default function Nav() {
                         />
                       </span>
 
-                      <span className="mega__group-label">
-                        {g.label}
+                      <span className="mega__group-text">
+                        <span className="mega__group-label">
+                          {g.label}
+                        </span>
+                        <span className="mega__group-slogan">
+                          {g.slogan}
+                        </span>
                       </span>
 
                       <ChevronRight className="mega__group-chevron" />
