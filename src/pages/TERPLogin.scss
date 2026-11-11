@@ -1,0 +1,99 @@
+.terp-login {
+  --ink: #15233d;
+  --muted: #71809a;
+  --blue: #2969dc;
+  min-height: 100svh;
+  padding: 8rem clamp(1.25rem, 6vw, 7rem) 5rem;
+  display: grid;
+  grid-template-columns: minmax(240px, .72fr) minmax(0, 1fr);
+  gap: clamp(2rem, 7vw, 8rem);
+  align-items: center;
+  background: radial-gradient(circle at 8% 10%, #dceaff 0, transparent 32%), radial-gradient(circle at 95% 80%, #e7e0ff 0, transparent 28%), #f8fbff;
+  color: var(--ink);
+}
+.terp-login__intro { max-width: 470px; }
+.terp-login__eyebrow { color: var(--blue); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.terp-login h1 { margin: 1rem 0; font-size: clamp(2.5rem, 5vw, 5rem); line-height: .98; letter-spacing: -.06em; color: var(--ink); }
+.terp-login__intro > p { font-size: 1.05rem; line-height: 1.65; color: #63718a; }
+.terp-login__steps { display: grid; gap: .9rem; margin-top: 3rem; color: #9aa7ba; font-size: .8rem; }
+.terp-login__steps b { margin-left: .8rem; color: #334563; font-size: .95rem; }.terp-login__steps span { opacity: .52; transition: opacity .3s, transform .3s, color .3s; }.terp-login__steps span.is-active, .terp-login__steps span.is-complete { opacity: 1; color: var(--blue); transform: translateX(5px); }.terp-login__steps span.is-complete b { color: #37966a; }
+.terp-login__mascot { position: relative; z-index: 0; width: min(100%, 390px); margin: 1.4rem auto 0; pointer-events: none; animation: terp-mascot-float 5s ease-in-out infinite; }.terp-login__mascot::after { content: ""; position: absolute; z-index: -1; left: 18%; right: 18%; bottom: 6%; height: 14%; border-radius: 50%; background: rgba(41, 105, 220, .2); filter: blur(18px); animation: terp-mascot-shadow 5s ease-in-out infinite; }.terp-login__mascot-glow { position: absolute; z-index: -1; inset: 18% 20% 10%; border-radius: 50%; background: rgba(95, 149, 255, .2); filter: blur(28px); animation: terp-mascot-glow 3.5s ease-in-out infinite alternate; }.terp-login__mascot img { display: block; width: 100%; height: auto; filter: drop-shadow(0 18px 18px rgba(40, 84, 160, .12)); }
+.terp-login__card { max-width: 720px; padding: clamp(1.3rem, 3vw, 2.6rem); border: 1px solid rgba(218, 228, 242, .9); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: 0 26px 80px rgba(49, 89, 145, .14); backdrop-filter: blur(14px); }
+.terp-login__card-head, .terp-login__section > div, .terp-login__user { display: flex; align-items: center; gap: .8rem; }
+.terp-login__card-head { margin-bottom: 1.5rem; }
+.terp-login__mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #3983ef, #6255d7); color: white; font-weight: 800; box-shadow: 0 8px 18px rgba(41, 105, 220, .25); }
+.terp-login__card-head p { margin: 0; color: #8794a9; font-size: .78rem; }.terp-login h2 { margin: .15rem 0 0; font-size: 1.5rem; }
+.terp-login__auth-screen { padding: 1.5rem 0 .4rem; text-align: center; animation: terp-step-in .55s cubic-bezier(.22, 1, .36, 1) both; }.terp-login__auth-screen h3 { margin: 2rem 0 .55rem; font-size: 1.35rem; }.terp-login__auth-screen > p { max-width: 34rem; margin: 0 auto 1.5rem; color: var(--muted); font-size: .9rem; line-height: 1.6; }.terp-login__auth-badge { display: inline-flex; align-items: center; gap: .55rem; padding: .45rem .7rem; border: 1px solid #dce8fb; border-radius: 999px; background: #f3f7ff; color: var(--blue); font-size: .75rem; animation: terp-badge-in .55s .1s both; }.terp-login__auth-badge span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--blue); color: #fff; font-size: .7rem; }.terp-login__privacy { display: block; margin-top: 1rem; color: #9aa7ba; font-size: .7rem; }
+.terp-login__google { padding: 1rem; border: 1px solid #edf0f5; border-radius: 16px; text-align: center; background: rgba(255,255,255,.7); }.terp-login__google p { margin: 0 0 .8rem; color: #566680; font-size: .9rem; }.terp-login__google > div { display: flex; justify-content: center; }
+.terp-login__user { padding: .7rem .9rem; margin-bottom: 1.1rem; border-radius: 12px; background: #eff7f1; color: #3c6350; font-size: .85rem; }.terp-login__user img { width: 28px; height: 28px; border-radius: 50%; }
+.terp-login__flow-status { display: flex; align-items: center; gap: .65rem; margin: .3rem 0 1.5rem; padding: .7rem .85rem; border: 1px solid #dcefe2; border-radius: 12px; background: #f5fbf7; color: #326348; }.terp-login__flow-dot { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #35a46b; color: #fff; font-size: .75rem; }.terp-login__flow-status span:nth-child(2) { display: grid; gap: .1rem; min-width: 0; }.terp-login__flow-status small { color: #6d9b80; font-size: .68rem; }.terp-login__flow-status b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .76rem; }.terp-login__flow-next { margin-left: auto; color: #6d9b80; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.terp-login__setup-form { animation: terp-form-in .65s cubic-bezier(.22, 1, .36, 1) both; }.terp-login__setup-form .terp-login__flow-status { animation: terp-step-in .45s .08s both; }.terp-login__setup-form .terp-login__section, .terp-login__setup-form .terp-login__fields, .terp-login__setup-form .terp-login__submit { animation: terp-step-in .45s .16s both; }.terp-login__setup-form .terp-login__project { animation: terp-step-in .45s both; }.terp-login__setup-form .terp-login__project:nth-child(2) { animation-delay: .08s; }.terp-login__setup-form .terp-login__project:nth-child(3) { animation-delay: .13s; }.terp-login__setup-form .terp-login__project:nth-child(4) { animation-delay: .18s; }.terp-login__setup-form .terp-login__project:nth-child(5) { animation-delay: .23s; }
+.terp-login__message { margin: 1rem 0; padding: .8rem 1rem; border-radius: 10px; font-size: .88rem; overflow-wrap: anywhere; }.terp-login__message--error { background: #fff0f0; color: #b42318; }.terp-login__message--success { background: #ebf9f0; color: #157347; }
+.terp-login__section { margin: 2rem 0 .85rem; }.terp-login__section > div { gap: .6rem; }.terp-login__number { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #e8f0ff; color: var(--blue); font-size: .78rem; font-weight: 800; }.terp-login h3 { margin: 0; font-size: 1rem; }.terp-login__section p { margin: .4rem 0 0 2.1rem; color: #8794a9; font-size: .78rem; }.terp-login__selection-count { margin-left: auto; padding: .3rem .55rem; border-radius: 999px; background: #edf3ff; color: var(--blue); font-size: .7rem; font-weight: 800; }
+.terp-login__project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }.terp-login__project { padding: .65rem; border: 1px solid #e1e8f3; border-radius: 16px; background: rgba(255,255,255,.6); transition: border-color .2s, box-shadow .2s, transform .2s; }.terp-login__project:hover { transform: translateY(-2px); border-color: #a9c5f7; box-shadow: 0 8px 20px rgba(57, 105, 180, .1); }.terp-login__project.is-selected { border-color: #6c9df0; background: #f6f9ff; box-shadow: 0 8px 22px rgba(41, 105, 220, .12); }
+.terp-login__project-select { width: 100%; display: flex; align-items: center; gap: .65rem; padding: .35rem; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; }.terp-login__project-icon { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg, #dceaff, #e9e2ff); color: #3867bd; font-weight: 800; }.terp-login__project-copy { display: grid; gap: .15rem; min-width: 0; }.terp-login__project-copy b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .86rem; }.terp-login__project-copy small { color: var(--muted); font-size: .68rem; }.terp-login__check { display: grid; place-items: center; width: 21px; height: 21px; margin-left: auto; border: 1px solid #cbd8ea; border-radius: 7px; color: transparent; font-size: .75rem; }.is-selected .terp-login__check { border-color: var(--blue); background: var(--blue); color: #fff; }.terp-login__package { display: grid; gap: .35rem; margin-top: .65rem; padding-top: .65rem; border-top: 1px solid #e2e9f4; color: #52627c; font-size: .7rem; font-weight: 700; }.terp-login__loading { grid-column: 1 / -1; padding: 1.5rem; border: 1px dashed #cbd8ea; border-radius: 14px; color: var(--muted); text-align: center; font-size: .85rem; }
+.terp-login__fields { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }.terp-login label { display: grid; gap: .4rem; color: #40516d; font-size: .78rem; font-weight: 700; }.terp-login input, .terp-login select { width: 100%; padding: .78rem .85rem; border: 1px solid #dbe3ef; border-radius: 10px; background: white; color: var(--ink); font: inherit; font-size: .9rem; outline: none; }.terp-login input:focus, .terp-login select:focus { border-color: #4b8af0; box-shadow: 0 0 0 3px rgba(75,138,240,.12); }
+.terp-login__submit { width: 100%; margin-top: 1.8rem; padding: 1rem; border: 0; border-radius: 12px; background: linear-gradient(135deg, #2969dc, #524fca); color: white; font: inherit; font-weight: 750; cursor: pointer; box-shadow: 0 10px 22px rgba(41, 105, 220, .22); transition: transform .2s, box-shadow .2s; }.terp-login__submit:hover { transform: translateY(-2px); box-shadow: 0 14px 26px rgba(41, 105, 220, .3); }.terp-login__submit:disabled { opacity: .6; cursor: wait; transform: none; }
+.terp-login__product-block, .terp-login__company-block { padding: 1.15rem 1.25rem; border: 1px solid #e5ebf4; border-radius: 18px; background: linear-gradient(145deg, rgba(249,251,255,.96), rgba(244,248,255,.72)); }.terp-login__product-block .terp-login__section, .terp-login__company-block .terp-login__section { margin-top: 0; }.terp-login__product-block .terp-login__project-grid { gap: .85rem; }.terp-login__company-block .terp-login__fields { gap: .9rem 1rem; }.terp-login__company-block .terp-login__form-actions { margin-top: 1.25rem; }
+@media (max-width: 800px) { .terp-login { padding-top: 6rem; grid-template-columns: 1fr; gap: 2rem; }.terp-login__intro { max-width: none; }.terp-login h1 { font-size: 3rem; } }
+@media (max-width: 560px) { .terp-login__project-grid, .terp-login__fields { grid-template-columns: 1fr; } }
+
+/* Primary step navigation */
+.terp-login__next { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; max-width: 390px; margin: 1.5rem 0 0 auto; padding: .75rem .8rem .75rem 1.15rem; border: 1px solid rgba(255,255,255,.22); border-radius: 14px; background: linear-gradient(110deg, #1f5ecb, #4d4bc2); color: #fff; font: inherit; font-size: .88rem; font-weight: 750; letter-spacing: .01em; cursor: pointer; box-shadow: 0 10px 22px rgba(41, 105, 220, .2), inset 0 1px 0 rgba(255,255,255,.16); transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+.terp-login__next span { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: rgba(255,255,255,.17); font-size: 1.1rem; line-height: 1; transition: transform .2s ease, background .2s ease; }
+.terp-login__next:hover { filter: brightness(1.06); transform: translateY(-2px); box-shadow: 0 15px 28px rgba(41, 105, 220, .28), inset 0 1px 0 rgba(255,255,255,.2); }
+.terp-login__next:hover span { background: rgba(255,255,255,.25); transform: translateX(3px); }
+.terp-login__next:active { transform: translateY(0); box-shadow: 0 7px 14px rgba(41, 105, 220, .2); }
+.terp-login__next:focus-visible, .terp-login__back:focus-visible { outline: 3px solid rgba(41, 105, 220, .3); outline-offset: 3px; }
+.terp-login__form-actions { display: flex; align-items: center; gap: .8rem; margin-top: 1.4rem; }
+.terp-login__form-actions .terp-login__submit { margin-top: 0; flex: 1; }
+.terp-login__back { padding: .85rem 1.1rem; border: 1px solid #dbe3ef; border-radius: 11px; background: #fff; color: #52627c; font: inherit; font-weight: 700; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.terp-login__back:hover { border-color: #91b4ed; background: #f4f8ff; color: var(--blue); }
+
+@keyframes terp-step-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes terp-form-in { from { opacity: 0; transform: translateX(18px) scale(.99); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes terp-badge-in { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes terp-mascot-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-12px) rotate(1deg); } }
+@keyframes terp-mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: .7; } 50% { transform: scaleX(.78); opacity: .35; } }
+@keyframes terp-mascot-glow { from { opacity: .55; transform: scale(.92); } to { opacity: 1; transform: scale(1.06); } }
+@media (min-width: 801px) { .terp-login--setup .terp-login__mascot { width: min(100%, 270px); margin-top: 1rem; } }
+@media (prefers-reduced-motion: reduce) { .terp-login__auth-screen, .terp-login__auth-badge, .terp-login__setup-form, .terp-login__setup-form .terp-login__flow-status, .terp-login__setup-form .terp-login__section, .terp-login__setup-form .terp-login__fields, .terp-login__setup-form .terp-login__submit, .terp-login__mascot, .terp-login__mascot::after, .terp-login__mascot-glow { animation: none; } }
+
+/* Desktop setup view: keep the complete form in one viewport below the nav. */
+@media (min-width: 801px) {
+  .terp-login { min-height: calc(100svh - 84px); padding: 2rem clamp(1.25rem, 5vw, 6rem) 2.5rem; }
+  .terp-login:not(.terp-login--setup) { height: calc(100svh - 84px); max-height: calc(100svh - 84px); overflow: hidden; grid-template-columns: minmax(250px, .62fr) minmax(520px, .9fr); gap: clamp(2rem, 6vw, 7rem); }
+  .terp-login:not(.terp-login--setup) .terp-login__intro { max-width: 390px; }
+  .terp-login:not(.terp-login--setup) .terp-login__intro h1 { margin: .7rem 0; font-size: clamp(2.4rem, 4vw, 4.2rem); }
+  .terp-login:not(.terp-login--setup) .terp-login__intro > p { margin: .8rem 0; font-size: .92rem; line-height: 1.5; }
+  .terp-login:not(.terp-login--setup) .terp-login__steps { gap: .45rem; margin-top: 1.1rem; }
+  .terp-login:not(.terp-login--setup) .terp-login__mascot { width: min(100%, 255px); margin-top: .8rem; }
+  .terp-login:not(.terp-login--setup) .terp-login__card { max-width: 610px; padding: 1.8rem 2rem; }
+  .terp-login:not(.terp-login--setup) .terp-login__auth-screen { padding-top: .8rem; }
+  .terp-login:not(.terp-login--setup) .terp-login__auth-screen h3 { margin-top: 1.1rem; }
+  .terp-login:not(.terp-login--setup) .terp-login__auth-screen > p { margin-bottom: 1rem; }
+  .terp-login--setup { grid-template-columns: minmax(210px, .3fr) minmax(0, 1fr); gap: clamp(2rem, 4vw, 5rem); }
+  .terp-login--setup .terp-login__intro { max-width: 300px; }
+  .terp-login--setup .terp-login__intro h1 { font-size: clamp(2.2rem, 4vw, 4rem); }
+  .terp-login--setup .terp-login__steps { gap: .55rem; margin-top: 1.5rem; }
+  .terp-login--setup .terp-login__card { width: 100%; max-width: none; padding: 1.55rem 1.8rem; border-radius: 22px; }
+  .terp-login--setup .terp-login__card-head { margin-bottom: .8rem; }
+  .terp-login--setup .terp-login__mark { width: 38px; height: 38px; border-radius: 11px; }
+  .terp-login--setup .terp-login__flow-status { margin: .2rem 0 .8rem; padding: .5rem .7rem; }
+  .terp-login--setup .terp-login__setup-form { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: .75rem 1rem; }
+  .terp-login--setup .terp-login__flow-status, .terp-login--setup .terp-login__product-block, .terp-login--setup .terp-login__company-block, .terp-login--setup .terp-login__form-actions { grid-column: 1 / -1; }
+  .terp-login--setup .terp-login__product-block, .terp-login--setup .terp-login__company-block { min-width: 0; }
+  .terp-login--setup .terp-login__product-block, .terp-login--setup .terp-login__company-block { padding: 1rem 1.15rem; }
+  .terp-login--setup .terp-login__section { margin: .8rem 0 .45rem; }
+  .terp-login--setup .terp-login__section p { margin-top: .2rem; }
+  .terp-login--setup .terp-login__project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+  .terp-login--setup .terp-login__project { min-height: 76px; padding: .7rem; border-radius: 14px; }
+  .terp-login--setup .terp-login__project-icon { flex-basis: 30px; width: 30px; height: 30px; border-radius: 9px; }
+  .terp-login--setup .terp-login__project-select { gap: .45rem; padding: .2rem; }
+  .terp-login--setup .terp-login__project-copy b { font-size: .82rem; }
+  .terp-login--setup .terp-login__project-copy small { font-size: .65rem; }
+  .terp-login--setup .terp-login__package { margin-top: .55rem; padding-top: .55rem; }
+  .terp-login--setup .terp-login__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem 1rem; }
+  .terp-login--setup input, .terp-login--setup select { padding: .65rem .75rem; font-size: .84rem; }
+  .terp-login--setup .terp-login__submit { margin-top: 1rem; padding: .8rem; }
+}

@@ -8,6 +8,7 @@ import Dashboard from './pages/AdminDashboard/Dashboard'
 import AdminBlogDashboard from './pages/AdminDashboard/Blog'
 import Announcement from './pages/AdminDashboard/Announcement'
 import PromoVideo from './pages/AdminDashboard/Promovideo'
+import TERPLogin from './pages/TERPLogin'
 import FloatingChatbot from './components/FloatingChatbot'
 import { isAuthenticated } from './api/auth'
 
@@ -30,6 +31,7 @@ function App() {
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/t-erp-login" element={<TERPLogin />} />
         <Route
           path="/admin"
           element={

@@ -294,6 +294,22 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
       transform: translateY(1px);
     }
   }
+
+  &__terp-login {
+    @include focus-ring;
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 14px;
+    border: 1px solid color-mix(in srgb, $c-blue 25%, white);
+    border-radius: 999px;
+    color: $c-blue-dark;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease;
+    &:hover { background: color-mix(in srgb, $c-blue 8%, white); border-color: $c-blue; text-decoration: none; }
+  }
 }
 
 // ---------- Hamburger ----------
@@ -1384,6 +1400,8 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
   .nav__login {
     display: none;
   }
+
+  .nav__terp-login { display: none; }
 
   .nav__hamburger {
     display: flex;

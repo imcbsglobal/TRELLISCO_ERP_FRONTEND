@@ -10,6 +10,14 @@ export default defineConfig({
         target: 'http://localhost:8000', // <-- change to your Django server's actual host:port
         changeOrigin: true,
       },
+      // Keep T-ERP requests same-origin during local development so the
+      // browser does not block them before the API can return its response.
+      '/terp-api': {
+        target: 'https://activate.imcbs.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/terp-api/, ''),
+      },
     },
   },
 })

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import TrelliscoLogo from "../assets/Trellisco logo 2.png";
 import HrImg from "../assets/Hr.png";
@@ -1532,6 +1532,10 @@ export default function Nav() {
             Login
           </Link>
 
+          <Link className="nav__terp-login" to="/t-erp-login">
+            T-ERP Login
+          </Link>
+
           <Link className="nav__contact" to="/contact">
             Contact Us
 
@@ -1646,6 +1650,12 @@ export default function Nav() {
                 >
                   <LoginIcon />
                   Login
+                </Link>
+              </li>
+
+              <li className="nav__mobile-item nav__mobile-item--login">
+                <Link className="nav__mobile-login" to="/t-erp-login" onClick={closeMobileNav}>
+                  T-ERP Login
                 </Link>
               </li>
 
