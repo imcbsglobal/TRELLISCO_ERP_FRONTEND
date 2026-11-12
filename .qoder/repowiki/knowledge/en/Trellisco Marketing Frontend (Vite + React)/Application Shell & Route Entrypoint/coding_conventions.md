@@ -1,0 +1,2 @@
+- Protected admin routes are wrapped with the local `RequireAuth` HOC rather than using router-level loaders or middleware.
+- Global visual tokens (colors, typography, shadows) are centralized as CSS custom properties under `:root` in `index.css` and consumed via `var(--*)` throughout stylesheets.

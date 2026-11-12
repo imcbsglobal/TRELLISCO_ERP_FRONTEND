@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: ""
+title: Trellisco Marketing Frontend (Vite + React)
+scope:
+    - README.md
+    - .gitignore
+    - index.html
+    - package.json
+    - package-lock.json
+    - vite.config.js
+    - eslint.config.js
+source_files: []
+depends_on: []
+related_to: []

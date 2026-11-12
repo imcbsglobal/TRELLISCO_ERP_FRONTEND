@@ -1,0 +1,1 @@
+React 18 with `react-dom/client` `createRoot`, `react-router-dom` v6 declarative routing, CSS custom properties for theming.

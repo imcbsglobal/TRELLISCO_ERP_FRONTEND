@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: app_shell
+title: Application Shell & Route Entrypoint
+scope:
+    - src/App.jsx
+    - src/main.jsx
+    - src/index.css
+    - src/App.css
+source_files: []
+depends_on: []
+related_to: []

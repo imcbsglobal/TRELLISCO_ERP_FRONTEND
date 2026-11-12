@@ -1,0 +1,1 @@
+Top-level Vite/React project that bootstraps the Trellisco marketing frontend, wiring the app shell, routes, and shared assets into a single SPA.

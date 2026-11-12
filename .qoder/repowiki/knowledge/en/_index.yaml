@@ -1,0 +1,35 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: main
+nodes_managed: true
+exported_at: "2026-11-12T06:43:07Z"
+modules:
+    "":
+        dir_name: Trellisco Marketing Frontend (Vite + React)
+        title: Trellisco Marketing Frontend (Vite + React)
+        scope:
+            - README.md
+            - .gitignore
+            - index.html
+            - package.json
+            - package-lock.json
+            - vite.config.js
+            - eslint.config.js
+        source_files: []
+        children:
+            - app_shell
+        depends_on: []
+        related_to: []
+    app_shell:
+        dir_name: Application Shell & Route Entrypoint
+        title: Application Shell & Route Entrypoint
+        scope:
+            - src/App.jsx
+            - src/main.jsx
+            - src/index.css
+            - src/App.css
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

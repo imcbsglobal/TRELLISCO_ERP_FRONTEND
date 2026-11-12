@@ -1,35 +1,60 @@
 import { useEffect, useRef, useState } from "react"
 import mascotImage from "../assets/ChatGPT Image Sep 25, 2026, 01_38_19 PM.png"
+import CredentialsModal from "../components/CredentialsModal"
+import {
+  TERP_LICENSE_ENDPOINT,
+  createTerpLicense,
+  extractClientId,
+  extractLicenseKey,
+  fetchTerpProjects,
+  findClientWorkspace,
+  getNetworkError,
+} from "../api/terpLicense"
+import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
+import {
+  buildCredentialsMessage,
+  buildCredentialsSubject,
+  canAutoSendEmail,
+  sendCredentialsEmail,
+  sendWhatsApp,
+} from "../api/notifications"
 import "./TERPLogin.scss"
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client"
 const DEFAULT_PACKAGES = ["Basic", "Standard", "Platinum", "Enterprise"]
-const TERP_PROJECTS_ENDPOINT = import.meta.env.DEV
-  ? "/terp-api/t-erp/mobileapp/api/projects/"
-  : import.meta.env.VITE_TERP_PROJECTS_API_URL
-const TERP_LICENSE_ENDPOINT = import.meta.env.DEV
-  ? "/terp-api/t-erp/mobileapp/api/license/create/"
-  : import.meta.env.VITE_TERP_LICENSE_CREATE_API_URL
+const INITIAL_COMPANY = { corporateName: "", name: "", contactName: "", place: "", email: "", contact_no: "", country: "India" }
 
-function normaliseProjects(payload) {
-  const items = Array.isArray(payload)
-    ? payload
-    : payload?.results || payload?.projects || payload?.data || []
+// Project names arrive from two different services, so they are compared without
+// case, spacing or punctuation ("Melone Stay" vs "melone  stay").
+const normaliseName = (value) => String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()
 
-  return items
-    .map((item) => {
-      if (typeof item === "string") return { name: item, packages: [] }
+// The license API creates records and rejects duplicates with a 500, so a license
+// that already exists for this address is remembered for the rest of the tab.
+const LICENSE_CACHE_PREFIX = "terp-license:"
 
-      const name = item.project || item.name || item.title
-      const packages = item.packages || item.package_options || item.plans || []
-      return {
-        name,
-        packages: Array.isArray(packages)
-          ? packages.map((value) => (typeof value === "string" ? value : value.name || value.package)).filter(Boolean)
-          : [],
-      }
-    })
-    .filter((item) => item.name)
+function readCachedLicense(email) {
+  try {
+    const raw = window.sessionStorage.getItem(LICENSE_CACHE_PREFIX + String(email).toLowerCase())
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function cacheLicense(email, license) {
+  try {
+    window.sessionStorage.setItem(LICENSE_CACHE_PREFIX + String(email).toLowerCase(), JSON.stringify(license))
+  } catch {
+    // Private mode or a full quota: the in-memory ref still covers this session.
+  }
+}
+
+function dropCachedLicense(email) {
+  try {
+    window.sessionStorage.removeItem(LICENSE_CACHE_PREFIX + String(email).toLowerCase())
+  } catch {
+    // Nothing to clean up.
+  }
 }
 
 function loadGoogleScript() {
@@ -56,54 +81,37 @@ function loadGoogleScript() {
   })
 }
 
-async function throwApiError(response, fallback) {
-  const rawBody = await response.text()
-  let detail = rawBody
-
-  try {
-    const body = JSON.parse(rawBody)
-    detail = body.detail || body.message || body.error || body.errors || body
-    if (typeof detail !== "string") detail = JSON.stringify(detail)
-  } catch {
-    // Keep non-JSON response bodies exactly as the API returned them.
-  }
-
-  const suffix = detail?.trim() ? ` — ${detail.trim()}` : ""
-  throw new Error(`${fallback} (HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""})${suffix}`)
-}
-
-function getNetworkError(error, endpoint) {
-  if (error instanceof TypeError && error.message.toLowerCase().includes("fetch")) {
-    return `Cannot reach ${endpoint}. The browser received no API response. Check that the URL is reachable and that the API allows this site's origin (CORS).`
-  }
-  return error.message || "The API request failed."
-}
-
 export default function TERPLogin() {
   const googleButtonRef = useRef(null)
+  const licenseRef = useRef(null)
   const [googleUser, setGoogleUser] = useState(null)
   const [setupStep, setSetupStep] = useState(1)
   const [projects, setProjects] = useState([])
   const [selectedProjects, setSelectedProjects] = useState([])
-  const [company, setCompany] = useState({ corporateName: "", name: "", place: "", email: "", contact_no: "", country: "India" })
+  // Projects the operator picked without a package; they are highlighted and
+  // scrolled to so the missing select cannot hide below the fold.
+  const [incompleteProjects, setIncompleteProjects] = useState([])
+  const projectCardRefs = useRef(new Map())
+  // Filled in when the signed-in Gmail already exists in the T-ERP client list.
+  const [workspace, setWorkspace] = useState(null)
+  const [company, setCompany] = useState(INITIAL_COMPANY)
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [credentials, setCredentials] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [delivery, setDelivery] = useState({ whatsapp: { state: "idle" }, email: { state: "idle" } })
+  const [retrying, setRetrying] = useState({ whatsapp: false, email: false })
 
   useEffect(() => {
     let cancelled = false
-    const endpoint = TERP_PROJECTS_ENDPOINT
-    fetch(endpoint)
-      .then(async (response) => {
-        if (!response.ok) await throwApiError(response, "Unable to load T-ERP projects")
-        return response.json()
-      })
-      .then((payload) => {
-        if (!cancelled) setProjects(normaliseProjects(payload))
+    fetchTerpProjects()
+      .then((items) => {
+        if (!cancelled) setProjects(items)
       })
       .catch((fetchError) => {
-        if (!cancelled) setError(getNetworkError(fetchError, endpoint))
+        if (!cancelled) setError(getNetworkError(fetchError, "the T-ERP projects API"))
       })
       .finally(() => {
         if (!cancelled) setLoadingProjects(false)
@@ -124,7 +132,7 @@ export default function TERPLogin() {
             const [, payload] = response.credential.split(".")
             const profile = JSON.parse(window.atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
             setGoogleUser({ name: profile.name, email: profile.email, picture: profile.picture, credential: response.credential })
-            setCompany((current) => ({ ...current, email: current.email || profile.email }))
+            setCompany((current) => ({ ...current, email: current.email || profile.email, contactName: current.contactName || profile.name || "" }))
             setError("")
           },
         })
@@ -134,17 +142,78 @@ export default function TERPLogin() {
     return () => { cancelled = true }
   }, [])
 
+  // A returning customer is recognised by the Gmail used to sign in and by the
+  // company email typed on the form, because either can be the client id in T-ERP:
+  // the directory says who they are, the register says what they already own.
+  useEffect(() => {
+    const candidate = String(company.email || googleUser?.email || "").trim()
+    if (!candidate.includes("@")) return
+    let cancelled = false
+
+    async function loadWorkspace() {
+      try {
+        const found = await findClientWorkspace(candidate)
+        if (cancelled || !found) return
+        setWorkspace((current) => (current?.clientId === found.clientId ? current : found))
+        setCompany((current) => {
+          const filled = {
+            ...current,
+            name: current.name || found.companyName,
+            corporateName: current.corporateName || found.corporateName || found.companyName,
+            place: current.place || found.place,
+            email: current.email || found.clientId,
+          }
+          return filled.name === current.name && filled.place === current.place && filled.email === current.email
+            ? current
+            : filled
+        })
+      } catch {
+        // Recognition is a convenience: a brand new signup must still go through.
+      }
+    }
+
+    loadWorkspace()
+    return () => { cancelled = true }
+  }, [googleUser, company.email])
+
+  const ownedProjects = new Set((workspace?.projects || []).map(normaliseName))
+  // Only the owned projects that the catalogue can actually show get a ticked card.
+  const tickedOwned = projects.filter((item) => ownedProjects.has(normaliseName(item.name))).length
+
   const getPackages = (project) => project?.packages?.length ? project.packages : DEFAULT_PACKAGES
 
-  const toggleProject = (projectName) => {
-    setSelectedProjects((current) => current.some((item) => item.project === projectName)
-      ? current.filter((item) => item.project !== projectName)
-      : [...current, { project: projectName, package: "" }])
+  // `api_endpoint` is carried along because the user-master product flags are
+  // derived from it — the license API itself only receives project + package.
+  const toggleProject = (project) => {
+    const alreadyPicked = selectedProjects.some((item) => item.project === project.name)
+    setSelectedProjects((current) => current.some((item) => item.project === project.name)
+      ? current.filter((item) => item.project !== project.name)
+      : [...current, { project: project.name, package: "", api_endpoint: project.api_endpoint }])
     setError("")
+    setIncompleteProjects([])
+    // A newly added card reveals its package select; make sure it is on screen.
+    if (!alreadyPicked) {
+      requestAnimationFrame(() => {
+        projectCardRefs.current.get(project.name)?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+      })
+    }
   }
 
   const updateProjectPackage = (projectName, packageName) => {
     setSelectedProjects((current) => current.map((item) => item.project === projectName ? { ...item, package: packageName } : item))
+    if (packageName) setIncompleteProjects((current) => current.filter((name) => name !== projectName))
+  }
+
+  // Every added project needs its own package before the license can be built.
+  const findMissingPackages = () => selectedProjects.filter((item) => !item.package).map((item) => item.project)
+
+  const flagMissingPackages = (missing) => {
+    setIncompleteProjects(missing)
+    setError(`Choose a package for ${missing.join(" and ")}.`)
+    const card = projectCardRefs.current.get(missing[0])
+    if (!card) return
+    card.scrollIntoView({ block: "center", behavior: "smooth" })
+    card.querySelector("select")?.focus({ preventScroll: true })
   }
 
   const updateCompany = (field) => (event) => setCompany((current) => ({ ...current, [field]: event.target.value }))
@@ -153,9 +222,71 @@ export default function TERPLogin() {
 
   const continueToCompany = () => {
     setError("")
-    if (!selectedProjects.length) return setError("Select at least one T-ERP project to continue.")
-    if (selectedProjects.some((item) => !item.package)) return setError("Choose a package for every selected project.")
+    if (!selectedProjects.length) {
+      return setError(
+        workspace
+          ? "Everything you already own is ticked. Add a new project to continue."
+          : "Select at least one T-ERP project to continue.",
+      )
+    }
+    if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
+    setIncompleteProjects([])
     setSetupStep(2)
+  }
+
+  const credentialsMessage = (target) => buildCredentialsMessage({
+    companyName: target.companyName,
+    projects: target.projects,
+    clientId: target.clientId,
+    username: target.username,
+    password: target.password,
+    email: target.email,
+    licenseKey: target.licenseKey,
+  })
+
+  const deliverWhatsApp = async (target) => {
+    setDelivery((current) => ({ ...current, whatsapp: { state: "pending" } }))
+    try {
+      await sendWhatsApp({ recipient: target.phone, message: credentialsMessage(target) })
+      setDelivery((current) => ({ ...current, whatsapp: { state: "sent" } }))
+    } catch (deliveryError) {
+      setDelivery((current) => ({ ...current, whatsapp: { state: "failed", message: deliveryError.message } }))
+    }
+  }
+
+  const deliverEmail = async (target) => {
+    setDelivery((current) => ({ ...current, email: { state: "pending" } }))
+    try {
+      await sendCredentialsEmail({
+        to: target.email,
+        subject: buildCredentialsSubject(target.companyName),
+        body: credentialsMessage(target),
+      })
+      setDelivery((current) => ({ ...current, email: { state: "sent" } }))
+    } catch (deliveryError) {
+      setDelivery((current) => ({ ...current, email: { state: "failed", message: deliveryError.message } }))
+    }
+  }
+
+  const retryWhatsApp = async () => {
+    if (!credentials) return
+    setRetrying((current) => ({ ...current, whatsapp: true }))
+    await deliverWhatsApp(credentials)
+    setRetrying((current) => ({ ...current, whatsapp: false }))
+  }
+
+  const retryEmail = async () => {
+    if (!credentials) return
+    setRetrying((current) => ({ ...current, email: true }))
+    await deliverEmail(credentials)
+    setRetrying((current) => ({ ...current, email: false }))
+  }
+
+  const closeModal = () => {
+    setModalOpen(false)
+    // A new submission must build a new license instead of reusing this one.
+    licenseRef.current = null
+    if (credentials?.email) dropCachedLicense(credentials.email)
   }
 
   const submit = async (event) => {
@@ -163,27 +294,127 @@ export default function TERPLogin() {
     setError("")
     setSuccess("")
     if (!googleUser) return setError("Continue with Google before submitting your company details.")
-    if (!selectedProjects.length) return setError("Select at least one T-ERP project to continue.")
-    if (selectedProjects.some((item) => !item.package)) return setError("Choose a package for every selected project.")
+    if (!selectedProjects.length) {
+      return setError(workspace
+        ? "Everything you already own is ticked. Add a new project to continue."
+        : "Select at least one T-ERP project to continue.")
+    }
+    if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
     if (!company.corporateName.trim() || !company.name.trim() || !company.place.trim() || !company.email.trim() || !company.contact_no.trim()) return setError("Complete all company details to continue.")
     if (company.contact_no.length !== 10) return setError("Enter a valid 10-digit contact number, for example 1234567890.")
 
     setSubmitting(true)
     try {
-      const endpoint = TERP_LICENSE_ENDPOINT
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          corporate: { name: company.corporateName.trim(), place: company.place.trim() },
-          company: { name: company.name.trim(), place: company.place.trim(), email: company.email.trim(), contact_no: company.contact_no.replace(/\D/g, ""), country: company.country.trim(), is_active: true },
-          projects: selectedProjects,
-        }),
+      const email = company.email.trim()
+      const phoneNumber = company.contact_no.replace(/\D/g, "")
+
+      // One client id = one login. Central Master's user list is the only place
+      // that can prove the client already exists, so nothing at all is created
+      // until that lookup comes back.
+      let existingLogins = []
+      try {
+        existingLogins = await findClientLogins({
+          clientId: licenseRef.current ? extractClientId(licenseRef.current) : "",
+          email,
+          phoneNumber,
+        })
+      } catch {
+        throw new Error(
+          `Could not check existing T-ERP logins, so nothing was created. ${USER_MASTER_ENDPOINT} did not respond.`,
+        )
+      }
+      const hasLogin = existingLogins.length > 0
+      if (hasLogin && !workspace) {
+        // A login we cannot place in the T-ERP client list: refuse to touch
+        // anything rather than risk a second license for the same client.
+        throw new Error(
+          "This client already has a T-ERP login. No license and no user were created — " +
+            "sign in with the existing credentials, or ask Trellisco support to reset them.",
+        )
+      }
+
+      // Reuse a license that was already created if only the account step failed.
+      const license = licenseRef.current || readCachedLicense(email) || await createTerpLicense({
+        corporate: { name: company.corporateName, place: company.place },
+        company,
+        projects: selectedProjects.map(({ project, package: packageName }) => ({ project, package: packageName })),
       })
-      if (!response.ok) await throwApiError(response, "License creation failed")
-      setSuccess("Your T-ERP license request was created successfully.")
+      licenseRef.current = license
+      cacheLicense(email, license)
+
+      // The client id is the customer's Gmail address, not the random code the
+      // license API generates: the same id then identifies the Central Master
+      // login, the WhatsApp/email message and their T-ERP sign-in.
+      const clientId = email
+      const licenseKey = extractLicenseKey(license)
+      const companyName = company.name.trim()
+      const addedProjects = selectedProjects.map((item) => item.project)
+
+      // A returning customer keeps the login they already have: adding a project
+      // must never mint a second account or resend credentials nobody asked for,
+      // but every login under this client id must see the new product.
+      if (hasLogin) {
+        let updatedLogins = 0
+        try {
+          updatedLogins = (await enableProjectsForClient({ logins: existingLogins, clientId, selectedProjects })).updated
+        } catch (updateError) {
+          throw new Error(
+            `The license was created, but the new project could not be enabled on the existing login: ${updateError.message}`,
+            { cause: updateError },
+          )
+        }
+
+        licenseRef.current = null
+        dropCachedLicense(email)
+        setSelectedProjects([])
+        setSetupStep(1)
+        setSuccess(
+          `Added ${addedProjects.join(", ")} to ${companyName}.` +
+            (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
+            " Your existing T-ERP login still works — no new user and no new password were created.",
+        )
+        // The new license is theirs now, so tick it without a page reload.
+        findClientWorkspace(email).then((found) => { if (found) setWorkspace(found) }).catch(() => {})
+        return
+      }
+
+      const { firstName, lastName } = splitContactName(company.contactName, companyName)
+
+      const account = await createClientAdmin({
+        clientId,
+        firstName,
+        lastName,
+        email,
+        phoneNumber,
+        selectedProjects,
+      })
+
+      const created = {
+        clientId,
+        licenseKey,
+        companyName,
+        email,
+        phone: company.contact_no,
+        projects: selectedProjects.map((item) => item.project),
+        username: account.username,
+        password: account.password,
+      }
+
+      setCredentials(created)
+      // Only auto-send when the transport cannot hit a consent popup.
+      const autoEmail = canAutoSendEmail()
+      setDelivery({ whatsapp: { state: "pending" }, email: { state: autoEmail ? "pending" : "idle" } })
+      setModalOpen(true)
+      setSuccess("T-ERP license created. The admin login is ready below.")
+
+      deliverWhatsApp(created)
+      if (autoEmail) deliverEmail(created)
     } catch (submitError) {
-      setError(getNetworkError(submitError, TERP_LICENSE_ENDPOINT))
+      const licensed = Boolean(licenseRef.current)
+      // Errors that already explain the half-finished state must not be prefixed twice.
+      const explained = /^The license was created/i.test(submitError.message || "")
+      const prefix = licensed && !explained ? "The license was created, but the T-ERP admin account could not be set up: " : ""
+      setError(`${prefix}${getNetworkError(submitError, licensed ? USER_MASTER_ENDPOINT : TERP_LICENSE_ENDPOINT)}`)
     } finally {
       setSubmitting(false)
     }
@@ -217,18 +448,30 @@ export default function TERPLogin() {
           <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {setupStep + 1} of 3</span></div>
           {setupStep === 1 ? (
             <div className="terp-login__product-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{selectedProjects.length} selected</span></div><p>Select projects and a package for each.</p></div>
+              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each."}</p></div>
+              {workspace && <div className="terp-login__workspace"><b>{workspace.companyName || workspace.clientId}</b><small>{workspace.projects.length ? `${workspace.projects.join(", ")} ${workspace.projects.length > 1 ? "are" : "is"} already active and ticked below. Add another project whenever you need it.` : "This client already exists. Choose the projects to add."}</small></div>}
               <div className="terp-login__project-grid">
                 {loadingProjects && <div className="terp-login__loading">Loading available projects…</div>}
                 {!loadingProjects && !projects.length && <div className="terp-login__loading">No projects are available right now.</div>}
                 {projects.map((item) => {
                   const selected = selectedProjects.find((entry) => entry.project === item.name)
+                  const owned = ownedProjects.has(normaliseName(item.name))
+                  const incomplete = incompleteProjects.includes(item.name)
                   const packages = getPackages(item)
-                  return <article className={`terp-login__project${selected ? " is-selected" : ""}`} key={item.name}>
-                    <button type="button" className="terp-login__project-select" onClick={() => toggleProject(item.name)} aria-pressed={Boolean(selected)}>
-                      <span className="terp-login__project-icon">{item.name.charAt(0).toUpperCase()}</span><span className="terp-login__project-copy"><b>{item.name}</b><small>{selected ? "Added to your suite" : "Tap to add project"}</small></span><span className="terp-login__check">✓</span>
+                  const state = owned ? "is-owned" : incomplete ? "is-incomplete" : selected ? "is-selected" : ""
+                  const hint = owned ? "Already active in your workspace" : selected ? "Added to your suite" : "Tap to add project"
+                  return <article
+                    className={`terp-login__project${state ? ` ${state}` : ""}`}
+                    key={item.name}
+                    ref={(node) => {
+                      if (node) projectCardRefs.current.set(item.name, node)
+                      else projectCardRefs.current.delete(item.name)
+                    }}
+                  >
+                    <button type="button" className="terp-login__project-select" onClick={() => toggleProject(item)} disabled={owned} aria-pressed={Boolean(owned || selected)} aria-label={owned ? `${item.name} — already active` : undefined}>
+                      <span className="terp-login__project-icon">{item.name.charAt(0).toUpperCase()}</span><span className="terp-login__project-copy"><b>{item.name}</b><small>{hint}</small></span><span className="terp-login__check">✓</span>
                     </button>
-                    {selected && <label className="terp-login__package">Package<select value={selected.package} onChange={(event) => updateProjectPackage(item.name, event.target.value)}><option value="">Choose package</option>{packages.map((packageName) => <option key={packageName} value={packageName}>{packageName}</option>)}</select></label>}
+                    {selected && !owned && <label className="terp-login__package">Package{incomplete && <em> — required</em>}<select aria-invalid={incomplete || undefined} value={selected.package} onChange={(event) => updateProjectPackage(item.name, event.target.value)}><option value="">Choose package</option>{packages.map((packageName) => <option key={packageName} value={packageName}>{packageName}</option>)}</select></label>}
                   </article>
                 })}
               </div>
@@ -236,14 +479,26 @@ export default function TERPLogin() {
             </div>
           ) : (
           <div className="terp-login__company-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license.</p></div>
-              <div className="terp-login__fields"><label>Company name<input value={company.name} onChange={updateCompany("name")} placeholder="ABC Company" /></label><label>Corporate / group name<input value={company.corporateName} onChange={updateCompany("corporateName")} placeholder="ABC Corporate" /></label><label>Place<input value={company.place} onChange={updateCompany("place")} placeholder="Kochi" /></label><label>Country<input value={company.country} onChange={updateCompany("country")} placeholder="India" /></label><label>Email<input type="email" value={company.email} onChange={updateCompany("email")} placeholder="you@company.com" /></label><label>Contact number<input type="tel" inputMode="numeric" autoComplete="tel" value={company.contact_no} onChange={(event) => setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))} placeholder="1234567890" maxLength="10" pattern="[0-9]{10}" /></label></div>
+              <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license and the admin login we send you.</p></div>
+              <div className="terp-login__fields"><label>Company name<input value={company.name} onChange={updateCompany("name")} placeholder="ABC Company" /></label><label>Corporate / group name<input value={company.corporateName} onChange={updateCompany("corporateName")} placeholder="ABC Corporate" /></label><label>Contact person<input value={company.contactName} onChange={updateCompany("contactName")} placeholder="John Doe" /></label><label>Place<input value={company.place} onChange={updateCompany("place")} placeholder="Kochi" /></label><label>Country<input value={company.country} onChange={updateCompany("country")} placeholder="India" /></label><label>Email<input type="email" value={company.email} onChange={updateCompany("email")} placeholder="you@company.com" /></label><label>Contact number<input type="tel" inputMode="numeric" autoComplete="tel" value={company.contact_no} onChange={(event) => setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))} placeholder="1234567890" maxLength="10" pattern="[0-9]{10}" /></label></div>
               <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create T-ERP license"}</button></div>
             </div>
           )}
         </form>
         )}
       </section>
+
+      <CredentialsModal
+        open={modalOpen}
+        credentials={credentials}
+        whatsapp={delivery.whatsapp}
+        email={delivery.email}
+        onClose={closeModal}
+        onRetryWhatsApp={retryWhatsApp}
+        onRetryEmail={retryEmail}
+        retryingWhatsApp={retrying.whatsapp}
+        retryingEmail={retrying.email}
+      />
     </main>
   )
 }
