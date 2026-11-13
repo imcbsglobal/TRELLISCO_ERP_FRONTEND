@@ -16,12 +16,12 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for financial year and country management system integration with Central Master
-- Updated T-ERP login flow to include dynamic country selection and automatic country registration
-- Enhanced username generation from email addresses with improved handling for ambiguous characters
-- Documented Central Master integration for financial year tracking and country-wise financial systems
-- Added detailed coverage of the enhanced multi-step authentication process with country validation
-- Updated credential delivery system to support country-specific financial year configurations
+- Enhanced T-ERP login workflow with centralized license register loading for improved performance
+- Implemented prefetch optimization for client directory and license register data
+- Improved asynchronous project ownership detection with callback-based updates
+- Added advanced caching mechanisms for T-ERP registers to reduce API calls
+- Enhanced workspace recognition with parallel data loading strategies
+- Optimized credential delivery system with improved error handling and retry mechanisms
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -29,31 +29,35 @@
 3. [Google Sign-In Integration](#google-sign-in-integration)
 4. [Financial Year and Country Management System](#financial-year-and-country-management-system)
 5. [Enhanced T-ERP Login Flow](#enhanced-t-erp-login-flow)
-6. [Project Selection and Workspace Recognition](#project-selection-and-workspace-recognition)
-7. [Credential Delivery System](#credential-delivery-system)
-8. [Traditional Admin Authentication](#traditional-admin-authentication)
-9. [Token Management Strategy](#token-management-strategy)
-10. [Protected Routes and Authorization](#protected-routes-and-authorization)
-11. [Security Considerations](#security-considerations)
-12. [Performance Considerations](#performance-considerations)
-13. [Troubleshooting Guide](#troubleshooting-guide)
-14. [Conclusion](#conclusion)
+6. [Centralized License Register Loading](#centralized-license-register-loading)
+7. [Prefetch Optimization Strategy](#prefetch-optimization-strategy)
+8. [Asynchronous Project Ownership Detection](#asynchronous-project-ownership-detection)
+9. [Project Selection and Workspace Recognition](#project-selection-and-workspace-recognition)
+10. [Credential Delivery System](#credential-delivery-system)
+11. [Traditional Admin Authentication](#traditional-admin-authentication)
+12. [Token Management Strategy](#token-management-strategy)
+13. [Protected Routes and Authorization](#protected-routes-and-authorization)
+14. [Security Considerations](#security-considerations)
+15. [Performance Considerations](#performance-considerations)
+16. [Troubleshooting Guide](#troubleshooting-guide)
+17. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows:
+This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows with enhanced performance optimizations:
 
-1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, and automated credential delivery
+1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, and automated credential delivery with optimized data loading
 2. **Traditional Admin Authentication**: Standard email/password authentication for administrative access
 
 The system integrates with multiple external services including Google Identity Services, WhatsApp messaging, email delivery systems, and the Central Master platform for financial year and country management.
 
 ## Authentication Systems Overview
-The application implements a dual authentication architecture with enhanced financial year management:
+The application implements a dual authentication architecture with enhanced performance through centralized data loading:
 
 ```mermaid
 graph TB
 subgraph "Customer Onboarding Flow"
 GOOGLE["Google Sign-In<br/>(OAuth 2.0)"]
+PREFETCH["Prefetch Registers<br/>(Client Directory + License Register)"]
 PROJECTS["Project Selection<br/>(T-ERP Catalogue)"]
 COUNTRY["Country Selection<br/>(Financial Year Register)"]
 WORKSPACE["Workspace Recognition<br/>(Returning Customers)"]
@@ -65,7 +69,7 @@ TRADITIONAL["Email/Password Login"]
 ADMIN_TOKEN["Admin Token Storage"]
 PROTECTED["Protected Admin Routes"]
 end
-GOOGLE --> PROJECTS --> COUNTRY --> WORKSPACE --> LICENSE --> CREDENTIALS
+GOOGLE --> PREFETCH --> PROJECTS --> COUNTRY --> WORKSPACE --> LICENSE --> CREDENTIALS
 TRADITIONAL --> ADMIN_TOKEN --> PROTECTED
 ```
 
@@ -204,7 +208,7 @@ useEffect(() => {
 - [src/pages/TERPLogin.jsx:136-155](file://src/pages/TERPLogin.jsx#L136-L155)
 
 ## Enhanced T-ERP Login Flow
-The enhanced login flow now includes financial year management and improved country handling:
+The enhanced login flow now includes financial year management and improved country handling with optimized data loading:
 
 ### Step 1: Google Authentication
 - Dynamic loading of Google Identity Services
@@ -229,7 +233,8 @@ The enhanced login flow now includes financial year management and improved coun
 ```mermaid
 flowchart TD
 Start(["TERP Login Page"]) --> GoogleAuth["Google Sign-In"]
-GoogleAuth --> ProjectSelection["Select Projects & Packages"]
+GoogleAuth --> Prefetch["Prefetch T-ERP Registers"]
+Prefetch --> ProjectSelection["Select Projects & Packages"]
 ProjectSelection --> CountryCheck["Load Available Countries"]
 CountryCheck --> ExistingCountry{"Existing Country?"}
 ExistingCountry --> |Yes| LockedCountry["Display Registered Country"]
@@ -248,6 +253,198 @@ CredentialDelivery --> Success(["Setup Complete"])
 
 **Section sources**
 - [src/pages/TERPLogin.jsx:391-542](file://src/pages/TERPLogin.jsx#L391-L542)
+
+## Centralized License Register Loading
+The system now uses centralized license register loading to improve performance and reduce redundant API calls:
+
+### Register Caching Architecture
+```mermaid
+graph LR
+subgraph "Register Cache Layer"
+CLIENT_DIR["Client Directory Cache<br/>(TERP_CLIENT_IDS_ENDPOINT)"]
+LICENSE_REG["License Register Cache<br/>(TERP_CORPORATE_CLIENT_ENDPOINT)"]
+CACHE_STORE["In-Memory Cache<br/>(Module Level Variables)"]
+end
+subgraph "Data Sources"
+CLIENT_API["Client IDs API"]
+LICENSE_API["Corporate Client API"]
+end
+CLIENT_DIR --> CACHE_STORE
+LICENSE_REG --> CACHE_STORE
+CACHE_STORE --> CLIENT_API
+CACHE_STORE --> LICENSE_API
+```
+
+**Diagram sources**
+- [src/api/terpLicense.js:117-154](file://src/api/terpLicense.js#L117-L154)
+
+### Module-Level Caching Implementation
+The system maintains module-level caches for both client directory and license register data:
+
+```javascript
+// Both registers total ~100 KB and change only when a client is onboarded, so one
+// fetch per page load is enough however often the email field is edited. They are
+// cached separately because the ticks only need the license register: waiting for
+// the (larger) client directory as well made the owned-project ticks appear late.
+let clientDirectoryCache = null
+let licenseRegisterCache = null
+
+function loadClientDirectory() {
+  if (!clientDirectoryCache) {
+    clientDirectoryCache = fetchList(TERP_CLIENT_IDS_ENDPOINT, "Unable to load the T-ERP client list")
+      .catch((error) => {
+        // Drop the failed promise so the next lookup can retry.
+        clientDirectoryCache = null
+        throw error
+      })
+  }
+  return clientDirectoryCache
+}
+
+function loadLicenseRegister() {
+  if (!licenseRegisterCache) {
+    licenseRegisterCache = fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the T-ERP license register")
+      .catch((error) => {
+        licenseRegisterCache = null
+        throw error
+      })
+  }
+  return licenseRegisterCache
+}
+```
+
+**Section sources**
+- [src/api/terpLicense.js:117-154](file://src/api/terpLicense.js#L117-L154)
+
+## Prefetch Optimization Strategy
+The system implements intelligent prefetching to optimize the user experience by loading critical data before the user interacts with the interface:
+
+### Parallel Data Loading
+```javascript
+/**
+ * Starts both registers while the visitor is still on the first step, so they are
+ * already in memory by the time Google sign-in returns. Failures are ignored
+ * here: the lookup that really needs the data retries and reports them.
+ */
+export function prefetchTerpRegisters() {
+  Promise.allSettled([loadClientDirectory(), loadLicenseRegister()])
+}
+```
+
+### Early Data Access Pattern
+The prefetch function is called immediately when the component mounts, ensuring data is available when needed:
+
+```javascript
+useEffect(() => {
+  // Pull both T-ERP registers while the visitor is still on step 1, so the
+  // projects they already own are ready to be ticked the moment Google returns
+  // instead of being fetched on that critical path.
+  prefetchTerpRegisters()
+}, [])
+```
+
+**Section sources**
+- [src/api/terpLicense.js:147-154](file://src/api/terpLicense.js#L147-L154)
+- [src/pages/TERPLogin.jsx:203-208](file://src/pages/TERPLogin.jsx#L203-L208)
+
+## Asynchronous Project Ownership Detection
+The system now uses an improved asynchronous approach for detecting project ownership with callback-based updates:
+
+### Callback-Based Workspace Detection
+```javascript
+/**
+ * The workspace behind an email address, or null when it has never been
+ * provisioned. Some client ids are the company email itself, which is why the
+ * address used to sign in can be enough to recognise a returning customer.
+ *
+ * `onProjects` fires as soon as the license register resolves — it is the only
+ * input for "already owned" — so the cards can be ticked without waiting for the
+ * client directory that only adds the company name and place.
+ */
+export async function findClientWorkspace(email, onProjects) {
+  const wanted = String(email || "").trim().toLowerCase()
+  if (!wanted) return null
+
+  const register = loadLicenseRegister()
+  register
+    .then((corporates) => {
+      const owned = ownedProjectsOf(corporates, wanted)
+      if (owned.projects.length) onProjects?.(owned.projects, owned.corporateName)
+    })
+    .catch(() => {
+      // Reported by the full lookup below.
+    })
+
+  const [clients, corporates] = await Promise.all([loadClientDirectory(), register])
+
+  const client = clients.find((item) => String(item?.client_id || "").trim().toLowerCase() === wanted)
+  const { projects, corporateName } = ownedProjectsOf(corporates, wanted)
+
+  if (!client && !projects.length) return null
+  return {
+    clientId: client?.client_id || email,
+    companyName: client?.company_name || "",
+    corporateName,
+    place: client?.place || "",
+    projects,
+  }
+}
+```
+
+### Immediate UI Updates
+The component handles immediate UI updates when project ownership data becomes available:
+
+```javascript
+useEffect(() => {
+  const candidate = String(company.email || googleUser?.email || "").trim()
+  if (!candidate.includes("@")) return
+  let cancelled = false
+
+  // The ticks only need the license register, so the cards are marked as soon
+  // as it lands; the company name and place follow with the directory.
+  setCheckingWorkspace(true)
+  const tickOwnedProjects = (projects, corporateName) => {
+    if (cancelled) return
+    setCheckingWorkspace(false)
+    setWorkspace((current) => ({
+      clientId: current?.clientId || candidate,
+      companyName: current?.companyName || "",
+      corporateName: current?.corporateName || corporateName || "",
+      place: current?.place || "",
+      projects,
+    }))
+  }
+
+  findClientWorkspace(candidate, tickOwnedProjects)
+    .then((found) => {
+      if (cancelled || !found) return
+      // Upgrade the partial workspace the register produced with the company
+      // name and place the directory adds — never downgrade it.
+      setWorkspace((current) => ({ ...current, ...found }))
+      setCompany((current) => {
+        const filled = {
+          ...current,
+          name: current.name || found.companyName,
+          corporateName: current.corporateName || found.corporateName || found.companyName,
+          place: current.place || found.place,
+        }
+        return filled.name === current.name && filled.place === current.place ? current : filled
+      })
+    })
+    .catch(() => {
+      // Recognition is a convenience: a brand new signup must still go through.
+    })
+    .finally(() => {
+      if (!cancelled) setCheckingWorkspace(false)
+    })
+
+  return () => { cancelled = true }
+}, [googleUser, company.email])
+```
+
+**Section sources**
+- [src/api/terpLicense.js:172-208](file://src/api/terpLicense.js#L172-L208)
+- [src/pages/TERPLogin.jsx:213-257](file://src/pages/TERPLogin.jsx#L213-L257)
 
 ## Project Selection and Workspace Recognition
 The system intelligently recognizes returning customers and manages project assignments with country context:
@@ -490,10 +687,10 @@ The authentication system implements multiple security measures with enhanced fi
 Several optimizations are implemented for better performance:
 
 ### Caching Strategies
-- Register caching for client lists and corporate data
-- Session-scoped token caching for Gmail API
-- Project catalogue normalization to reduce API calls
-- Financial year country list caching
+- **Centralized Register Caching**: Module-level caching for T-ERP client directory and license register data
+- **Session-scoped Token Caching**: For Gmail API tokens to avoid repeated OAuth prompts
+- **Project Catalogue Normalization**: To reduce API calls and normalize data formats
+- **Financial Year Country List Caching**: For efficient country dropdown population
 
 ### Lazy Loading
 - Dynamic loading of Google Identity Services
@@ -502,10 +699,17 @@ Several optimizations are implemented for better performance:
 - Deferred loading of country lists until needed
 
 ### Network Optimization
-- Batch requests for related data
-- Error handling to prevent unnecessary retries
-- Proper cleanup of event listeners and timers
-- Optimized Central Master API calls with proxy support
+- **Parallel Data Loading**: Using `Promise.allSettled` for concurrent register loading
+- **Batch Requests**: For related data operations
+- **Error Handling**: To prevent unnecessary retries and provide meaningful feedback
+- **Proper Cleanup**: Of event listeners and timers
+- **Optimized API Calls**: With proxy support for development environments
+
+### Memory Management
+- **Module-Level Caches**: For expensive API responses that don't change frequently
+- **Session Storage**: For temporary credentials and OAuth tokens
+- **Cleanup Functions**: In useEffect hooks to prevent memory leaks
+- **Conditional Rendering**: Based on data availability and user state
 
 ## Troubleshooting Guide
 Common issues and their solutions:
@@ -542,6 +746,15 @@ Common issues and their solutions:
   - **Solution**: Configure mail relay or EmailJS properly
   - **Solution**: Verify Gmail OAuth scopes if using direct Gmail API
 
+### Performance Issues
+- **Problem**: Slow initial page load
+  - **Solution**: Check network connectivity to T-ERP APIs
+  - **Solution**: Verify prefetch optimization is working correctly
+
+- **Problem**: Duplicate API calls
+  - **Solution**: Ensure register caching is functioning properly
+  - **Solution**: Check for proper cleanup of component instances
+
 **Section sources**
 - [src/pages/TERPLogin.jsx:157-178](file://src/pages/TERPLogin.jsx#L157-L178)
 - [src/api/notifications.js:165-186](file://src/api/notifications.js#L165-L186)
@@ -551,11 +764,13 @@ The TRELLISCO ERP frontend now implements a comprehensive authentication and aut
 
 - **Dual Authentication Flows**: Supporting both T-ERP customers and administrators
 - **Advanced Customer Onboarding**: With Google Sign-In, project selection, financial year management, and automated credential delivery
-- **Central Master Integration**: For financial year tracking and country-specific configurations
-- **Intelligent Workspace Recognition**: Automatically identifying returning customers
+- **Centralized License Register Loading**: Optimized data loading with module-level caching for improved performance
+- **Prefetch Optimization**: Intelligent preloading of critical data before user interaction
+- **Asynchronous Project Ownership Detection**: Callback-based updates for immediate UI responsiveness
+- **Intelligent Workspace Recognition**: Automatically identifying returning customers with optimized data fetching
 - **Enhanced Username Generation**: From email addresses with improved character handling
 - **Multi-Channel Communication**: Through WhatsApp and multiple email providers
 - **Robust Security Measures**: Including secure token handling, financial year data protection, and proper error management
-- **Performance Optimizations**: Through caching strategies, lazy loading, and optimized API calls
+- **Performance Optimizations**: Through caching strategies, lazy loading, parallel data loading, and optimized API calls
 
-The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion.
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations.

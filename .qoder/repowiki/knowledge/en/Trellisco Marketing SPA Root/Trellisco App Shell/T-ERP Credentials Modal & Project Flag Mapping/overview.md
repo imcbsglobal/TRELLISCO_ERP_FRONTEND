@@ -1,0 +1,1 @@
+Renders the post-license dialog that displays and shares Trellisco T-ERP login credentials, plus a pure config module mapping purchased projects onto user-master API feature flags.

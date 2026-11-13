@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-11-13T06:47:50Z"
+exported_at: "2026-11-13T07:17:32Z"
 modules:
     "":
-        dir_name: Trellisco Frontend Root
-        title: Trellisco Frontend Root
+        dir_name: Trellisco Marketing SPA Root
+        title: Trellisco Marketing SPA Root
         scope:
             - README.md
             - .gitignore
@@ -22,8 +22,8 @@ modules:
         depends_on: []
         related_to: []
     app_shell:
-        dir_name: Trellisco Frontend Shell
-        title: Trellisco Frontend Shell
+        dir_name: Trellisco App Shell
+        title: Trellisco App Shell
         scope:
             - src/App.jsx
             - src/main.jsx

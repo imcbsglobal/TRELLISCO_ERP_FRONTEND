@@ -1,2 +1,0 @@
-- ES modules are used throughout (`"type": "module"` in package.json) and ESLint enforces JSX via parserOptions.ecmaFeatures.jsx.
-- Development API calls go through the Vite proxy paths `/api` and `/terp-api` rather than absolute URLs.

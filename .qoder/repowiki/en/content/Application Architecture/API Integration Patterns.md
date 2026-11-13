@@ -20,11 +20,11 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for the new financial year API module (financialYear.js) with Central Master integration
-- Updated architecture diagrams to include financial year service and proxy configuration
-- Enhanced guidelines for handling external API integrations with environment-specific routing
-- Added detailed coverage of CORS handling through Vite proxy configuration
-- Documented the financial year register pattern for country-based financial year management
+- Added comprehensive documentation for the new prefetchTerpRegisters() function and refactored license register loading mechanism
+- Updated T-ERP license management section to document separate client directory and corporate client endpoints
+- Enhanced performance considerations with preloading strategies for enterprise workflows
+- Updated architecture diagrams to reflect the new parallel loading pattern for T-ERP registers
+- Added detailed coverage of the two-tier caching strategy for client directory and license register
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -47,7 +47,7 @@ This document explains the API integration layer architecture, focusing on:
 - Caching strategies, request optimization, and performance considerations
 - Guidelines for adding new endpoints consistently
 
-The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration.
+The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. **Updated** The system now includes sophisticated preloading capabilities for T-ERP license data to optimize user experience during Google sign-in flows.
 
 ## Project Structure
 The API integration lives under `src/api` and is organized by domain modules that share a common Axios client:
@@ -57,7 +57,7 @@ The API integration lives under `src/api` and is organized by domain modules tha
 - `blogApi.js`: Blog domain service functions (posts, uploads, form builders)
 - `announcements.js`: Announcements domain service functions
 - `promoVideoApi.js`: Promo video domain service functions (uses native fetch but shares token source)
-- `terpLicense.js`: T-ERP license management and project catalogue operations
+- `terpLicense.js`: T-ERP license management and project catalogue operations with advanced preloading
 - `userMaster.js`: User master operations and admin account creation
 - `notifications.js`: Multi-channel notification system (WhatsApp, Email via multiple providers)
 - `financialYear.js`: Financial year register management with Central Master integration
@@ -73,7 +73,7 @@ Auth["auth.js<br/>Login/logout helpers"]
 Blog["blogApi.js<br/>Blog domain services"]
 Announcements["announcements.js<br/>Announcements domain services"]
 Promo["promoVideoApi.js<br/>Promo video services"]
-Terp["terpLicense.js<br/>T-ERP license management"]
+Terp["terpLicense.js<br/>T-ERP license management + preloading"]
 UserMaster["userMaster.js<br/>User master operations"]
 Notifications["notifications.js<br/>Multi-channel notifications"]
 FinancialYear["financialYear.js<br/>Financial year register"]
@@ -98,7 +98,7 @@ ApiLegacy --> Config
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -112,7 +112,7 @@ ApiLegacy --> Config
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -130,7 +130,7 @@ ApiLegacy --> Config
   - Response interceptor clears token on 401 and rejects errors
 - Domain service modules:
   - Blog, announcements, promo videos each expose typed functions for CRUD operations
-  - T-ERP license management with project catalogue and license creation
+  - T-ERP license management with project catalogue, license creation, and **advanced preloading capabilities**
   - User master operations for admin account provisioning
   - Multi-channel notifications with WhatsApp and email delivery
   - Financial year register management with Central Master integration
@@ -146,13 +146,14 @@ Key responsibilities:
 - Predictable error shapes for UI consumption
 - Support for complex enterprise workflows and third-party integrations
 - Environment-aware endpoint resolution for development vs production
+- **Advanced preloading strategies for optimal user experience**
 
 **Section sources**
 - [client.js:21-75](file://src/api/client.js#L21-L75)
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -162,39 +163,45 @@ The API layer follows a layered approach:
 - Infrastructure: Axios instances and interceptors
 - Auth: Login/logout and token persistence
 - Services: Domain-specific API functions
-- Enterprise Services: License management, user provisioning, notifications, financial year registration
+- Enterprise Services: License management with advanced preloading, user provisioning, notifications, financial year registration
 - External Integrations: Central Master API with proxy support
 - Consumers: Pages and components call service functions
 
 ```mermaid
 sequenceDiagram
 participant UI as "UI Component"
-participant FinancialSvc as "financialYear.js"
+participant Prefetch as "prefetchTerpRegisters()"
+participant ClientDir as "loadClientDirectory()"
+participant LicenseReg as "loadLicenseRegister()"
 participant Proxy as "Vite Proxy"
-participant Central as "Central Master API"
-participant LicenseSvc as "terpLicense.js"
-participant UserSvc as "userMaster.js"
-participant NotifySvc as "notifications.js"
-participant Client as "client.js"
-participant Server as "Backend API"
-UI->>FinancialSvc : fetchFinancialYearCountries()
-FinancialSvc->>Proxy : GET /central-api/api/financial-year/country-wise/
-Proxy->>Central : GET /api/financial-year/country-wise/
-Central-->>Proxy : Country list
-Proxy-->>FinancialSvc : Normalized countries
-FinancialSvc-->>UI : Country options
-UI->>FinancialSvc : ensureClientCountry({clientId, country})
-FinancialSvc->>Proxy : POST /central-api/api/financial-year/customer-wise/
-Proxy->>Central : POST /api/financial-year/customer-wise/
-Central-->>Proxy : Registration confirmation
-Proxy-->>FinancialSvc : Success response
-FinancialSvc-->>UI : {created : true/false, country}
+participant TERPServer as "T-ERP Server"
+participant LicenseSvc as "findClientWorkspace()"
+participant TERPServer2 as "T-ERP Server"
+UI->>Prefetch : Call during step 1
+Prefetch->>ClientDir : Start loading client directory
+Prefetch->>LicenseReg : Start loading license register
+ClientDir->>Proxy : GET /terp-api/client-id-list/get-client-ids/
+LicenseReg->>Proxy : GET /terp-api/corporate-clientid/list/
+Proxy->>TERPServer : Forward requests
+Proxy->>TERPServer : Forward requests
+TERPServer-->>Proxy : Client directory data
+TERPServer-->>Proxy : License register data
+Proxy-->>ClientDir : Cached client directory
+Proxy-->>LicenseReg : Cached license register
+Note over UI : User completes Google sign-in
+UI->>LicenseSvc : findClientWorkspace(email)
+LicenseSvc->>LicenseReg : Use cached license register
+LicenseReg-->>LicenseSvc : Immediate owned projects
+LicenseSvc->>ClientDir : Use cached client directory
+ClientDir-->>LicenseSvc : Company details
+LicenseSvc-->>UI : Complete workspace data
 ```
 
 **Diagram sources**
-- [financialYear.js:38-52](file://src/api/financialYear.js#L38-L52)
-- [financialYear.js:107-115](file://src/api/financialYear.js#L107-L115)
-- [vite.config.js:27-32](file://vite.config.js#L27-L32)
+- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
+- [terpLicense.js:124-145](file://src/api/terpLicense.js#L124-L145)
+- [TERPLogin.jsx:203-208](file://src/pages/TERPLogin.jsx#L203-L208)
+- [TERPLogin.jsx:213-257](file://src/pages/TERPLogin.jsx#L213-L257)
 
 ## Detailed Component Analysis
 
@@ -269,45 +276,14 @@ Auth-->>UI : user
 - [auth.js:1-40](file://src/api/auth.js#L1-L40)
 - [client.js:21-75](file://src/api/client.js#L21-L75)
 
-### Financial Year Register Management
-**New** The financial year register manages country-based financial year assignments for clients through Central Master integration with sophisticated environment-specific routing.
+### Advanced T-ERP License Management System
+**Updated** The T-ERP license management system now features sophisticated preloading capabilities with separate client directory and corporate client endpoints, optimized for enterprise workflows and Google sign-in integration.
 
-Responsibilities:
-- Fetch available countries for financial year selection
-- Bind client IDs to their respective countries
-- Retrieve existing financial year registrations per client
-- Ensure idempotent country registration
-- Handle CORS restrictions through Vite proxy configuration
-
-Key features:
-- Environment-aware endpoint resolution (development vs production)
-- Vite proxy integration for CORS-free development
-- Flexible payload normalization supporting various API response formats
-- Idempotent registration with existing record detection
-- Comprehensive error handling for HTML and JSON responses
-- Secure client ID handling with Gmail address validation
-
-```mermaid
-classDiagram
-class FinancialYearService {
-+fetchFinancialYearCountries()
-+saveClientCountry({clientId, countryName})
-+findClientFinancialYears(clientId)
-+ensureClientCountry({clientId, countryName})
-+COUNTRY_ENDPOINT
-+CUSTOMER_ENDPOINT
-}
-```
-
-**Diagram sources**
-- [financialYear.js:38-115](file://src/api/financialYear.js#L38-L115)
-
-**Section sources**
-- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
-- [vite.config.js:27-32](file://vite.config.js#L27-L32)
-
-### T-ERP License Management System
-**Updated** The T-ERP license management system handles enterprise license provisioning with sophisticated client identification and project mapping capabilities, now integrated with financial year registration.
+**New Features:**
+- **Parallel Preloading**: `prefetchTerpRegisters()` initiates background loading of both client directory and license register
+- **Two-Tier Caching Strategy**: Separate caches for client directory and license register to optimize performance
+- **Progressive Data Loading**: License register loads first for immediate owned project detection, followed by client directory for company details
+- **Enterprise-Specific Endpoints**: Dedicated endpoints for client IDs (`/terp-api/client-id-list/get-client-ids/`) and corporate clients (`/terp-api/corporate-clientid/list/`)
 
 Responsibilities:
 - Fetch project catalogue from T-ERP API
@@ -315,13 +291,16 @@ Responsibilities:
 - Identify returning customers via email and client ID matching
 - Normalize project data from various API response formats
 - Extract client IDs and license keys from responses
-- Integrate with financial year registration for country-based setup
+- **Preload enterprise data during initial page load for optimal UX**
+- **Provide progressive workspace detection with callback support**
 
 Key features:
 - Intelligent client workspace detection based on email addresses
 - Corporate hierarchy support (corporate → shops → projects)
 - HTML error parsing for Django backend compatibility
-- Caching mechanism for client registers to reduce API calls
+- **Advanced caching mechanism with separate client directory and license register caches**
+- **Background preloading with Promise.allSettled for non-blocking initialization**
+- **Progressive data loading with callback support for immediate owned project feedback**
 - Flexible project data normalization supporting multiple response formats
 - Financial year registration coordination
 
@@ -329,20 +308,26 @@ Key features:
 classDiagram
 class TERPLicenseService {
 +fetchTerpProjects()
-+findClientWorkspace(email)
++prefetchTerpRegisters()
++findClientWorkspace(email, onProjects)
 +createTerpLicense({company, corporate, projects})
 +extractClientId(payload)
 +extractLicenseKey(payload)
 +normaliseProjects(payload)
 +getNetworkError(error, endpoint)
+-loadClientDirectory()
+-loadLicenseRegister()
+-ownedProjectsOf(corporates, wanted)
 }
 ```
 
 **Diagram sources**
-- [terpLicense.js:104-222](file://src/api/terpLicense.js#L104-L222)
+- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
+- [terpLicense.js:124-145](file://src/api/terpLicense.js#L124-L145)
+- [terpLicense.js:181-208](file://src/api/terpLicense.js#L181-L208)
 
 **Section sources**
-- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
 
 ### User Master Operations
 **New** The user master system manages admin account creation and product flag management for T-ERP clients.
@@ -418,6 +403,43 @@ SendGmail --> Success
 
 **Section sources**
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+
+### Financial Year Register Management
+The financial year register manages country-based financial year assignments for clients through Central Master integration with sophisticated environment-specific routing.
+
+Responsibilities:
+- Fetch available countries for financial year selection
+- Bind client IDs to their respective countries
+- Retrieve existing financial year registrations per client
+- Ensure idempotent country registration
+- Handle CORS restrictions through Vite proxy configuration
+
+Key features:
+- Environment-aware endpoint resolution (development vs production)
+- Vite proxy integration for CORS-free development
+- Flexible payload normalization supporting various API response formats
+- Idempotent registration with existing record detection
+- Comprehensive error handling for HTML and JSON responses
+- Secure client ID handling with Gmail address validation
+
+```mermaid
+classDiagram
+class FinancialYearService {
++fetchFinancialYearCountries()
++saveClientCountry({clientId, countryName})
++findClientFinancialYears(clientId)
++ensureClientCountry({clientId, countryName})
++COUNTRY_ENDPOINT
++CUSTOMER_ENDPOINT
+}
+```
+
+**Diagram sources**
+- [financialYear.js:38-115](file://src/api/financialYear.js#L38-L115)
+
+**Section sources**
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
+- [vite.config.js:27-32](file://vite.config.js#L27-L32)
 
 ### Blog Domain Service
 Responsibilities:
@@ -577,7 +599,7 @@ TERPLogin --> Notifications
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -594,7 +616,7 @@ TERPLogin --> Notifications
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -606,8 +628,12 @@ TERPLogin --> Notifications
 ## Performance Considerations
 - Avoid duplicate network calls:
   - Cache lists at the component level or with a lightweight cache layer when appropriate
-  - T-ERP license module implements register caching for client lists
+  - T-ERP license module implements **advanced two-tier caching** for client directory and license register
   - Financial year register benefits from browser caching for country lists
+- **Optimize user experience with intelligent preloading**:
+  - Use `prefetchTerpRegisters()` during initial page load to preload enterprise data
+  - Implement progressive data loading with callbacks for immediate feedback
+  - Leverage Promise.allSettled for non-blocking background initialization
 - Minimize payload size:
   - Use query parameters for filtering/sorting instead of fetching all records
 - Defer non-critical requests:
@@ -627,6 +653,12 @@ TERPLogin --> Notifications
   - Use Vite proxy for CORS-free development to avoid preflight requests
   - Configure proxy timeouts appropriately for slow external APIs
 
+**Updated** The T-ERP license management system now implements sophisticated preloading strategies:
+- **Parallel Loading**: Both client directory and license register load simultaneously
+- **Separate Caching**: Independent caches prevent blocking between datasets
+- **Progressive Enhancement**: License register loads first for immediate owned project detection
+- **Non-blocking Initialization**: Background preloading doesn't block initial page rendering
+
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
@@ -644,6 +676,11 @@ Common issues and resolutions:
 - T-ERP license creation failures:
   - Check CORS configuration for external APIs
   - Verify client ID and corporate name formatting
+- **T-ERP preloading issues**:
+  - Ensure `prefetchTerpRegisters()` is called during initial page load
+  - Verify both client directory and corporate client endpoints are accessible
+  - Check Vite proxy configuration for `/terp-api` paths
+  - Monitor console for failed Promise.allSettled operations
 - User master account creation issues:
   - Ensure unique client_id, email, and phone_number combinations
   - Check username conflict resolution logic
@@ -663,6 +700,7 @@ Operational tips:
 - Add feature flags for experimental endpoints
 - Monitor third-party API availability and implement graceful degradation
 - Test both development proxy and production direct connections
+- **Monitor preloading performance and implement fallback strategies for failed background requests**
 
 **Section sources**
 - [client.js:58-75](file://src/api/client.js#L58-L75)
@@ -670,6 +708,7 @@ Operational tips:
 - [blogApi.js:63-74](file://src/api/blogApi.js#L63-L74)
 - [api.js:11-36](file://src/api/api.js#L11-L36)
 - [terpLicense.js:67-78](file://src/api/terpLicense.js#L67-L78)
+- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
 - [userMaster.js:190-202](file://src/api/userMaster.js#L190-L202)
 - [notifications.js:84-112](file://src/api/notifications.js#L84-L112)
 - [financialYear.js:19-31](file://src/api/financialYear.js#L19-L31)
@@ -709,6 +748,7 @@ Follow these steps to maintain consistency:
    - Implement proper caching for frequently accessed data
    - Handle concurrent operations safely
    - Provide meaningful feedback for long-running processes
+   - **Consider implementing preloading strategies for critical enterprise data**
 10. For external API integrations:
     - Configure Vite proxy for development if CORS is not supported
     - Implement environment-specific endpoint resolution
@@ -722,18 +762,22 @@ Example patterns to follow:
 - External API integration: see T-ERP license management
 - Third-party service integration: see notification system
 - CORS-free external API: see financial year register with Vite proxy
+- **Advanced preloading: see `prefetchTerpRegisters()` for enterprise data optimization**
 
 **Section sources**
 - [blogApi.js:25-47](file://src/api/blogApi.js#L25-L47)
 - [announcements.js:22-61](file://src/api/announcements.js#L22-L61)
 - [promoVideoApi.js:49-85](file://src/api/promoVideoApi.js#L49-L85)
-- [terpLicense.js:104-222](file://src/api/terpLicense.js#L104-L222)
+- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
+- [terpLicense.js:104-264](file://src/api/terpLicense.js#L104-L264)
 - [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
 - [notifications.js:84-414](file://src/api/notifications.js#L84-L414)
 - [financialYear.js:9-17](file://src/api/financialYear.js#L9-L17)
 - [vite.config.js:27-32](file://vite.config.js#L27-L32)
 
 ## Conclusion
-This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. The addition of specialized modules for T-ERP license management, user master operations, multi-channel notifications, and financial year registration demonstrates the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. The Vite proxy configuration enables seamless development with external APIs that lack CORS support. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application.
+This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. 
+
+**Updated** The addition of sophisticated preloading capabilities through `prefetchTerpRegisters()` demonstrates the system's evolution toward optimizing user experience for enterprise workflows. The two-tier caching strategy with separate client directory and corporate client endpoints enables progressive data loading, while the parallel initialization pattern ensures minimal impact on initial page rendering. The specialized modules for T-ERP license management, user master operations, multi-channel notifications, and financial year registration showcase the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. The Vite proxy configuration enables seamless development with external APIs that lack CORS support. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application, considering preloading strategies for critical enterprise data to enhance user experience.
 
 [No sources needed since this section summarizes without analyzing specific files]

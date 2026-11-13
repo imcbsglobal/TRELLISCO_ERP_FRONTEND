@@ -1,1 +1,0 @@
-`npm run dev` starts the Vite dev server which proxies `/api` → `http://localhost:8000` and `/terp-api` → `https://activate.imcbs.com`; `npm run build` produces the static bundle under `dist/`; `npm run lint` runs ESLint over `**/*.{js,jsx}`.

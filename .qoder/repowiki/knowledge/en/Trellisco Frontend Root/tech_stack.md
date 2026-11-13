@@ -1,1 +1,0 @@
-Vite 8 with @vitejs/plugin-react, React 19, react-router-dom 7, ESLint 10 flat config, Sass via sass-embedded, Axios for HTTP, Matter.js and OGL for interactive visuals.
