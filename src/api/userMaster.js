@@ -4,12 +4,16 @@
 // flag mirrors the projects that were bought.
 
 import { USER_MASTER_FLAGS, flagsForProjects } from "../config/projectFlags"
+import { CENTRAL_ORIGIN, CENTRAL_PROXY_PREFIX, viaProxy } from "./proxy"
 
-// Central Master sends no CORS headers, so development goes through the
-// '/central-api' proxy declared in vite.config.js.
-const USER_MASTER_ENDPOINT = import.meta.env.DEV
-  ? "/central-api/api/user-master/"
-  : import.meta.env.VITE_USER_MASTER_API_URL || "https://centralmastermanagement.imcbs.com/api/user-master/"
+// Central Master sends no CORS headers, so the user table is read and written
+// through the same-origin '/central-api' prefix (Vite proxy locally, nginx in
+// production).
+const USER_MASTER_ENDPOINT = viaProxy(
+  import.meta.env.VITE_USER_MASTER_API_URL || `${CENTRAL_ORIGIN}/api/user-master/`,
+  CENTRAL_ORIGIN,
+  CENTRAL_PROXY_PREFIX,
+)
 
 // Ambiguous characters (0/o, 1/l/i) are left out so credentials survive being
 // read off WhatsApp or typed from a screenshot.

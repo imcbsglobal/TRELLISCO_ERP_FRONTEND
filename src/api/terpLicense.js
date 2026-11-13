@@ -1,27 +1,38 @@
 // src/api/terpLicense.js
-// T-ERP license API: project catalogue + license creation.
-// In development both calls go through the Vite proxy so the browser never
-// trips over CORS; in a build the absolute URLs from .env are used.
+// T-ERP license API: project catalogue, license creation and the two client
+// registers. activate.imcbs.com sends no CORS headers and rejects the license
+// POST's preflight with a 405, so every call goes through the same-origin
+// '/terp-api' prefix (Vite proxy locally, nginx in production).
 
-export const TERP_PROJECTS_ENDPOINT = import.meta.env.DEV
-  ? "/terp-api/t-erp/mobileapp/api/projects/"
-  : import.meta.env.VITE_TERP_PROJECTS_API_URL
+import { TERP_ORIGIN, TERP_PROXY_PREFIX, viaProxy } from "./proxy"
 
-export const TERP_LICENSE_ENDPOINT = import.meta.env.DEV
-  ? "/terp-api/t-erp/mobileapp/api/license/create/"
-  : import.meta.env.VITE_TERP_LICENSE_CREATE_API_URL
+export const TERP_PROJECTS_ENDPOINT = viaProxy(
+  import.meta.env.VITE_TERP_PROJECTS_API_URL || `${TERP_ORIGIN}/t-erp/mobileapp/api/projects/`,
+  TERP_ORIGIN,
+  TERP_PROXY_PREFIX,
+)
+
+export const TERP_LICENSE_ENDPOINT = viaProxy(
+  import.meta.env.VITE_TERP_LICENSE_CREATE_API_URL || `${TERP_ORIGIN}/t-erp/mobileapp/api/license/create/`,
+  TERP_ORIGIN,
+  TERP_PROXY_PREFIX,
+)
 
 // Directory of client ids that already exist (client_id → company name, place).
 // Used to recognise a returning customer by the Gmail they sign in with.
-export const TERP_CLIENT_IDS_ENDPOINT = import.meta.env.DEV
-  ? "/terp-api/client-id-list/get-client-ids/"
-  : import.meta.env.VITE_TERP_CLIENT_IDS_API_URL
+export const TERP_CLIENT_IDS_ENDPOINT = viaProxy(
+  import.meta.env.VITE_TERP_CLIENT_IDS_API_URL || `${TERP_ORIGIN}/client-id-list/get-client-ids/`,
+  TERP_ORIGIN,
+  TERP_PROXY_PREFIX,
+)
 
 // Licensed projects per client: corporate → shops (client_id) → projects. The
 // directory above knows who the client is, this one knows what they already own.
-export const TERP_CORPORATE_CLIENT_ENDPOINT = import.meta.env.DEV
-  ? "/terp-api/corporate-clientid/list/"
-  : import.meta.env.VITE_TERP_CORPORATE_CLIENT_API_URL
+export const TERP_CORPORATE_CLIENT_ENDPOINT = viaProxy(
+  import.meta.env.VITE_TERP_CORPORATE_CLIENT_API_URL || `${TERP_ORIGIN}/corporate-clientid/list/`,
+  TERP_ORIGIN,
+  TERP_PROXY_PREFIX,
+)
 
 const CLIENT_ID_KEYS = ["client_id", "clientId", "clientID", "client"]
 const LICENSE_KEY_KEYS = ["license_key", "licence_key", "licenseKey", "licenceKey", "licence", "license"]

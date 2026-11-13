@@ -1,20 +1,23 @@
 // src/api/financialYear.js
 // Central Master's financial-year register. It drives the Country dropdown on
 // the T-ERP signup form and stores which country's financial year applies to a
-// client. Central Master sends no CORS headers, so development goes through the
-// '/central-api' proxy declared in vite.config.js.
+// client. Central Master sends no CORS headers and answers a preflight without
+// Access-Control-Allow-Origin, so every call goes through the same-origin
+// '/central-api' prefix (Vite proxy locally, nginx in production).
 
-const CENTRAL_MASTER_ORIGIN = "https://centralmastermanagement.imcbs.com"
+import { CENTRAL_ORIGIN, CENTRAL_PROXY_PREFIX, viaProxy } from "./proxy"
 
-const COUNTRY_ENDPOINT = import.meta.env.DEV
-  ? "/central-api/api/financial-year/country-wise/"
-  : import.meta.env.VITE_FINANCIAL_YEAR_COUNTRY_API_URL ||
-    `${CENTRAL_MASTER_ORIGIN}/api/financial-year/country-wise/`
+const COUNTRY_ENDPOINT = viaProxy(
+  import.meta.env.VITE_FINANCIAL_YEAR_COUNTRY_API_URL || `${CENTRAL_ORIGIN}/api/financial-year/country-wise/`,
+  CENTRAL_ORIGIN,
+  CENTRAL_PROXY_PREFIX,
+)
 
-const CUSTOMER_ENDPOINT = import.meta.env.DEV
-  ? "/central-api/api/financial-year/customer-wise/"
-  : import.meta.env.VITE_FINANCIAL_YEAR_CUSTOMER_API_URL ||
-    `${CENTRAL_MASTER_ORIGIN}/api/financial-year/customer-wise/`
+const CUSTOMER_ENDPOINT = viaProxy(
+  import.meta.env.VITE_FINANCIAL_YEAR_CUSTOMER_API_URL || `${CENTRAL_ORIGIN}/api/financial-year/customer-wise/`,
+  CENTRAL_ORIGIN,
+  CENTRAL_PROXY_PREFIX,
+)
 
 async function readFailure(response, fallback) {
   const rawBody = await response.text().catch(() => "")
