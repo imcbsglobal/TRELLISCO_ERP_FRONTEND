@@ -220,6 +220,17 @@ export async function findClientWorkspace(email, onProjects) {
   }
 }
 
+// A 2xx alone never proves a license exists: the endpoint can answer with an
+// empty body, a non-JSON body or {"success": false}, and trusting those left the
+// signup reporting "license created" for a license that was never written (and
+// then failing at the account step with "Unknown client_id"). Only a body that
+// actually names the license / client is accepted as a created license.
+export function isLicensePayload(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false
+  if (payload.success === false) return false
+  return Boolean(extractLicenseKey(payload) || extractClientId(payload))
+}
+
 // Creates the license and returns the raw JSON body so the caller can pick the
 // client id / license key out of it.
 export async function createTerpLicense({ company, corporate, projects }) {
@@ -243,14 +254,31 @@ export async function createTerpLicense({ company, corporate, projects }) {
   if (!response.ok) await throwApiError(response, "License creation failed")
   assertJson(response, "License creation failed")
 
-  // Some deployments answer 201 with an empty body — never let that throw.
   const rawBody = await response.text()
-  if (!rawBody.trim()) return {}
-  try {
-    return JSON.parse(rawBody)
-  } catch {
-    return { raw: rawBody }
+  let payload = {}
+  if (rawBody.trim()) {
+    try {
+      payload = JSON.parse(rawBody)
+    } catch {
+      payload = { raw: rawBody }
+    }
   }
+
+  // The endpoint also reports refusals inside a 2xx body.
+  if (payload && typeof payload === "object" && payload.success === false) {
+    const reason = payload.error || payload.message || payload.detail || "T-ERP rejected the license request."
+    throw new Error(`License creation failed — ${reason}`)
+  }
+
+  if (!isLicensePayload(payload)) {
+    const detail = rawBody.trim() ? rawBody.trim().slice(0, 300) : "the response body was empty"
+    throw new Error(
+      `License creation failed: T-ERP answered HTTP ${response.status} but returned no license key and no client id, ` +
+        `so no license was recorded — ${detail}`,
+    )
+  }
+
+  return payload
 }
 
 function deepFindValue(payload, keys, depth = 0) {

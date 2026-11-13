@@ -10,6 +10,7 @@ import {
   fetchTerpProjects,
   findClientWorkspace,
   getNetworkError,
+  isLicensePayload,
   prefetchTerpRegisters,
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
@@ -49,7 +50,12 @@ const LICENSE_CACHE_PREFIX = "terp-license:"
 function readCachedLicense(email) {
   try {
     const raw = window.sessionStorage.getItem(LICENSE_CACHE_PREFIX + String(email).toLowerCase())
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    const cached = JSON.parse(raw)
+    // Only a license that names its key / client id is real. Anything else (an
+    // empty 2xx body cached by an earlier attempt) would otherwise keep
+    // reporting "license created" for a license T-ERP never wrote.
+    return isLicensePayload(cached) ? cached : null
   } catch {
     return null
   }
