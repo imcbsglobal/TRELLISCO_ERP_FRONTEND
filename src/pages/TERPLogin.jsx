@@ -10,6 +10,7 @@ import {
   fetchTerpProjects,
   findClientWorkspace,
   getNetworkError,
+  isLicenseLive,
   isLicensePayload,
   prefetchTerpRegisters,
 } from "../api/terpLicense"
@@ -105,6 +106,9 @@ export default function TERPLogin() {
   const navigate = useNavigate()
   const googleButtonRef = useRef(null)
   const licenseRef = useRef(null)
+  // True when licenseRef holds a license this page just created, not one restored
+  // from sessionStorage: only the latter has to be checked against T-ERP again.
+  const createdHereRef = useRef(false)
   const [googleUser, setGoogleUser] = useState(null)
   const [setupStep, setSetupStep] = useState(1)
   const [projects, setProjects] = useState([])
@@ -429,6 +433,7 @@ export default function TERPLogin() {
     setModalOpen(false)
     // A new submission must build a new license instead of reusing this one.
     licenseRef.current = null
+    createdHereRef.current = false
     if (credentials?.email) dropCachedLicense(credentials.email)
   }
 
@@ -512,12 +517,35 @@ export default function TERPLogin() {
         )
       }
 
-      // Reuse a license that was already created if only the account step failed.
-      const license = licenseRef.current || readCachedLicense(email) || await createTerpLicense({
-        corporate: { name: company.corporateName, place: company.place },
-        company,
-        projects: selectedProjects.map(({ project, package: packageName }) => ({ project, package: packageName })),
-      })
+      // A license created during this page session is reused as-is, so a failed
+      // account step never posts a duplicate license. One restored from an
+      // earlier attempt is reused only while T-ERP still knows the client: when
+      // the signup was wiped in T-ERP (license, client and user deleted) the
+      // cached license is dead and the signup must start over like a first one.
+      let license = createdHereRef.current ? licenseRef.current : null
+      if (!license) {
+        const cached = licenseRef.current || readCachedLicense(email)
+        // A failed lookup keeps the cached license: dropping a live one would
+        // cost a duplicate-license error on the next POST.
+        const stillLive = cached
+          ? await isLicenseLive({
+            email,
+            corporateName: company.corporateName,
+            companyName: company.name,
+          }).catch(() => true)
+          : false
+
+        if (cached && stillLive) {
+          license = cached
+        } else {
+          license = await createTerpLicense({
+            corporate: { name: company.corporateName, place: company.place },
+            company,
+            projects: selectedProjects.map(({ project, package: packageName }) => ({ project, package: packageName })),
+          })
+          createdHereRef.current = true
+        }
+      }
       licenseRef.current = license
       cacheLicense(email, license)
 

@@ -303,3 +303,43 @@ export function extractClientId(payload) {
 export function extractLicenseKey(payload) {
   return deepFindValue(payload, LICENSE_KEY_KEYS)
 }
+
+// Names are compared without case, spacing or punctuation, exactly like the
+// project cards are matched elsewhere in the signup.
+const labelKey = (value) => String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()
+
+/**
+ * True while T-ERP still holds a client for this signup.
+ *
+ * A license cached in the tab is only reusable while that client exists. Once the
+ * signup is wiped in T-ERP (license, client and user deleted), reusing the cached
+ * license skips license creation entirely and the account step can only fail with
+ * "Unknown client_id" — the signup has to start over like a first one.
+ *
+ * The registers are re-read because the cached license may be older than the copy
+ * loaded when the page opened.
+ */
+export async function isLicenseLive({ email = "", corporateName = "", companyName = "" } = {}) {
+  const wantedEmail = String(email || "").trim().toLowerCase()
+  const wantedCorporate = labelKey(corporateName)
+  const wantedCompany = labelKey(companyName)
+  if (!wantedEmail && !wantedCorporate && !wantedCompany) return false
+
+  clientDirectoryCache = null
+  licenseRegisterCache = null
+  const [clients, corporates] = await Promise.all([loadClientDirectory(), loadLicenseRegister()])
+
+  const sameEmail = (value) => wantedEmail !== "" && String(value || "").trim().toLowerCase() === wantedEmail
+
+  if (clients.some((client) => sameEmail(client?.client_id))) return true
+
+  for (const corporate of corporates) {
+    if (wantedCorporate && labelKey(corporate?.corporate_name) === wantedCorporate) return true
+    for (const shop of corporate?.shops || []) {
+      if (sameEmail(shop?.client_id)) return true
+      if (wantedCompany && labelKey(shop?.shop_name) === wantedCompany) return true
+    }
+  }
+
+  return false
+}
