@@ -1,1 +1,0 @@
-React application bootstrap that mounts the root component, declares all public and admin routes with auth guards, and provides global CSS design tokens.

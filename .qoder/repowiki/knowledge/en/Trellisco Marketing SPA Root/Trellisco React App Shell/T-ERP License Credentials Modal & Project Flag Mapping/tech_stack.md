@@ -1,0 +1,1 @@
+React functional components with hooks (`useState`, `useEffect`, `useMemo`, `useCallback`); SCSS with BEM naming convention scoped under the `terp-credentials` namespace.

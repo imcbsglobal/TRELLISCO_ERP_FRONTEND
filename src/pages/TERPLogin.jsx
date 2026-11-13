@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import mascotImage from "../assets/ChatGPT Image Sep 25, 2026, 01_38_19 PM.png"
 import CredentialsModal from "../components/CredentialsModal"
 import {
@@ -11,6 +12,7 @@ import {
   getNetworkError,
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
+import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
 import {
   buildCredentialsMessage,
   buildCredentialsSubject,
@@ -22,7 +24,7 @@ import "./TERPLogin.scss"
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client"
 const DEFAULT_PACKAGES = ["Basic", "Standard", "Platinum", "Enterprise"]
-const INITIAL_COMPANY = { corporateName: "", name: "", contactName: "", place: "", email: "", contact_no: "", country: "India" }
+const INITIAL_COMPANY = { corporateName: "", name: "", place: "", email: "", contact_no: "", country: "" }
 
 // Project names arrive from two different services, so they are compared without
 // case, spacing or punctuation ("Melone Stay" vs "melone  stay").
@@ -82,11 +84,16 @@ function loadGoogleScript() {
 }
 
 export default function TERPLogin() {
+  const navigate = useNavigate()
   const googleButtonRef = useRef(null)
   const licenseRef = useRef(null)
   const [googleUser, setGoogleUser] = useState(null)
   const [setupStep, setSetupStep] = useState(1)
   const [projects, setProjects] = useState([])
+  // Countries come from Central Master's financial-year register; the select is
+  // disabled until they arrive so nothing invalid can be picked.
+  const [countries, setCountries] = useState([])
+  const [loadingCountries, setLoadingCountries] = useState(true)
   const [selectedProjects, setSelectedProjects] = useState([])
   // Projects the operator picked without a package; they are highlighted and
   // scrolled to so the missing select cannot hide below the fold.
@@ -94,6 +101,9 @@ export default function TERPLogin() {
   const projectCardRefs = useRef(new Map())
   // Filled in when the signed-in Gmail already exists in the T-ERP client list.
   const [workspace, setWorkspace] = useState(null)
+  // Country already stored in the financial-year register for this Gmail id. It
+  // decided the books that exist, so the form shows it but cannot change it.
+  const [registeredCountry, setRegisteredCountry] = useState("")
   const [company, setCompany] = useState(INITIAL_COMPANY)
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -121,6 +131,27 @@ export default function TERPLogin() {
 
   useEffect(() => {
     let cancelled = false
+    fetchFinancialYearCountries()
+      .then((items) => {
+        if (cancelled) return
+        setCountries(items)
+        // India stays the default because that is where the licence is sold;
+        // any country list without it simply starts on its first entry.
+        setCompany((current) => current.country
+          ? current
+          : { ...current, country: items.some((item) => item.name === "INDIA") ? "INDIA" : items[0]?.name || "" })
+      })
+      .catch((fetchError) => {
+        if (!cancelled) setError(getNetworkError(fetchError, "the country list API"))
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCountries(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
     loadGoogleScript()
       .then(() => {
         if (cancelled || !googleButtonRef.current || !import.meta.env.VITE_GOOGLE_CLIENT_ID) return
@@ -132,7 +163,7 @@ export default function TERPLogin() {
             const [, payload] = response.credential.split(".")
             const profile = JSON.parse(window.atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
             setGoogleUser({ name: profile.name, email: profile.email, picture: profile.picture, credential: response.credential })
-            setCompany((current) => ({ ...current, email: current.email || profile.email, contactName: current.contactName || profile.name || "" }))
+            setCompany((current) => ({ ...current, email: profile.email }))
             setError("")
           },
         })
@@ -141,6 +172,29 @@ export default function TERPLogin() {
       .catch(() => setError("Google Sign-In could not be loaded. Check your connection and try again."))
     return () => { cancelled = true }
   }, [])
+
+  // A client whose financial year is already on file keeps the country that
+  // decided those books: it is shown, locked, and never rewritten here.
+  useEffect(() => {
+    const candidate = String(googleUser?.email || "").trim()
+    if (!candidate.includes("@")) return undefined
+    let cancelled = false
+
+    findClientFinancialYears(candidate)
+      .then((rows) => {
+        if (cancelled || !rows.length) return
+        const stored = String(rows[0]?.country_name || "").trim().toUpperCase()
+        if (!stored) return
+        setRegisteredCountry(stored)
+        setCompany((current) => ({ ...current, country: stored }))
+      })
+      .catch(() => {
+        // The register is a convenience here: a failed lookup leaves the
+        // dropdown usable instead of blocking the signup.
+      })
+
+    return () => { cancelled = true }
+  }, [googleUser])
 
   // A returning customer is recognised by the Gmail used to sign in and by the
   // company email typed on the form, because either can be the client id in T-ERP:
@@ -161,11 +215,8 @@ export default function TERPLogin() {
             name: current.name || found.companyName,
             corporateName: current.corporateName || found.corporateName || found.companyName,
             place: current.place || found.place,
-            email: current.email || found.clientId,
           }
-          return filled.name === current.name && filled.place === current.place && filled.email === current.email
-            ? current
-            : filled
+          return filled.name === current.name && filled.place === current.place ? current : filled
         })
       } catch {
         // Recognition is a convenience: a brand new signup must still go through.
@@ -289,6 +340,25 @@ export default function TERPLogin() {
     if (credentials?.email) dropCachedLicense(credentials.email)
   }
 
+  // "Done" ends the signup rather than only dismissing the dialog, so the
+  // operator lands back on the home page instead of an empty wizard.
+  const finishSetup = () => {
+    closeModal()
+    navigate("/")
+  }
+
+  // The financial-year register is written once per client: when a row already
+  // exists the stored country stays untouched, because it already drives the
+  // client's books. A lookup or write failure is reported next to the
+  // credentials instead of hiding the login that was just created.
+  const registerClientCountry = async (clientId, countryName) => {
+    try {
+      return await ensureClientCountry({ clientId, countryName })
+    } catch (countryError) {
+      return { created: false, error: ` The country (${countryName}) could not be registered: ${countryError.message}` }
+    }
+  }
+
   const submit = async (event) => {
     event.preventDefault()
     setError("")
@@ -301,11 +371,14 @@ export default function TERPLogin() {
     }
     if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
     if (!company.corporateName.trim() || !company.name.trim() || !company.place.trim() || !company.email.trim() || !company.contact_no.trim()) return setError("Complete all company details to continue.")
+    if (!company.country.trim()) return setError("Select the country the license applies to.")
     if (company.contact_no.length !== 10) return setError("Enter a valid 10-digit contact number, for example 1234567890.")
 
     setSubmitting(true)
     try {
-      const email = company.email.trim()
+      // The company email is the Google address the client signed in with, so
+      // the client id always matches the login they authenticated with.
+      const email = (googleUser?.email || company.email).trim()
       const phoneNumber = company.contact_no.replace(/\D/g, "")
 
       // One client id = one login. Central Master's user list is the only place
@@ -366,19 +439,28 @@ export default function TERPLogin() {
 
         licenseRef.current = null
         dropCachedLicense(email)
+
+        // A returning customer only came back for a new product: if their country
+        // is already on file it is left exactly as it is, and it is only added
+        // for a legacy client that has no financial year yet.
+        const country = await registerClientCountry(clientId, company.country)
+
         setSelectedProjects([])
         setSetupStep(1)
         setSuccess(
           `Added ${addedProjects.join(", ")} to ${companyName}.` +
             (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
-            " Your existing T-ERP login still works — no new user and no new password were created.",
+            " Your existing T-ERP login still works — no new user and no new password were created." +
+            (country.error || ""),
         )
         // The new license is theirs now, so tick it without a page reload.
         findClientWorkspace(email).then((found) => { if (found) setWorkspace(found) }).catch(() => {})
         return
       }
 
-      const { firstName, lastName } = splitContactName(company.contactName, companyName)
+      // The admin account is named after the Google identity the client signed
+      // in with; there is no separate contact-person field on the form.
+      const { firstName, lastName } = splitContactName(googleUser?.name, companyName)
 
       const account = await createClientAdmin({
         clientId,
@@ -387,7 +469,17 @@ export default function TERPLogin() {
         email,
         phoneNumber,
         selectedProjects,
+        // The username is the Gmail handle the client signed in with
+        // ("sajiththomas231@gmail.com" -> "sajiththomas231"), not the company
+        // email that doubles as the client id.
+        usernameEmail: googleUser?.email || email,
       })
+
+      // The country decides which financial year the client's books follow, so
+      // it is registered against the same Gmail client id right after the login
+      // exists — but never over an existing registration.
+      const country = await registerClientCountry(clientId, company.country)
+      const countryNote = country.error || ""
 
       const created = {
         clientId,
@@ -405,7 +497,7 @@ export default function TERPLogin() {
       const autoEmail = canAutoSendEmail()
       setDelivery({ whatsapp: { state: "pending" }, email: { state: autoEmail ? "pending" : "idle" } })
       setModalOpen(true)
-      setSuccess("T-ERP license created. The admin login is ready below.")
+      setSuccess(`T-ERP license created. The admin login is ready below.${countryNote}`)
 
       deliverWhatsApp(created)
       if (autoEmail) deliverEmail(created)
@@ -480,7 +572,7 @@ export default function TERPLogin() {
           ) : (
           <div className="terp-login__company-block">
               <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license and the admin login we send you.</p></div>
-              <div className="terp-login__fields"><label>Company name<input value={company.name} onChange={updateCompany("name")} placeholder="ABC Company" /></label><label>Corporate / group name<input value={company.corporateName} onChange={updateCompany("corporateName")} placeholder="ABC Corporate" /></label><label>Contact person<input value={company.contactName} onChange={updateCompany("contactName")} placeholder="John Doe" /></label><label>Place<input value={company.place} onChange={updateCompany("place")} placeholder="Kochi" /></label><label>Country<input value={company.country} onChange={updateCompany("country")} placeholder="India" /></label><label>Email<input type="email" value={company.email} onChange={updateCompany("email")} placeholder="you@company.com" /></label><label>Contact number<input type="tel" inputMode="numeric" autoComplete="tel" value={company.contact_no} onChange={(event) => setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))} placeholder="1234567890" maxLength="10" pattern="[0-9]{10}" /></label></div>
+              <div className="terp-login__fields"><label>Company name<input value={company.name} onChange={updateCompany("name")} placeholder="ABC Company" /></label><label>Corporate / group name<input value={company.corporateName} onChange={updateCompany("corporateName")} placeholder="ABC Corporate" /></label><label>Place<input value={company.place} onChange={updateCompany("place")} placeholder="Kochi" /></label><label>Country{registeredCountry ? <input value={registeredCountry} readOnly aria-readonly="true" title="Your financial year is already on file for this country" /> : <select value={company.country} onChange={updateCompany("country")} disabled={loadingCountries} aria-describedby="terp-login-country-hint"><option value="">{loadingCountries ? "Loading countries…" : "Choose country"}</option>{countries.map((item) => <option key={item.code || item.name} value={item.name}>{item.name}{item.currency ? ` — ${item.currency}` : ""}</option>)}</select>}<span className="terp-login__hint" id="terp-login-country-hint">{registeredCountry ? "Already on file — cannot be changed." : "Sets the financial year of your books."}</span></label><label>Email<input type="email" value={googleUser?.email || ""} readOnly aria-readonly="true" title="This is the address you signed in with" /></label><label>Contact number<input type="tel" inputMode="numeric" autoComplete="tel" value={company.contact_no} onChange={(event) => setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))} placeholder="1234567890" maxLength="10" pattern="[0-9]{10}" /></label></div>
               <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create T-ERP license"}</button></div>
             </div>
           )}
@@ -494,6 +586,7 @@ export default function TERPLogin() {
         whatsapp={delivery.whatsapp}
         email={delivery.email}
         onClose={closeModal}
+        onDone={finishSetup}
         onRetryWhatsApp={retryWhatsApp}
         onRetryEmail={retryEmail}
         retryingWhatsApp={retrying.whatsapp}

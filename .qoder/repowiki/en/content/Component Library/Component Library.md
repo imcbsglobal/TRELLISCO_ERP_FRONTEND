@@ -8,13 +8,25 @@
 - [FallingText.css](file://src/components/FallingText.css)
 - [GlowCursor.jsx](file://src/components/GlowCursor.jsx)
 - [GlowCursor.css](file://src/components/GlowCursor.css)
+- [CredentialsModal.jsx](file://src/components/CredentialsModal.jsx)
+- [CredentialsModal.scss](file://src/components/CredentialsModal.scss)
 - [Nav.jsx](file://src/components/Nav.jsx)
 - [Nav.scss](file://src/components/Nav.scss)
 - [Footer.jsx](file://src/components/Footer.jsx)
 - [Footer.scss](file://src/components/Footer.scss)
 - [Sidebar.jsx](file://src/components/Sidebar.jsx)
 - [sidebar.scss](file://src/components/sidebar.scss)
+- [notifications.js](file://src/api/notifications.js)
+- [TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added new CredentialsModal component documentation for displaying created credentials and managing delivery status
+- Updated core components table to include CredentialsModal
+- Added detailed section covering CredentialsModal functionality, props, and integration patterns
+- Enhanced dependency analysis to include notifications API integration
+- Updated troubleshooting guide with CredentialsModal-specific issues
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -33,6 +45,7 @@ This document describes the reusable component library used by the frontend appl
 
 - Floating chatbot with a local knowledge base, contact link rendering, and quick-reply flows.
 - Physics-based animation components: falling text using a 2D physics engine and a GPU-accelerated glow cursor trail.
+- **New**: Credentials modal for displaying created credentials and managing delivery status across WhatsApp and email channels.
 - Navigation system with product mega menu, mobile drawer, and announcement banner.
 - Footer with branding, links, address blocks, call-to-action, and legal area.
 - Admin sidebar with navigation, logout confirmation modal, and responsive layout.
@@ -52,6 +65,7 @@ subgraph "Components"
 Chat["FloatingChatbot.jsx<br/>FloatingChatbot.scss"]
 Fall["FallingText.jsx<br/>FallingText.css"]
 Glow["GlowCursor.jsx<br/>GlowCursor.css"]
+Cred["CredentialsModal.jsx<br/>CredentialsModal.scss"]
 Nav["Nav.jsx<br/>Nav.scss"]
 Foot["Footer.jsx<br/>Footer.scss"]
 Side["Sidebar.jsx<br/>sidebar.scss"]
@@ -59,6 +73,7 @@ end
 Chat --> |"uses"| Assets["Brand and assistant images"]
 Fall --> |"physics engine"| Matter["matter-js"]
 Glow --> |"GPU shaders"| OGL["ogl"]
+Cred --> |"delivery management"| Notif["notifications.js"]
 Nav --> |"product data"| Products["Product and group arrays"]
 Side --> |"routing"| Router["react-router-dom"]
 ```
@@ -67,14 +82,17 @@ Side --> |"routing"| Router["react-router-dom"]
 - [FloatingChatbot.jsx:1-370](file://src/components/FloatingChatbot.jsx#L1-L370)
 - [FallingText.jsx:1-219](file://src/components/FallingText.jsx#L1-L219)
 - [GlowCursor.jsx:1-352](file://src/components/GlowCursor.jsx#L1-L352)
+- [CredentialsModal.jsx:1-227](file://src/components/CredentialsModal.jsx#L1-L227)
 - [Nav.jsx:1-800](file://src/components/Nav.jsx#L1-L800)
 - [Footer.jsx:1-295](file://src/components/Footer.jsx#L1-L295)
 - [Sidebar.jsx:1-239](file://src/components/Sidebar.jsx#L1-L239)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 
 **Section sources**
 - [FloatingChatbot.jsx:1-370](file://src/components/FloatingChatbot.jsx#L1-L370)
 - [FallingText.jsx:1-219](file://src/components/FallingText.jsx#L1-L219)
 - [GlowCursor.jsx:1-352](file://src/components/GlowCursor.jsx#L1-L352)
+- [CredentialsModal.jsx:1-227](file://src/components/CredentialsModal.jsx#L1-L227)
 - [Nav.jsx:1-800](file://src/components/Nav.jsx#L1-L800)
 - [Footer.jsx:1-295](file://src/components/Footer.jsx#L1-L295)
 - [Sidebar.jsx:1-239](file://src/components/Sidebar.jsx#L1-L239)
@@ -87,6 +105,7 @@ This section summarizes the main responsibilities of each component and how they
 | FloatingChatbot | In-page assistant with local knowledge base and contact integration | Toggles panel, renders messages, matches keywords, shows quick replies, auto-scrolls, hides when hero banner is visible | SCSS with BEM-like classes, animations for floating button, typing dots, and panel entrance |
 | FallingText | Physics-driven falling word effect | Splits text into words, creates physics bodies, animates positions, supports trigger modes, disables on touch devices | CSS for container, static fallback, and highlighted words |
 | GlowCursor | GPU-accelerated glowing cursor trail | Tracks pointer, updates shader uniforms, fades on idle, respects device pixel ratio | CSS overlay canvas with blend mode; heavy visual logic in GLSL shaders |
+| **CredentialsModal** | **Modal for displaying created credentials and managing delivery status** | **Shows login details, tracks WhatsApp/email delivery states, provides retry functionality, generates mailto links** | **SCSS with BEM-like classes, modal overlay, delivery status indicators, and responsive layout** |
 | Nav | Top navigation with mega menu, mobile drawer, and announcement banner | Renders products grouped by brand, handles hover/click states, supports mobile drawer and focus management | SCSS variables, mixins, media queries, and structured class hierarchy |
 | Footer | Site footer with branding, links, addresses, CTA, and legal links | Static content configuration, social icons, responsive grid layout | SCSS with gradient backgrounds, responsive grids, and accessible labels |
 | Sidebar | Admin dashboard navigation with logout flow | Uses router links, active state from URL, portal-based logout modal | SCSS with sticky layout, dark theme, and responsive breakpoints |
@@ -95,6 +114,7 @@ This section summarizes the main responsibilities of each component and how they
 - [FloatingChatbot.jsx:184-370](file://src/components/FloatingChatbot.jsx#L184-L370)
 - [FallingText.jsx:5-219](file://src/components/FallingText.jsx#L5-L219)
 - [GlowCursor.jsx:127-352](file://src/components/GlowCursor.jsx#L127-L352)
+- [CredentialsModal.jsx:43-227](file://src/components/CredentialsModal.jsx#L43-L227)
 - [Nav.jsx:21-618](file://src/components/Nav.jsx#L21-L618)
 - [Footer.jsx:5-295](file://src/components/Footer.jsx#L5-L295)
 - [Sidebar.jsx:9-239](file://src/components/Sidebar.jsx#L9-L239)
@@ -111,16 +131,19 @@ SidebarComp["Sidebar.jsx"]
 ChatComp["FloatingChatbot.jsx"]
 FallComp["FallingText.jsx"]
 GlowComp["GlowCursor.jsx"]
+CredComp["CredentialsModal.jsx"]
 Page --> NavComp
 Page --> FooterComp
 Page --> SidebarComp
 Page --> ChatComp
 Page --> FallComp
 Page --> GlowComp
+Page --> CredComp
 NavComp --> |"renders product data"| ProductData["Products and groups"]
 ChatComp --> |"local knowledge base"| KB["KB entries and follow-ups"]
 FallComp --> |"physics simulation"| Physics["Matter.js engine"]
 GlowComp --> |"shader pipeline"| Shaders["Vertex and fragment shaders"]
+CredComp --> |"delivery management"| DeliveryAPI["Notifications API"]
 ```
 
 **Diagram sources**
@@ -128,6 +151,8 @@ GlowComp --> |"shader pipeline"| Shaders["Vertex and fragment shaders"]
 - [FloatingChatbot.jsx:56-182](file://src/components/FloatingChatbot.jsx#L56-L182)
 - [FallingText.jsx:72-187](file://src/components/FallingText.jsx#L72-L187)
 - [GlowCursor.jsx:7-112](file://src/components/GlowCursor.jsx#L7-L112)
+- [CredentialsModal.jsx:43-227](file://src/components/CredentialsModal.jsx#L43-L227)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 
 ## Detailed Component Analysis
 
@@ -368,6 +393,144 @@ The fragment shader computes:
 - [GlowCursor.jsx:343-352](file://src/components/GlowCursor.jsx#L343-L352)
 - [GlowCursor.css:1-24](file://src/components/GlowCursor.css#L1-L24)
 
+### CredentialsModal
+**Updated** The credentials modal displays created T-ERP license credentials and manages delivery status across WhatsApp and email channels. It provides a secure interface for operators to review and share customer login details.
+
+#### Responsibilities
+- Display created credentials including username, password, client ID, projects, and contact information.
+- Track delivery status for WhatsApp and email channels with visual feedback.
+- Provide retry functionality for failed deliveries.
+- Generate mailto links for manual email sending.
+- Copy credentials to clipboard for manual sharing.
+- Manage modal lifecycle with keyboard navigation and accessibility features.
+
+#### Props
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `open` | `boolean` | - | Controls modal visibility. |
+| `credentials` | `object` | - | Credential data including username, password, clientId, projects, email, phone, companyName, licenseKey. |
+| `whatsapp` | `object` | - | WhatsApp delivery status with `state` and `message` properties. |
+| `email` | `object` | - | Email delivery status with `state` and `message` properties. |
+| `onClose` | `function` | - | Callback when modal is closed. |
+| `onRetryWhatsApp` | `function` | - | Retry function for WhatsApp delivery. |
+| `onRetryEmail` | `function` | - | Retry function for email delivery. |
+| `retryingWhatsApp` | `boolean` | `false` | Indicates WhatsApp retry in progress. |
+| `retryingEmail` | `boolean` | `false` | Indicates email retry in progress. |
+
+#### Delivery Status Management
+The component manages delivery states for both WhatsApp and email channels:
+
+| Status | Meaning | Visual Indicator |
+|---|---|---|
+| `pending` | Delivery attempt in progress | Blue border and background |
+| `sent` | Successfully delivered | Green border and background |
+| `failed` | Delivery attempt failed | Red border and background |
+| `skipped` | Delivery was skipped | Gray border and background |
+| `idle` | No delivery attempt made | Gray border and background |
+
+```mermaid
+flowchart TD
+Open["Modal opens"] --> Display["Display credentials"]
+Display --> CheckDelivery{"Check delivery status"}
+CheckDelivery --> WhatsApp{"WhatsApp status?"}
+CheckDelivery --> Email{"Email status?"}
+WhatsApp --> Pending{"Pending?"}
+WhatsApp --> Sent{"Sent?"}
+WhatsApp --> Failed{"Failed?"}
+WhatsApp --> Idle{"Idle?"}
+Email --> Pending
+Email --> Sent
+Email --> Failed
+Email --> Idle
+Pending --> ShowStatus["Show 'Sending...' status"]
+Sent --> ShowSuccess["Show 'Delivered' status"]
+Failed --> ShowError["Show error message and retry option"]
+Idle --> ShowAction["Show retry or send action"]
+```
+
+**Diagram sources**
+- [CredentialsModal.jsx:5-18](file://src/components/CredentialsModal.jsx#L5-L18)
+- [CredentialsModal.jsx:182-203](file://src/components/CredentialsModal.jsx#L182-L203)
+
+#### Credential Display Features
+- **Highlighted fields**: Username and password are displayed with monospace font and blue highlighting for easy copying.
+- **Project chips**: Assigned projects are shown as interactive chips with proper formatting.
+- **Contact information**: Email and phone numbers are displayed with appropriate placeholders for missing data.
+- **License key**: Optional license key display when available.
+
+#### Clipboard Integration
+The component provides secure clipboard functionality:
+
+- Copies formatted credential text including all relevant account information.
+- Shows temporary "Copied" feedback for 2.5 seconds.
+- Handles clipboard API errors gracefully.
+- Formats output with clear labels and organization.
+
+#### Mail Integration
+For email channel, the component generates mailto links with:
+
+- Pre-filled subject line including company name context.
+- Complete message body with all credential details.
+- Automatic CC to team mailbox when configured.
+- Fallback option to open in native mail application.
+
+#### Accessibility Features
+- Modal dialog with proper ARIA attributes (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`).
+- Keyboard navigation support (Escape key to close).
+- Focus management and screen reader compatibility.
+- Semantic HTML structure with proper heading hierarchy.
+- Descriptive labels for all interactive elements.
+
+#### Styling and Customization
+The component uses SCSS with BEM-like naming conventions:
+
+- **Modal overlay**: Fixed positioning with backdrop blur and fade animation.
+- **Card layout**: Responsive card with rounded corners and shadow effects.
+- **Delivery indicators**: Color-coded status borders and backgrounds.
+- **Typography**: Hierarchical text sizing with uppercase labels for metadata.
+- **Interactive elements**: Styled buttons with hover states and disabled states.
+- **Responsive design**: Mobile-first approach with breakpoint adjustments.
+
+Key customization points include:
+
+- Modal overlay colors and backdrop blur intensity.
+- Card dimensions, border radius, and shadow effects.
+- Delivery status color schemes (success, error, pending, idle).
+- Typography scales and spacing values.
+- Button styles and hover effects.
+- Animation timing and easing functions.
+
+#### Lifecycle Behavior
+- **Opening**: Sets body overflow to hidden, adds keyboard event listener.
+- **Closing**: Clears clipboard state, removes event listeners, restores body overflow.
+- **Rendering**: Conditional rendering based on `open` prop and credentials availability.
+- **Cleanup**: Proper event listener removal and state cleanup on unmount.
+
+#### Integration Pattern
+The component is designed to be integrated with parent components that manage delivery state:
+
+```mermaid
+sequenceDiagram
+participant Parent as "Parent Component"
+participant Modal as "CredentialsModal"
+participant API as "Delivery API"
+Parent->>Modal : "open={true}, credentials={...}"
+Modal->>Modal : "Display credentials"
+Parent->>API : "sendWhatsApp/sendEmail"
+API-->>Parent : "delivery status update"
+Parent->>Modal : "update whatsapp/email props"
+Modal->>Modal : "render status indicators"
+```
+
+**Diagram sources**
+- [TERPLogin.jsx:491-501](file://src/pages/TERPLogin.jsx#L491-L501)
+- [CredentialsModal.jsx:43-53](file://src/components/CredentialsModal.jsx#L43-L53)
+
+**Section sources**
+- [CredentialsModal.jsx:1-227](file://src/components/CredentialsModal.jsx#L1-L227)
+- [CredentialsModal.scss:1-335](file://src/components/CredentialsModal.scss#L1-L335)
+- [TERPLogin.jsx:491-501](file://src/pages/TERPLogin.jsx#L491-L501)
+
 ### Navigation System
 The navigation component provides:
 
@@ -517,6 +680,7 @@ The components depend on different layers of the stack:
 | FloatingChatbot | None beyond React and assets | Local knowledge base, contact regex, SCSS |
 | FallingText | `matter-js` | CSS layout and highlight classes |
 | GlowCursor | `ogl` | Vertex and fragment shaders, CSS overlay |
+| **CredentialsModal** | **None beyond React** | **Notifications API, SCSS, clipboard API** |
 | Nav | `react-router-dom` | Product and group data, SCSS |
 | Footer | None beyond React and assets | Static content arrays, SCSS |
 | Sidebar | `react-router-dom`, auth API | Icons, SCSS, portal modal |
@@ -526,11 +690,13 @@ graph LR
 React["React"] --> Chat["FloatingChatbot"]
 React --> Fall["FallingText"]
 React --> Glow["GlowCursor"]
+React --> Cred["CredentialsModal"]
 React --> Nav["Nav"]
 React --> Foot["Footer"]
 React --> Side["Sidebar"]
 Matter["matter-js"] --> Fall
 OGL["ogl"] --> Glow
+Notif["notifications.js"] --> Cred
 Router["react-router-dom"] --> Nav
 Router --> Side
 AuthAPI["auth API"] --> Side
@@ -539,24 +705,27 @@ AuthAPI["auth API"] --> Side
 **Diagram sources**
 - [FallingText.jsx:1-3](file://src/components/FallingText.jsx#L1-L3)
 - [GlowCursor.jsx:1-3](file://src/components/GlowCursor.jsx#L1-L3)
+- [CredentialsModal.jsx:1-3](file://src/components/CredentialsModal.jsx#L1-L3)
 - [Nav.jsx:1-2](file://src/components/Nav.jsx#L1-L2)
 - [Sidebar.jsx:1-7](file://src/components/Sidebar.jsx#L1-L7)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 
 **Section sources**
 - [FallingText.jsx:1-3](file://src/components/FallingText.jsx#L1-L3)
 - [GlowCursor.jsx:1-3](file://src/components/GlowCursor.jsx#L1-L3)
+- [CredentialsModal.jsx:1-3](file://src/components/CredentialsModal.jsx#L1-L3)
 - [Nav.jsx:1-2](file://src/components/Nav.jsx#L1-L2)
 - [Sidebar.jsx:1-7](file://src/components/Sidebar.jsx#L1-L7)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 
 ## Performance Considerations
 - **FloatingChatbot**: Avoids heavy computation; most work is string splitting and simple state updates. Ensure the hero banner selector exists if you want the launcher to hide correctly.
 - **FallingText**: Physics simulation runs per frame. It is disabled on touch devices to prevent scroll interference and reduce overhead. Keep `trailLength` reasonable if you reuse similar physics patterns elsewhere.
 - **GlowCursor**: Uses GPU shaders and a continuous render loop. Limit device pixel ratio and avoid placing many instances on one page. Use `enabled` to disable when not needed.
+- **CredentialsModal**: Lightweight modal with minimal re-renders. Clipboard operations are async and non-blocking. Delivery status updates are controlled by parent component state.
 - **Nav**: Mega menu and product previews can be large. Keep product lists concise and avoid unnecessary re-renders by memoizing data where possible.
 - **Footer**: Mostly static content; low runtime cost.
 - **Sidebar**: Lightweight routing and state; modal is portaled to avoid layout clipping.
-
-[No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 
@@ -589,6 +758,21 @@ AuthAPI["auth API"] --> Side
 - [GlowCursor.jsx:127-176](file://src/components/GlowCursor.jsx#L127-L176)
 - [GlowCursor.jsx:178-341](file://src/components/GlowCursor.jsx#L178-L341)
 - [GlowCursor.jsx:343-352](file://src/components/GlowCursor.jsx#L343-L352)
+
+### CredentialsModal Issues
+**Updated** New troubleshooting section for the credentials modal component.
+
+- **Modal not opening**: Verify `open` prop is true and `credentials` object contains required data.
+- **Delivery status not updating**: Ensure parent component properly manages delivery state and passes updated props.
+- **Copy button not working**: Check browser clipboard API permissions and HTTPS requirements.
+- **Mailto link not generating**: Verify credentials contain valid email address.
+- **Keyboard navigation not working**: Ensure modal is properly mounted and event listeners are attached.
+- **Delivery retry not functioning**: Verify retry callback functions are properly passed and parent state management is correct.
+
+**Section sources**
+- [CredentialsModal.jsx:63-75](file://src/components/CredentialsModal.jsx#L63-L75)
+- [CredentialsModal.jsx:113-121](file://src/components/CredentialsModal.jsx#L113-L121)
+- [CredentialsModal.jsx:90-109](file://src/components/CredentialsModal.jsx#L90-L109)
 
 ### Navigation Issues
 - **Mega menu not opening**: Ensure the Products link has the mega flag and that hover/click handlers are wired.
@@ -623,6 +807,7 @@ This component library provides a cohesive set of UI building blocks:
 
 - The floating chatbot offers a lightweight, local-knowledge-base assistant with contact integration.
 - The falling text and glow cursor components deliver rich visual effects while respecting device capabilities.
+- **The credentials modal provides secure credential display and delivery management across multiple communication channels.**
 - The navigation system supports complex product discovery and mobile-friendly interactions.
 - The footer and sidebar provide stable structural components for site-wide and admin-area layouts.
 
@@ -633,8 +818,7 @@ When integrating these components, prioritize:
 - Responsive design patterns.
 - Performance-conscious defaults.
 - Consistent styling approaches.
-
-[No sources needed since this section summarizes without analyzing specific files]
+- **Proper state management for delivery tracking and modal lifecycle.**
 
 ## Appendices
 
@@ -645,6 +829,7 @@ When integrating these components, prioritize:
 | FloatingChatbot | No external props; internal state controls behavior. |
 | FallingText | `text`, `highlightWords`, `highlightClass`, `trigger`, `backgroundColor`, `wireframes`, `gravity`, `mouseConstraintStiffness`, `fontSize`, `className`. |
 | GlowCursor | `color`, `secondaryColor`, `trailLength`, `trailWidth`, `trailTaper`, `followSpeed`, `glowIntensity`, `glowSpread`, `hotspot`, `brightness`, `opacity`, `pulseSpeed`, `noiseStrength`, `idleFade`, `idleTimeout`, `fadeDuration`, `blendMode`, `maxDevicePixelRatio`, `enabled`, `children`, `className`, `style`. |
+| **CredentialsModal** | **`open`, `credentials`, `whatsapp`, `email`, `onClose`, `onRetryWhatsApp`, `onRetryEmail`, `retryingWhatsApp`, `retryingEmail`**. |
 | Nav | No direct component props documented here; behavior controlled by internal data arrays and router. |
 | Footer | No direct component props documented here; content defined internally. |
 | Sidebar | `eyebrow`. |
@@ -652,6 +837,7 @@ When integrating these components, prioritize:
 **Section sources**
 - [FallingText.jsx:5-16](file://src/components/FallingText.jsx#L5-L16)
 - [GlowCursor.jsx:127-151](file://src/components/GlowCursor.jsx#L127-L151)
+- [CredentialsModal.jsx:43-53](file://src/components/CredentialsModal.jsx#L43-L53)
 - [Sidebar.jsx:167-169](file://src/components/Sidebar.jsx#L167-L169)
 
 ### Styling Approaches
@@ -664,6 +850,7 @@ When integrating these components, prioritize:
 - [FloatingChatbot.scss:1-306](file://src/components/FloatingChatbot.scss#L1-L306)
 - [FallingText.css:1-48](file://src/components/FallingText.css#L1-L48)
 - [GlowCursor.css:1-24](file://src/components/GlowCursor.css#L1-L24)
+- [CredentialsModal.scss:1-335](file://src/components/CredentialsModal.scss#L1-L335)
 - [Nav.scss:1-800](file://src/components/Nav.scss#L1-L800)
 - [Footer.scss:1-390](file://src/components/Footer.scss#L1-L390)
 - [sidebar.scss:1-293](file://src/components/sidebar.scss#L1-L293)

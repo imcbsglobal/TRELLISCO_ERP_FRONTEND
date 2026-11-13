@@ -1,0 +1,1 @@
+Bootstraps the Trellisco frontend by mounting React, declaring all public and admin routes with auth guards, and providing global CSS design tokens consumed across pages.

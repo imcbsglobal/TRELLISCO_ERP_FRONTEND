@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: app_shell
-title: Application Shell & Route Entrypoint
+title: Trellisco React App Shell
 scope:
     - src/App.jsx
     - src/main.jsx

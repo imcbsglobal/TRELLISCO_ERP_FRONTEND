@@ -20,6 +20,9 @@ const PASSWORD_LOWER = "abcdefghijkmnpqrstuvwxyz"
 const PASSWORD_DIGITS = "23456789"
 const PASSWORD_SYMBOLS = "!@#$%&*"
 const USERNAME_LENGTH = 9
+// Keeps a handle well inside the shortest username limit any service enforces.
+const USERNAME_MAX_LENGTH = 30
+const USERNAME_EDGE_CHARS = /^[._-]+|[._-]+$/g
 
 export function randomFrom(alphabet, length) {
   const values = new Uint32Array(length)
@@ -31,12 +34,36 @@ export function randomFrom(alphabet, length) {
   return output
 }
 
-// Usernames carry no project or company name on purpose: a neutral handle such
-// as "m7q4tz9ka" does not advertise which product the client bought, and a fresh
-// one is drawn on every attempt so a collision can never repeat.
+// The login handle follows the address the client signed in with, so
+// "sajiththomas231@gmail.com" becomes "sajiththomas231": the operator and the
+// client both recognise the account without checking a spreadsheet. Only the
+// local part is kept — the whole domain is dropped, not just "@gmail.com", so a
+// company address produces a handle the same way.
+export function usernameFromEmail(email) {
+  const local = String(email || "").split("@")[0]
+  // A typed company address may carry capitals, and usernames are matched
+  // case-sensitively, so everything is folded to lower case first.
+  const cleaned = local.toLowerCase().replace(/[^a-z0-9._-]+/g, "").replace(USERNAME_EDGE_CHARS, "")
+  if (!cleaned) return ""
+  // A leading digit is legal for some validators and rejected by stricter ones,
+  // so the handle is anchored with a letter rather than refused.
+  const anchored = /^[a-z]/.test(cleaned) ? cleaned : `u${cleaned}`
+  return anchored.slice(0, USERNAME_MAX_LENGTH)
+}
+
+// Fallback for an address that yields no usable handle (for example a login
+// keyed by a phone-only contact). A fresh one is drawn on every attempt so a
+// collision can never repeat.
 export function generateUsername() {
   // Starts with a letter so stricter username validators never reject it.
   return randomFrom(USERNAME_LETTERS, 1) + randomFrom(USERNAME_ALPHABET, USERNAME_LENGTH - 1)
+}
+
+// "sajiththomas231" may already be taken, so the next attempts are numbered:
+// "sajiththomas2312", "sajiththomas2313", ... and the handle stays recognisable.
+export function numberedUsername(base, suffix) {
+  const room = USERNAME_MAX_LENGTH - String(suffix).length
+  return `${String(base).slice(0, room)}${suffix}`
 }
 
 export function generatePassword(length = 12) {
@@ -202,8 +229,9 @@ async function readFailure(response, fallback) {
 }
 
 /**
- * Creates the client admin. A fresh username is generated on every attempt so
- * one already taken for this client id is never reused.
+ * Creates the client admin. The username is derived from the address the client
+ * signed in with and numbered on collision, so one already taken for this
+ * client id is never reused.
  *
  * A client gets exactly one admin login: when the client id or the contact
  * details are already taken, nothing is created and no password is ever rotated
@@ -218,10 +246,14 @@ export async function createClientAdmin({
   phoneNumber,
   selectedProjects = [],
   attempts = 4,
+  // The Google address is what the client actually signs in with, so it wins
+  // over the company email used as the client id.
+  usernameEmail = "",
 }) {
   const flags = flagsForProjects(selectedProjects)
   const password = generatePassword()
-  let username = generateUsername()
+  const baseUsername = usernameFromEmail(usernameEmail || email)
+  let username = baseUsername || generateUsername()
   let lastFailure = null
 
   // A client is allowed exactly one admin login. Checking before the POST keeps
@@ -264,8 +296,9 @@ export async function createClientAdmin({
     lastFailure = failure
 
     if (isUsernameConflict(response.status, failure.rawBody)) {
-      // Username collided — draw an unrelated one.
-      username = generateUsername()
+      // Username collided — number the same handle so the login stays
+      // recognisable, and only draw an unrelated one when there is no handle.
+      username = baseUsername ? numberedUsername(baseUsername, attempt + 2) : generateUsername()
       continue
     }
 

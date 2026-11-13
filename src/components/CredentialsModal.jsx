@@ -46,6 +46,9 @@ export default function CredentialsModal({
   whatsapp,
   email,
   onClose,
+  // "Done" finishes the flow (the page decides where to go); every other way of
+  // closing the dialog — ×, Escape, backdrop — only dismisses it.
+  onDone,
   onRetryWhatsApp,
   onRetryEmail,
   retryingWhatsApp = false,
@@ -59,6 +62,11 @@ export default function CredentialsModal({
     setCopied(false)
     onClose?.()
   }, [onClose])
+
+  const handleDone = useCallback(() => {
+    setCopied(false)
+    ;(onDone || onClose)?.()
+  }, [onDone, onClose])
 
   useEffect(() => {
     if (!open) return undefined
@@ -218,7 +226,7 @@ export default function CredentialsModal({
           <button type="button" className="terp-credentials__copy" onClick={copy}>
             {copied ? "Copied" : "Copy credentials"}
           </button>
-          <button type="button" className="terp-credentials__done" onClick={handleClose}>Done</button>
+          <button type="button" className="terp-credentials__done" onClick={handleDone}>Done</button>
         </footer>
       </div>
     </div>

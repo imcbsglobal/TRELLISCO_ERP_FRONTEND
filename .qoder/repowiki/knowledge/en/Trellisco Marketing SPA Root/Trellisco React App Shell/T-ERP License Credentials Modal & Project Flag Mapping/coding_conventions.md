@@ -1,0 +1,3 @@
+- Component styles use BEM-style class names prefixed with `terp-credentials__*` (e.g. `terp-credentials__card`, `terp-credentials__delivery`, `terp-credentials__actions`).
+- Derived values such as the clipboard text and the `mailto:` URL are computed inside `useMemo` keyed on their input objects rather than recomputed on every render.
+- Project-to-flag mapping is centralized in lookup tables (`PROJECT_FLAG_BY_ENDPOINT`, `PROJECT_FLAG_BY_NAME`) with a single `flagsForProjects` reducer, instead of inline conditionals at call sites.

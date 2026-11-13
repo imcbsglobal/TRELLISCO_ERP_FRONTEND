@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-11-12T06:43:07Z"
+exported_at: "2026-11-12T12:22:54Z"
 modules:
     "":
-        dir_name: Trellisco Marketing Frontend (Vite + React)
-        title: Trellisco Marketing Frontend (Vite + React)
+        dir_name: Trellisco Marketing SPA Root
+        title: Trellisco Marketing SPA Root
         scope:
             - README.md
             - .gitignore
@@ -22,13 +22,26 @@ modules:
         depends_on: []
         related_to: []
     app_shell:
-        dir_name: Application Shell & Route Entrypoint
-        title: Application Shell & Route Entrypoint
+        dir_name: Trellisco React App Shell
+        title: Trellisco React App Shell
         scope:
             - src/App.jsx
             - src/main.jsx
             - src/index.css
             - src/App.css
+        source_files: []
+        children:
+            - app_shell/terp
+        depends_on: []
+        related_to: []
+    app_shell/terp:
+        dir_name: T-ERP License Credentials Modal & Project Flag Mapping
+        title: T-ERP License Credentials Modal & Project Flag Mapping
+        scope:
+            - src/api/
+            - src/components/CredentialsModal.jsx
+            - src/components/CredentialsModal.scss
+            - src/config/projectFlags.js
         source_files: []
         children: []
         depends_on: []

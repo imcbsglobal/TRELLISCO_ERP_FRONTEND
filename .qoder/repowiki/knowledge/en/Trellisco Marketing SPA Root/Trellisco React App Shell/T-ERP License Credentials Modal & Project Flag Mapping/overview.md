@@ -1,0 +1,1 @@
+Renders the post-license modal that displays and shares Trellisco T-ERP login credentials, plus a flag-mapping utility that translates purchased projects into user-master API flags.

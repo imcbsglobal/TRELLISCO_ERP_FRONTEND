@@ -8,8 +8,20 @@
 - [blogApi.js](file://src/api/blogApi.js)
 - [announcements.js](file://src/api/announcements.js)
 - [promoVideoApi.js](file://src/api/promoVideoApi.js)
+- [terpLicense.js](file://src/api/terpLicense.js)
+- [userMaster.js](file://src/api/userMaster.js)
+- [notifications.js](file://src/api/notifications.js)
+- [projectFlags.js](file://src/config/projectFlags.js)
 - [config.js](file://src/config/config.js)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for T-ERP license management system (terpLicense.js)
+- Added detailed coverage of user master operations and admin account creation (userMaster.js)
+- Documented multi-channel notification system with WhatsApp and email delivery (notifications.js)
+- Updated architecture diagrams to include new service modules
+- Enhanced guidelines for handling external API integrations and third-party services
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -26,13 +38,13 @@
 ## Introduction
 This document explains the API integration layer architecture, focusing on:
 - Centralized Axios client configuration with interceptors for authentication and error handling
-- Service layer pattern by domain (blog, announcements, videos)
+- Service layer pattern by domain (blog, announcements, videos, T-ERP licenses, user management, notifications)
 - Error handling strategies, retry mechanisms, and loading state guidance
 - Examples of making API calls, file uploads, and response normalization
 - Caching strategies, request optimization, and performance considerations
 - Guidelines for adding new endpoints consistently
 
-The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated.
+The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, and multi-channel communications.
 
 ## Project Structure
 The API integration lives under `src/api` and is organized by domain modules that share a common Axios client:
@@ -42,6 +54,9 @@ The API integration lives under `src/api` and is organized by domain modules tha
 - `blogApi.js`: Blog domain service functions (posts, uploads, form builders)
 - `announcements.js`: Announcements domain service functions
 - `promoVideoApi.js`: Promo video domain service functions (uses native fetch but shares token source)
+- `terpLicense.js`: T-ERP license management and project catalogue operations
+- `userMaster.js`: User master operations and admin account creation
+- `notifications.js`: Multi-channel notification system (WhatsApp, Email via multiple providers)
 - `config.js`: Shared environment-based base URL configuration
 
 ```mermaid
@@ -53,12 +68,18 @@ Auth["auth.js<br/>Login/logout helpers"]
 Blog["blogApi.js<br/>Blog domain services"]
 Announcements["announcements.js<br/>Announcements domain services"]
 Promo["promoVideoApi.js<br/>Promo video services"]
+Terp["terpLicense.js<br/>T-ERP license management"]
+UserMaster["userMaster.js<br/>User master operations"]
+Notifications["notifications.js<br/>Multi-channel notifications"]
 Config["config.js<br/>Base URL config"]
 end
 Client --> Auth
 Client --> Blog
 Client --> Announcements
 Promo --> Client
+Terp --> Config
+UserMaster --> Terp
+Notifications --> UserMaster
 ApiLegacy --> Config
 ```
 
@@ -69,6 +90,9 @@ ApiLegacy --> Config
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
 **Section sources**
@@ -78,6 +102,9 @@ ApiLegacy --> Config
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
 ## Core Components
@@ -91,6 +118,9 @@ ApiLegacy --> Config
   - Response interceptor clears token on 401 and rejects errors
 - Domain service modules:
   - Blog, announcements, promo videos each expose typed functions for CRUD operations
+  - T-ERP license management with project catalogue and license creation
+  - User master operations for admin account provisioning
+  - Multi-channel notifications with WhatsApp and email delivery
 - Error normalization:
   - Helpers convert DRF error bodies into readable messages
 
@@ -99,37 +129,49 @@ Key responsibilities:
 - Consistent authentication behavior across domains
 - Clear separation between public and authenticated flows
 - Predictable error shapes for UI consumption
+- Support for complex enterprise workflows and third-party integrations
 
 **Section sources**
 - [client.js:21-75](file://src/api/client.js#L21-L75)
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 
 ## Architecture Overview
 The API layer follows a layered approach:
 - Infrastructure: Axios instances and interceptors
 - Auth: Login/logout and token persistence
 - Services: Domain-specific API functions
+- Enterprise Services: License management, user provisioning, notifications
 - Consumers: Pages and components call service functions
 
 ```mermaid
 sequenceDiagram
 participant UI as "UI Component"
-participant BlogSvc as "blogApi.js"
+participant LicenseSvc as "terpLicense.js"
+participant UserSvc as "userMaster.js"
+participant NotifySvc as "notifications.js"
 participant Client as "client.js"
 participant Server as "Backend API"
-UI->>BlogSvc : fetchPublicPosts(params)
-BlogSvc->>Client : publicApi.get("/blog/posts/", { params })
-Client->>Server : GET /api/blog/posts/?...
-Server-->>Client : 200 JSON
-Client-->>BlogSvc : data
-BlogSvc-->>UI : normalized posts
+UI->>LicenseSvc : createTerpLicense(data)
+LicenseSvc->>Server : POST /license/create/
+Server-->>LicenseSvc : { clientId, licenseKey }
+LicenseSvc->>UserSvc : createClientAdmin(clientId, data)
+UserSvc->>Server : POST /user-master/
+Server-->>UserSvc : { username, password }
+UserSvc->>NotifySvc : sendCredentialsEmail(credentials)
+NotifySvc->>Server : Send via WhatsApp/Email
+Server-->>NotifySvc : Delivery confirmation
+NotifySvc-->>UI : Success notification
 ```
 
 **Diagram sources**
-- [blogApi.js:25-28](file://src/api/blogApi.js#L25-L28)
-- [client.js:83-88](file://src/api/client.js#L83-L88)
+- [terpLicense.js:170-198](file://src/api/terpLicense.js#L170-L198)
+- [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
+- [notifications.js:363-414](file://src/api/notifications.js#L363-L414)
 
 ## Detailed Component Analysis
 
@@ -203,6 +245,117 @@ Auth-->>UI : user
 **Section sources**
 - [auth.js:1-40](file://src/api/auth.js#L1-L40)
 - [client.js:21-75](file://src/api/client.js#L21-L75)
+
+### T-ERP License Management System
+**New** The T-ERP license management system handles enterprise license provisioning with sophisticated client identification and project mapping capabilities.
+
+Responsibilities:
+- Fetch project catalogue from T-ERP API
+- Create licenses with corporate and company details
+- Identify returning customers via email and client ID matching
+- Normalize project data from various API response formats
+- Extract client IDs and license keys from responses
+
+Key features:
+- Intelligent client workspace detection based on email addresses
+- Corporate hierarchy support (corporate → shops → projects)
+- HTML error parsing for Django backend compatibility
+- Caching mechanism for client registers to reduce API calls
+- Flexible project data normalization supporting multiple response formats
+
+```mermaid
+classDiagram
+class TERPLicenseService {
++fetchTerpProjects()
++findClientWorkspace(email)
++createTerpLicense({company, corporate, projects})
++extractClientId(payload)
++extractLicenseKey(payload)
++normaliseProjects(payload)
++getNetworkError(error, endpoint)
+}
+```
+
+**Diagram sources**
+- [terpLicense.js:104-222](file://src/api/terpLicense.js#L104-L222)
+
+**Section sources**
+- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+
+### User Master Operations
+**New** The user master system manages admin account creation and product flag management for T-ERP clients.
+
+Responsibilities:
+- Generate secure usernames and passwords
+- Create admin accounts in Central Master
+- Enable/disable product flags for existing users
+- Handle username conflicts and duplicate detection
+- Map T-ERP projects to user master flags
+
+Key features:
+- Secure credential generation with crypto.getRandomValues
+- Username conflict resolution with automatic retries
+- Contact uniqueness validation (email/phone)
+- Product flag mapping between T-ERP projects and user master flags
+- Partial updates for enabling additional products without affecting existing ones
+
+```mermaid
+sequenceDiagram
+participant UI as "Admin UI"
+participant UserSvc as "userMaster.js"
+participant Central as "Central Master API"
+UI->>UserSvc : createClientAdmin(data)
+UserSvc->>UserSvc : generateUsername(), generatePassword()
+UserSvc->>Central : POST /api/user-master/
+Central-->>UserSvc : { username, password, flags }
+UserSvc-->>UI : { username, password, flags }
+```
+
+**Diagram sources**
+- [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
+
+**Section sources**
+- [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
+- [projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
+
+### Multi-Channel Notification System
+**New** The notification system provides multi-channel delivery of credentials via WhatsApp and email through multiple providers.
+
+Responsibilities:
+- Send WhatsApp messages via Dxing gateway
+- Send emails via multiple providers (EmailJS, Gmail API, custom mail relay)
+- Format and normalize contact information
+- Handle OAuth authentication for Gmail API
+- Provide fallback mechanisms for different delivery channels
+
+Key features:
+- WhatsApp number normalization (Indian format support)
+- Multiple email delivery methods with automatic fallback
+- Gmail OAuth integration with token caching
+- EmailJS integration for SMTP-based sending
+- Custom mail relay support with authentication
+- Comprehensive error handling and debugging information
+
+```mermaid
+flowchart TD
+Call["sendCredentialsEmail()"] --> CheckConfig{"Check configured providers"}
+CheckConfig --> MailRelay{"Mail relay configured?"}
+MailRelay --> |Yes| SendRelay["Send via mail relay"]
+MailRelay --> |No| EmailJS{"EmailJS configured?"}
+EmailJS --> |Yes| SendEmailJS["Send via EmailJS"]
+EmailJS --> |No| Gmail{"Gmail API configured?"}
+Gmail --> |Yes| SendGmail["Send via Gmail API"]
+Gmail --> |No| ThrowErr["Throw configuration error"]
+SendRelay --> Success["Success"]
+SendEmailJS --> Success
+SendGmail --> Success
+```
+
+**Diagram sources**
+- [notifications.js:363-414](file://src/api/notifications.js#L363-L414)
+
+**Section sources**
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 
 ### Blog Domain Service
 Responsibilities:
@@ -320,7 +473,11 @@ Client["client.js"] --> Auth["auth.js"]
 Client --> Blog["blogApi.js"]
 Client --> Announcements["announcements.js"]
 Promo["promoVideoApi.js"] --> Client
-ApiLegacy["api.js"] --> Config["config.js"]
+Terp["terpLicense.js"] --> Config["config.js"]
+UserMaster["userMaster.js"] --> ProjectFlags["projectFlags.js"]
+UserMaster --> Terp
+Notifications --> UserMaster
+ApiLegacy["api.js"] --> Config
 ```
 
 **Diagram sources**
@@ -329,6 +486,10 @@ ApiLegacy["api.js"] --> Config["config.js"]
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
 - [api.js:1-39](file://src/api/api.js#L1-L39)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
@@ -339,11 +500,16 @@ ApiLegacy["api.js"] --> Config["config.js"]
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
+- [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
+- [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
 ## Performance Considerations
 - Avoid duplicate network calls:
   - Cache lists at the component level or with a lightweight cache layer when appropriate
+  - T-ERP license module implements register caching for client lists
 - Minimize payload size:
   - Use query parameters for filtering/sorting instead of fetching all records
 - Defer non-critical requests:
@@ -355,6 +521,10 @@ ApiLegacy["api.js"] --> Config["config.js"]
   - Memoize derived data and avoid unnecessary state updates
 - Prefer public endpoints where possible:
   - Avoid sending admin tokens for read-only public data
+- External API optimization:
+  - Implement proper error handling for third-party services
+  - Use exponential backoff for retry logic
+  - Cache static configuration data
 
 [No sources needed since this section provides general guidance]
 
@@ -370,53 +540,80 @@ Common issues and resolutions:
   - Centralize base URL configuration; avoid hardcoding per module
 - Legacy axios instance token header:
   - Fix the Authorization header construction and align token keys
+- T-ERP license creation failures:
+  - Check CORS configuration for external APIs
+  - Verify client ID and corporate name formatting
+- User master account creation issues:
+  - Ensure unique client_id, email, and phone_number combinations
+  - Check username conflict resolution logic
+- Notification delivery problems:
+  - Verify WhatsApp API credentials and configuration
+  - Check EmailJS setup and Gmail OAuth configuration
+  - Validate mail relay accessibility and authentication
 
 Operational tips:
 - Wrap API calls in try/catch and surface user-friendly messages
 - Log network errors with context (endpoint, method, payload hash) without exposing secrets
 - Add feature flags for experimental endpoints
+- Monitor third-party API availability and implement graceful degradation
 
 **Section sources**
 - [client.js:58-75](file://src/api/client.js#L58-L75)
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
 - [blogApi.js:63-74](file://src/api/blogApi.js#L63-L74)
 - [api.js:11-36](file://src/api/api.js#L11-L36)
+- [terpLicense.js:67-78](file://src/api/terpLicense.js#L67-L78)
+- [userMaster.js:190-202](file://src/api/userMaster.js#L190-L202)
+- [notifications.js:84-112](file://src/api/notifications.js#L84-L112)
 
 ## Guidelines for Adding New Endpoints
 Follow these steps to maintain consistency:
 1. Choose the correct client:
    - Use `api` for admin endpoints
    - Use `publicApi` for public endpoints
+   - Use native fetch for external APIs that don't require authentication
 2. Create or extend the domain module:
    - Add functions for each operation (list, get, create, update, delete)
    - Normalize responses to arrays or objects as expected by consumers
 3. Handle errors consistently:
    - Convert DRF error bodies into readable messages
    - Throw standard JavaScript Errors with clear messages
+   - Implement proper error parsing for HTML responses from external APIs
 4. For file uploads:
    - Build FormData explicitly
    - Set Content-Type to multipart/form-data
    - Validate file types and sizes before upload
 5. Keep base URLs centralized:
    - Do not hardcode paths; rely on baseURL from the client
+   - Use environment variables for external API endpoints
 6. Align token usage:
    - Ensure token keys and schemes match the server expectations
 7. Add tests:
    - Mock axios/fetch and verify success/error paths
+   - Test third-party API integrations with mock responses
 8. Document contracts:
    - Update this guide with any new response shapes or required fields
+9. For enterprise features:
+   - Implement proper caching for frequently accessed data
+   - Handle concurrent operations safely
+   - Provide meaningful feedback for long-running processes
 
 Example patterns to follow:
 - Public read: see public post fetch
 - Admin CRUD: see announcements module
 - File upload: see blog upload and promo video create/update
+- External API integration: see T-ERP license management
+- Third-party service integration: see notification system
 
 **Section sources**
 - [blogApi.js:25-47](file://src/api/blogApi.js#L25-L47)
 - [announcements.js:22-61](file://src/api/announcements.js#L22-L61)
 - [promoVideoApi.js:49-85](file://src/api/promoVideoApi.js#L49-L85)
+- [terpLicense.js:104-222](file://src/api/terpLicense.js#L104-L222)
+- [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
+- [notifications.js:84-414](file://src/api/notifications.js#L84-L414)
 
 ## Conclusion
-This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application.
+This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. The architecture now supports complex enterprise workflows including license management, user provisioning, and multi-channel communications. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. The addition of specialized modules for T-ERP license management, user master operations, and multi-channel notifications demonstrates the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application.
 
 [No sources needed since this section summarizes without analyzing specific files]

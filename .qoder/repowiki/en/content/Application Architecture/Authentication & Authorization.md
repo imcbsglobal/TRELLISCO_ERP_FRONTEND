@@ -6,353 +6,516 @@
 - [src/api/client.js](file://src/api/client.js)
 - [src/App.jsx](file://src/App.jsx)
 - [src/pages/AdminDashboard/Login.jsx](file://src/pages/AdminDashboard/Login.jsx)
-- [src/pages/AdminDashboard/Dashboard.jsx](file://src/pages/AdminDashboard/Dashboard.jsx)
+- [src/pages/TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
+- [src/components/CredentialsModal.jsx](file://src/components/CredentialsModal.jsx)
+- [src/api/terpLicense.js](file://src/api/terpLicense.js)
+- [src/api/userMaster.js](file://src/api/userMaster.js)
+- [src/api/notifications.js](file://src/api/notifications.js)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for Google Sign-In integration with OAuth 2.0
+- Documented the new T-ERP license management system with project selection workflow
+- Explained automatic workspace recognition for returning customers
+- Added detailed coverage of credential delivery through WhatsApp and email systems
+- Updated authentication flow diagrams to reflect the enhanced multi-step process
+- Documented the dual authentication system supporting both traditional login and Google Sign-In
 
 ## Table of Contents
 1. [Introduction](#introduction)
-2. [Project Structure](#project-structure)
-3. [Core Components](#core-components)
-4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+2. [Authentication Systems Overview](#authentication-systems-overview)
+3. [Google Sign-In Integration](#google-sign-in-integration)
+4. [T-ERP License Management System](#t-erp-license-management-system)
+5. [Enhanced Login Flow](#enhanced-login-flow)
+6. [Project Selection and Workspace Recognition](#project-selection-and-workspace-recognition)
+7. [Credential Delivery System](#credential-delivery-system)
+8. [Traditional Admin Authentication](#traditional-admin-authentication)
+9. [Token Management Strategy](#token-management-strategy)
+10. [Protected Routes and Authorization](#protected-routes-and-authorization)
+11. [Security Considerations](#security-considerations)
+12. [Performance Considerations](#performance-considerations)
+13. [Troubleshooting Guide](#troubleshooting-guide)
+14. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the authentication and authorization system implemented in the frontend application. It covers:
-- The complete login flow from form submission to token storage and navigation.
-- How protected admin routes prevent unauthorized access.
-- Token management, including storage strategy and automatic handling of expired tokens.
-- Client-side authorization checks.
-- Security considerations such as CSRF, XSS, and secure token handling.
-- Guidance for extending the system with custom guards and additional roles or permissions.
+This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows:
 
-## Project Structure
-The authentication logic is split across a small set of focused files:
-- API layer: HTTP client configuration, token helpers, and auth endpoints.
-- Routing layer: Protected route wrapper and admin route definitions.
-- UI layer: Login form and dashboard that consume authenticated APIs.
+1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, and automated credential delivery
+2. **Traditional Admin Authentication**: Standard email/password authentication for administrative access
+
+The system integrates with multiple external services including Google Identity Services, WhatsApp messaging, email delivery systems, and the T-ERP license management platform.
+
+## Authentication Systems Overview
+The application implements a dual authentication architecture:
 
 ```mermaid
 graph TB
-subgraph "UI Layer"
-LOGIN["Login Page<br/>(src/pages/AdminDashboard/Login.jsx)"]
-DASHBOARD["Admin Dashboard<br/>(src/pages/AdminDashboard/Dashboard.jsx)"]
+subgraph "Customer Onboarding Flow"
+GOOGLE["Google Sign-In<br/>(OAuth 2.0)"]
+PROJECTS["Project Selection<br/>(T-ERP Catalogue)"]
+WORKSPACE["Workspace Recognition<br/>(Returning Customers)"]
+LICENSE["License Creation<br/>(T-ERP System)"]
+CREDENTIALS["Credential Delivery<br/>(WhatsApp + Email)"]
 end
-subgraph "Routing Layer"
-APP["App Router<br/>(src/App.jsx)"]
+subgraph "Admin Authentication Flow"
+TRADITIONAL["Email/Password Login"]
+ADMIN_TOKEN["Admin Token Storage"]
+PROTECTED["Protected Admin Routes"]
 end
-subgraph "API Layer"
-AUTH_API["Auth API<br/>(src/api/auth.js)"]
-CLIENT["Axios Client + Token Helpers<br/>(src/api/client.js)"]
-end
-LOGIN --> AUTH_API
-AUTH_API --> CLIENT
-APP --> LOGIN
-APP --> DASHBOARD
-DASHBOARD --> CLIENT
+GOOGLE --> PROJECTS --> WORKSPACE --> LICENSE --> CREDENTIALS
+TRADITIONAL --> ADMIN_TOKEN --> PROTECTED
 ```
 
 **Diagram sources**
-- [src/App.jsx:1-74](file://src/App.jsx#L1-L74)
-- [src/pages/AdminDashboard/Login.jsx:1-244](file://src/pages/AdminDashboard/Login.jsx#L1-L244)
-- [src/pages/AdminDashboard/Dashboard.jsx:1-234](file://src/pages/AdminDashboard/Dashboard.jsx#L1-L234)
-- [src/api/auth.js:1-40](file://src/api/auth.js#L1-L40)
-- [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
+- [src/pages/TERPLogin.jsx:84-505](file://src/pages/TERPLogin.jsx#L84-L505)
+- [src/pages/AdminDashboard/Login.jsx:99-244](file://src/pages/AdminDashboard/Login.jsx#L99-L244)
+- [src/App.jsx:15-74](file://src/App.jsx#L15-L74)
+
+## Google Sign-In Integration
+The Google Sign-In integration provides secure authentication for T-ERP customer onboarding:
+
+### Google Identity Services Setup
+```javascript
+// Dynamic loading of Google Identity Services
+const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client"
+
+function loadGoogleScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve()
+      return
+    }
+
+    const existing = document.querySelector(`script[src="${GOOGLE_SCRIPT}"]`)
+    if (existing) {
+      existing.addEventListener("load", resolve, { once: true })
+      existing.addEventListener("error", reject, { once: true })
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = GOOGLE_SCRIPT
+    script.async = true
+    script.defer = true
+    script.onload = resolve
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+}
+```
+
+### Google User Profile Handling
+```javascript
+window.google.accounts.id.initialize({
+  client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+  callback: (response) => {
+    // Decode JWT token to extract user profile
+    const [, payload] = response.credential.split(".")
+    const profile = JSON.parse(window.atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
+    setGoogleUser({ 
+      name: profile.name, 
+      email: profile.email, 
+      picture: profile.picture, 
+      credential: response.credential 
+    })
+  },
+})
+```
 
 **Section sources**
-- [src/App.jsx:1-74](file://src/App.jsx#L1-L74)
-- [src/api/auth.js:1-40](file://src/api/auth.js#L1-L40)
-- [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
+- [src/pages/TERPLogin.jsx:60-82](file://src/pages/TERPLogin.jsx#L60-L82)
+- [src/pages/TERPLogin.jsx:122-143](file://src/pages/TERPLogin.jsx#L122-L143)
 
-## Core Components
-- Auth API module: Provides login, logout, authentication check, and current user retrieval.
-- Axios client: Centralizes base URL, token injection into requests, and 401-based cleanup.
-- App router: Defines public and protected routes using a RequireAuth guard.
-- Login page: Collects credentials, calls the backend, stores tokens, and navigates on success.
-- Admin dashboard: Loads data via authenticated API calls after successful authentication.
+## T-ERP License Management System
+The T-ERP license management system handles the complete customer onboarding lifecycle:
 
-Key responsibilities:
-- Token storage: Uses localStorage or sessionStorage based on a remember flag.
-- Request authorization: Automatically attaches an Authorization header when a token exists.
-- Session invalidation: Clears stored tokens on 401 responses.
-- Route protection: Redirects unauthenticated users to the login page.
-
-**Section sources**
-- [src/api/auth.js:1-40](file://src/api/auth.js#L1-L40)
-- [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
-- [src/App.jsx:1-74](file://src/App.jsx#L1-L74)
-- [src/pages/AdminDashboard/Login.jsx:1-244](file://src/pages/AdminDashboard/Login.jsx#L1-L244)
-- [src/pages/AdminDashboard/Dashboard.jsx:1-234](file://src/pages/AdminDashboard/Dashboard.jsx#L1-L234)
-
-## Architecture Overview
-The authentication architecture follows a layered approach:
-- UI triggers login by submitting credentials.
-- Auth API posts to the backend and persists the returned token and user profile.
-- Axios interceptors attach the token to subsequent requests and clear it on 401 errors.
-- React Router protects admin routes using a RequireAuth component.
-
+### License Creation Workflow
 ```mermaid
 sequenceDiagram
-participant User as "User"
-participant Login as "Login Page"
-participant AuthAPI as "Auth API (auth.js)"
-participant Client as "Axios Client (client.js)"
-participant Backend as "Backend API"
-participant Router as "React Router"
-User->>Login : Submit email/password
-Login->>AuthAPI : login(email, password, {remember})
-AuthAPI->>Client : POST /blog/admin/login/
-Client->>Backend : Request with JSON body
-Backend-->>Client : {token, user}
-Client-->>AuthAPI : Response
-AuthAPI->>Client : setToken(token, {remember})
-AuthAPI->>AuthAPI : Store user profile in storage
-AuthAPI-->>Login : Return user
-Login->>Router : Navigate to /admin/dashboard
-Router->>Router : RequireAuth checks isAuthenticated()
-Router-->>User : Render Dashboard if authenticated
+participant Customer as "Customer"
+participant TERPLogin as "TERPLogin Component"
+participant LicenseAPI as "T-ERP License API"
+participant UserMaster as "Central Master"
+participant Notifications as "Notification System"
+Customer->>TERPLogin : Select projects & enter company details
+TERPLogin->>LicenseAPI : Create license with selected projects
+LicenseAPI-->>TERPLogin : Return license key & client ID
+TERPLogin->>UserMaster : Create admin account
+UserMaster-->>TERPLogin : Return username & password
+TERPLogin->>Notifications : Send credentials via WhatsApp & Email
+Notifications-->>Customer : Deliver login credentials
 ```
 
 **Diagram sources**
-- [src/pages/AdminDashboard/Login.jsx:113-136](file://src/pages/AdminDashboard/Login.jsx#L113-L136)
-- [src/api/auth.js:4-18](file://src/api/auth.js#L4-L18)
-- [src/api/client.js:26-42](file://src/api/client.js#L26-L42)
-- [src/App.jsx:15-17](file://src/App.jsx#L15-L17)
+- [src/pages/TERPLogin.jsx:292-421](file://src/pages/TERPLogin.jsx#L292-L421)
+- [src/api/terpLicense.js:170-198](file://src/api/terpLicense.js#L170-L198)
+- [src/api/userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
 
-## Detailed Component Analysis
+### Project Catalogue Integration
+The system normalizes project data from various API formats:
 
-### Authentication Flow
-The login flow consists of:
-- Form validation and submission state management.
-- Calling the auth endpoint and storing the token and user profile.
-- Navigating to the admin dashboard.
-- Protecting admin routes through RequireAuth.
+```javascript
+export function normaliseProjects(payload) {
+  const items = Array.isArray(payload)
+    ? payload
+    : payload?.results || payload?.projects || payload?.data || []
+
+  return items
+    .map((item) => {
+      if (typeof item === "string") return { name: item, api_endpoint: "", packages: [] }
+
+      const name = item.project || item.name || item.title
+      const packages = item.packages || item.package_options || item.plans || []
+      return {
+        name,
+        api_endpoint: item.api_endpoint || item.apiEndpoint || "",
+        packages: Array.isArray(packages)
+          ? packages.map((value) => (typeof value === "string" ? value : value.name || value.package)).filter(Boolean)
+          : [],
+      }
+    })
+    .filter(item => item.name)
+}
+```
+
+**Section sources**
+- [src/api/terpLicense.js:80-108](file://src/api/terpLicense.js#L80-L108)
+
+## Enhanced Login Flow
+The enhanced login flow consists of three main steps:
+
+### Step 1: Google Authentication
+- Dynamic loading of Google Identity Services
+- OAuth 2.0 token exchange
+- User profile extraction from JWT payload
+- Automatic form population with Google identity data
+
+### Step 2: Project Selection
+- Display available T-ERP projects from catalogue
+- Allow selection of multiple projects
+- Package assignment for each selected project
+- Validation of required fields
+
+### Step 3: Company Details Collection
+- Corporate information gathering
+- Contact person details
+- Email and phone number validation
+- Country and location specification
 
 ```mermaid
 flowchart TD
-Start(["Form Submission"]) --> Validate["Validate inputs"]
-Validate --> Valid{"Valid?"}
-Valid --> |No| ShowError["Show error message"]
-Valid --> |Yes| CallLogin["Call auth.login()"]
-CallLogin --> StoreToken["Store token via setToken()"]
-StoreToken --> StoreUser["Store user profile in storage"]
-StoreUser --> Navigate["Navigate to /admin/dashboard"]
-Navigate --> GuardCheck["RequireAuth checks isAuthenticated()"]
-GuardCheck --> Allowed{"Authenticated?"}
-Allowed --> |Yes| RenderDash["Render Dashboard"]
-Allowed --> |No| Redirect["Redirect to /login"]
-ShowError --> End(["End"])
-RenderDash --> End
-Redirect --> End
+Start(["TERP Login Page"]) --> GoogleAuth["Google Sign-In"]
+GoogleAuth --> ProjectSelection["Select Projects & Packages"]
+ProjectSelection --> WorkspaceCheck{"Existing Customer?"}
+WorkspaceCheck --> |Yes| AutoFill["Auto-fill Company Details"]
+WorkspaceCheck --> |No| ManualEntry["Manual Company Details Entry"]
+AutoFill --> Validation["Form Validation"]
+ManualEntry --> Validation
+Validation --> LicenseCreation["Create T-ERP License"]
+LicenseCreation --> AdminAccount["Create Admin Account"]
+AdminAccount --> CredentialDelivery["Send Credentials"]
+CredentialDelivery --> Success(["Setup Complete"])
 ```
 
 **Diagram sources**
-- [src/pages/AdminDashboard/Login.jsx:113-136](file://src/pages/AdminDashboard/Login.jsx#L113-L136)
-- [src/api/auth.js:4-18](file://src/api/auth.js#L4-L18)
-- [src/App.jsx:15-17](file://src/App.jsx#L15-L17)
+- [src/pages/TERPLogin.jsx:84-505](file://src/pages/TERPLogin.jsx#L84-L505)
 
 **Section sources**
-- [src/pages/AdminDashboard/Login.jsx:113-136](file://src/pages/AdminDashboard/Login.jsx#L113-L136)
-- [src/api/auth.js:4-18](file://src/api/auth.js#L4-L18)
-- [src/App.jsx:15-17](file://src/App.jsx#L15-L17)
+- [src/pages/TERPLogin.jsx:223-421](file://src/pages/TERPLogin.jsx#L223-L421)
 
-### Token Management Strategy
-- Storage mechanism: Tokens are stored in either localStorage or sessionStorage depending on the remember flag.
-- Retrieval: getToken reads from both storages; setToken clears existing tokens before writing new ones.
-- Interceptor behavior: Every outgoing request includes an Authorization header with the scheme expected by the backend.
-- Automatic refresh handling: On 401 responses, the interceptor clears the token to force re-authentication. There is no automatic token refresh implementation in this codebase.
+## Project Selection and Workspace Recognition
+The system intelligently recognizes returning customers and manages project assignments:
 
-```mermaid
-flowchart TD
-A["setToken(token, {remember})"] --> B{"remember?"}
-B --> |Yes| C["localStorage.setItem(TOKEN_KEY, token)"]
-B --> |No| D["sessionStorage.setItem(TOKEN_KEY, token)"]
-E["getToken()"] --> F["Read TOKEN_KEY from localStorage/sessionStorage"]
-G["axios request interceptor"] --> H["Attach Authorization header if token exists"]
-I["axios response interceptor"] --> J{"status === 401?"}
-J --> |Yes| K["clearToken()"]
-J --> |No| L["Pass through response"]
+### Automatic Workspace Recognition
+```javascript
+useEffect(() => {
+  const candidate = String(company.email || googleUser?.email || "").trim()
+  if (!candidate.includes("@")) return
+  
+  async function loadWorkspace() {
+    try {
+      const found = await findClientWorkspace(candidate)
+      if (cancelled || !found) return
+      setWorkspace((current) => (current?.clientId === found.clientId ? current : found))
+      setCompany((current) => {
+        const filled = {
+          ...current,
+          name: current.name || found.companyName,
+          corporateName: current.corporateName || found.corporateName || found.companyName,
+          place: current.place || found.place,
+          email: current.email || found.clientId,
+        }
+        return filled.name === current.name && filled.place === current.place && filled.email === current.email
+          ? current : filled
+      })
+    } catch {
+      // Recognition is a convenience: a brand new signup must still go through.
+    }
+  }
+
+  loadWorkspace()
+}, [googleUser, company.email])
 ```
 
-**Diagram sources**
-- [src/api/client.js:26-42](file://src/api/client.js#L26-L42)
-- [src/api/client.js:58-75](file://src/api/client.js#L58-L75)
-
-**Section sources**
-- [src/api/client.js:26-42](file://src/api/client.js#L26-L42)
-- [src/api/client.js:58-75](file://src/api/client.js#L58-L75)
-
-### Protected Routes and Authorization Checks
-- Client-side protection: RequireAuth wraps admin routes and redirects to /login if not authenticated.
-- Authentication check: isAuthenticated returns true only when a token exists.
-- Server-side protection: The backend enforces authentication on admin endpoints; the frontend relies on the backend’s 401 responses to invalidate sessions.
-
-```mermaid
-flowchart TD
-EnterRoute["User navigates to /admin/*"] --> CheckAuth["RequireAuth checks isAuthenticated()"]
-CheckAuth --> HasToken{"Token exists?"}
-HasToken --> |Yes| Allow["Render protected component"]
-HasToken --> |No| Deny["Navigate to /login"]
+### Project Ownership Tracking
+```javascript
+const ownedProjects = new Set((workspace?.projects || []).map(normaliseName))
+const tickedOwned = projects.filter((item) => ownedProjects.has(normaliseName(item.name))).length
 ```
 
-**Diagram sources**
-- [src/App.jsx:15-17](file://src/App.jsx#L15-L17)
-- [src/api/auth.js:31-33](file://src/api/auth.js#L31-L33)
-
 **Section sources**
-- [src/App.jsx:15-17](file://src/App.jsx#L15-L17)
-- [src/api/auth.js:31-33](file://src/api/auth.js#L31-L33)
+- [src/pages/TERPLogin.jsx:145-177](file://src/pages/TERPLogin.jsx#L145-L177)
+- [src/pages/TERPLogin.jsx:179-183](file://src/pages/TERPLogin.jsx#L179-L183)
 
-### Logout and Session Cleanup
-- Logout calls the backend logout endpoint and then clears tokens and user profiles from both localStorage and sessionStorage.
-- This ensures that subsequent requests do not carry stale credentials.
+## Credential Delivery System
+The system provides multiple channels for delivering credentials securely:
 
-```mermaid
-sequenceDiagram
-participant UI as "Logout Action"
-participant AuthAPI as "auth.logout()"
-participant Client as "axios api"
-participant Storage as "Browser Storage"
-UI->>AuthAPI : logout()
-AuthAPI->>Client : POST /blog/admin/logout/
-Client-->>AuthAPI : Response
-AuthAPI->>Storage : clearToken()
-AuthAPI->>Storage : Remove user profile keys
-AuthAPI-->>UI : Done
-```
-
-**Diagram sources**
-- [src/api/auth.js:21-29](file://src/api/auth.js#L21-L29)
-- [src/api/client.js:39-42](file://src/api/client.js#L39-L42)
-
-**Section sources**
-- [src/api/auth.js:21-29](file://src/api/auth.js#L21-L29)
-- [src/api/client.js:39-42](file://src/api/client.js#L39-L42)
-
-### Current User Handling
-- After login, the user profile is stored under a dedicated key in both localStorage and sessionStorage.
-- getCurrentUser retrieves the user object from either storage location.
-
-```mermaid
-flowchart TD
-LoginSuccess["Login succeeds"] --> StoreUser["Store user profile in localStorage/sessionStorage"]
-GetProfile["getCurrentUser()"] --> ReadLocal["Read from localStorage"]
-ReadLocal --> FoundLocal{"Found?"}
-FoundLocal --> |Yes| ParseLocal["Parse JSON and return"]
-FoundLocal --> |No| ReadSession["Read from sessionStorage"]
-ReadSession --> FoundSession{"Found?"}
-FoundSession --> |Yes| ParseSession["Parse JSON and return"]
-FoundSession --> |No| NullReturn["Return null"]
-```
-
-**Diagram sources**
-- [src/api/auth.js:15-18](file://src/api/auth.js#L15-L18)
-- [src/api/auth.js:35-40](file://src/api/auth.js#L35-L40)
-
-**Section sources**
-- [src/api/auth.js:15-18](file://src/api/auth.js#L15-L18)
-- [src/api/auth.js:35-40](file://src/api/auth.js#L35-L40)
-
-## Dependency Analysis
-The following diagram shows how components depend on each other for authentication and routing:
-
+### Multi-Channel Delivery Architecture
 ```mermaid
 graph LR
-LOGIN["Login.jsx"] --> AUTH["auth.js"]
-AUTH --> CLIENT["client.js"]
-APP["App.jsx"] --> AUTH
-APP --> LOGIN
-DASHBOARD["Dashboard.jsx"] --> CLIENT
+subgraph "Credential Sources"
+USERNAME["Generated Username"]
+PASSWORD["Secure Password"]
+CLIENTID["Client ID"]
+LICENSEKEY["License Key"]
+end
+subgraph "Delivery Channels"
+WHATSAPP["WhatsApp (Dxing Gateway)"]
+EMAIL["Email (Multiple Providers)"]
+COPY["Copy to Clipboard"]
+MAILTO["Mailto Link"]
+end
+USERNAME --> WHATSAPP
+PASSWORD --> WHATSAPP
+CLIENTID --> WHATSAPP
+LICENSEKEY --> WHATSAPP
+USERNAME --> EMAIL
+PASSWORD --> EMAIL
+CLIENTID --> EMAIL
+LICENSEKEY --> EMAIL
+USERNAME --> COPY
+PASSWORD --> COPY
+CLIENTID --> COPY
+LICENSEKEY --> COPY
 ```
 
 **Diagram sources**
-- [src/pages/AdminDashboard/Login.jsx:1-244](file://src/pages/AdminDashboard/Login.jsx#L1-L244)
-- [src/api/auth.js:1-40](file://src/api/auth.js#L1-L40)
-- [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
-- [src/App.jsx:1-74](file://src/App.jsx#L1-L74)
-- [src/pages/AdminDashboard/Dashboard.jsx:1-234](file://src/pages/AdminDashboard/Dashboard.jsx#L1-L234)
+- [src/components/CredentialsModal.jsx:77-109](file://src/components/CredentialsModal.jsx#L77-L109)
+- [src/api/notifications.js:63-79](file://src/api/notifications.js#L63-L79)
+
+### WhatsApp Integration
+```javascript
+export async function sendWhatsApp({ recipient, message }) {
+  const number = normaliseWhatsAppNumber(recipient)
+  if (!number) throw new Error("No WhatsApp number is available for this customer.")
+  
+  const query = new URLSearchParams({
+    secret: WHATSAPP_SECRET,
+    account: WHATSAPP_ACCOUNT,
+    recipient: number,
+    type: "text",
+    message,
+    priority: "1",
+  })
+
+  const response = await fetch(`${WHATSAPP_ENDPOINT}?${query.toString()}`)
+  // Handle gateway responses and status codes
+}
+```
+
+### Email Delivery Options
+The system supports multiple email providers:
+1. **Custom Mail API** - Direct HTTP endpoint
+2. **EmailJS** - Third-party email service
+3. **Gmail API** - Direct Gmail integration with OAuth
 
 **Section sources**
-- [src/pages/AdminDashboard/Login.jsx:1-244](file://src/pages/AdminDashboard/Login.jsx#L1-L244)
-- [src/api/auth.js:1-40](file://src/api/auth.js#L1-L40)
-- [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
-- [src/App.jsx:1-74](file://src/App.jsx#L1-L74)
-- [src/pages/AdminDashboard/Dashboard.jsx:1-234](file://src/pages/AdminDashboard/Dashboard.jsx#L1-L234)
+- [src/api/notifications.js:84-112](file://src/api/notifications.js#L84-L112)
+- [src/api/notifications.js:363-414](file://src/api/notifications.js#L363-L414)
+
+## Traditional Admin Authentication
+The traditional admin authentication system remains unchanged:
+
+### Admin Login Process
+```javascript
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  
+  if (!form.email.trim() || !form.password) {
+    setError('Enter both your email and password.')
+    return
+  }
+
+  setSubmitting(true)
+  setError('')
+
+  try {
+    await login(form.email.trim(), form.password, { remember })
+    navigate('/admin/dashboard')
+  } catch (err) {
+    const backendMessage = err.response?.data?.detail
+    setError(backendMessage || 'Something went wrong. Please try again.')
+  } finally {
+    setSubmitting(false)
+  }
+}
+```
+
+**Section sources**
+- [src/pages/AdminDashboard/Login.jsx:113-136](file://src/pages/AdminDashboard/Login.jsx#L113-L136)
+
+## Token Management Strategy
+The system maintains separate token storage for different authentication contexts:
+
+### Dual Token Storage
+```javascript
+// Admin tokens (for blog/admin functionality)
+const TOKEN_KEY = "trellisco_token"
+
+export function setToken(token, { remember = true } = {}) {
+  clearToken()
+  if (remember) {
+    localStorage.setItem(TOKEN_KEY, token)
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token)
+  }
+}
+
+// T-ERP credentials (temporary session storage)
+const GMAIL_TOKEN_KEY = "trellisco_gmail_token"
+```
+
+### Interceptor Configuration
+```javascript
+api.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+  return config
+})
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      clearToken()
+    }
+    return Promise.reject(error)
+  }
+)
+```
+
+**Section sources**
+- [src/api/client.js:26-42](file://src/api/client.js#L26-L42)
+- [src/api/client.js:58-75](file://src/api/client.js#L58-L75)
+
+## Protected Routes and Authorization
+Route protection is implemented through React Router guards:
+
+### RequireAuth Component
+```javascript
+function RequireAuth({ children }) {
+  return isAuthenticated() ? children : <Navigate to="/login" replace />
+}
+```
+
+### Route Protection Configuration
+```javascript
+<Route
+  path="/admin"
+  element={
+    <RequireAuth>
+      <Dashboard />
+    </RequireAuth>
+  }
+/>
+```
+
+**Section sources**
+- [src/App.jsx:15-17](file://src/App.jsx#L15-L17)
+- [src/App.jsx:35-66](file://src/App.jsx#L35-L66)
+
+## Security Considerations
+The authentication system implements multiple security measures:
+
+### Google Sign-In Security
+- JWT token verification on server-side recommended
+- Secure handling of OAuth consent popups
+- Proper error handling for authentication failures
+
+### Credential Security
+- Random password generation with complexity requirements
+- Secure username generation avoiding ambiguous characters
+- Temporary credential storage in memory only
+
+### Data Protection
+- CSRF protection through proper header configuration
+- XSS prevention through React's default escaping
+- Secure token handling with appropriate storage mechanisms
+
+### Communication Security
+- HTTPS enforcement for all API calls
+- Proper CORS configuration
+- Secure cookie settings where applicable
 
 ## Performance Considerations
-- Token lookup is O(1) per request due to direct storage access.
-- Interceptors run on every request/response, adding minimal overhead.
-- Avoid unnecessary re-renders by keeping authentication state centralized in storage rather than duplicating it in global state unless needed for UI responsiveness.
-- Public API instance avoids sending admin tokens to public endpoints, reducing unnecessary headers and potential cross-origin issues.
+Several optimizations are implemented for better performance:
 
-[No sources needed since this section provides general guidance]
+### Caching Strategies
+- Register caching for client lists and corporate data
+- Session-scoped token caching for Gmail API
+- Project catalogue normalization to reduce API calls
+
+### Lazy Loading
+- Dynamic loading of Google Identity Services
+- Conditional component rendering based on authentication state
+- Efficient state updates to minimize re-renders
+
+### Network Optimization
+- Batch requests for related data
+- Error handling to prevent unnecessary retries
+- Proper cleanup of event listeners and timers
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- 401 Unauthorized on admin requests:
-  - Cause: Missing or expired token.
-  - Resolution: Ensure login succeeded and token was stored; verify that the Authorization header uses the correct scheme.
-- Requests sent without Authorization header:
-  - Cause: Token not present in storage or wrong storage scope.
-  - Resolution: Confirm remember flag and storage selection; check getToken behavior.
-- Public pages showing admin-only content:
-  - Cause: Using the authenticated axios instance instead of publicApi.
-  - Resolution: Use publicApi for visitor-facing endpoints.
+Common issues and their solutions:
+
+### Google Sign-In Issues
+- **Problem**: Google Sign-In button not loading
+  - **Solution**: Check VITE_GOOGLE_CLIENT_ID environment variable
+  - **Solution**: Verify Google Cloud Console OAuth configuration
+
+- **Problem**: OAuth consent popup blocked
+  - **Solution**: Allow popups for the site in browser settings
+  - **Solution**: Use "Try again" button to retry authentication
+
+### License Creation Failures
+- **Problem**: License creation returns 500 errors
+  - **Solution**: Check T-ERP API availability and CORS configuration
+  - **Solution**: Verify project names match available catalogue entries
+
+### Credential Delivery Issues
+- **Problem**: WhatsApp messages not delivered
+  - **Solution**: Verify VITE_WHATSAPP_SECRET and VITE_WHATSAPP_ACCOUNT
+  - **Solution**: Check phone number format and country code
+
+- **Problem**: Email delivery fails
+  - **Solution**: Configure mail relay or EmailJS properly
+  - **Solution**: Verify Gmail OAuth scopes if using direct Gmail API
 
 **Section sources**
-- [src/api/client.js:58-75](file://src/api/client.js#L58-L75)
-- [src/api/client.js:83-88](file://src/api/client.js#L83-L88)
+- [src/pages/TERPLogin.jsx:107-143](file://src/pages/TERPLogin.jsx#L107-L143)
+- [src/api/notifications.js:165-186](file://src/api/notifications.js#L165-L186)
 
 ## Conclusion
-The application implements a straightforward yet robust authentication and authorization model:
-- Credentials are submitted to a backend endpoint, returning a token and user profile.
-- Tokens are stored securely in browser storage and automatically attached to authenticated requests.
-- Admin routes are protected client-side, while server-side enforcement remains essential.
-- The system currently clears tokens on 401 responses but does not implement automatic token refresh.
-- Extending the system with role-based access control and custom guards is straightforward by enhancing RequireAuth and adding permission checks in components and API calls.
+The TRELLISCO ERP frontend now implements a comprehensive authentication and authorization system that supports both traditional admin access and modern customer onboarding through Google Sign-In. The system provides:
 
-[No sources needed since this section summarizes without analyzing specific files]
+- **Dual Authentication Flows**: Supporting both T-ERP customers and administrators
+- **Advanced Customer Onboarding**: With Google Sign-In, project selection, and automated credential delivery
+- **Intelligent Workspace Recognition**: Automatically identifying returning customers
+- **Multi-Channel Communication**: Through WhatsApp and multiple email providers
+- **Robust Security Measures**: Including secure token handling and proper error management
+- **Performance Optimizations**: Through caching strategies and lazy loading
 
-## Appendices
-
-### Security Considerations
-- CSRF protection:
-  - If the backend uses cookie-based CSRF tokens, ensure cookies are configured correctly and consider SameSite attributes.
-  - For token-based auth, CSRF is less relevant, but still validate backend expectations.
-- XSS prevention:
-  - Avoid rendering unsanitized user input directly in JSX; rely on React’s default escaping.
-  - Do not store sensitive data beyond what is necessary in localStorage.
-- Secure token handling:
-  - Prefer httpOnly cookies for tokens where possible to mitigate XSS exposure.
-  - If using localStorage/sessionStorage, be aware of XSS risks and minimize exposure time.
-  - Always use HTTPS in production to protect tokens in transit.
-
-[No sources needed since this section provides general guidance]
-
-### Extending the System: Custom Guards and Roles
-To add custom authentication guards and support additional roles or permissions:
-- Enhance RequireAuth:
-  - Add a prop for required roles or permissions.
-  - Compare the current user’s roles against the required set.
-  - Redirect to an appropriate fallback route if access is denied.
-- Extend getCurrentUser:
-  - Include role and permission fields in the stored user profile.
-  - Provide helper functions like hasRole(role) and hasPermission(permission).
-- Implement feature-level checks:
-  - Conditionally render admin-only UI elements based on user roles.
-  - Gate API mutations behind permission checks before making requests.
-
-Example pattern outline:
-- RequireAuth({ children, requiredRoles })
-  - Reads current user from storage.
-  - Compares roles and grants or denies access.
-- hasRole(user, role)
-  - Returns boolean indicating whether the user has the specified role.
-- hasPermission(user, permission)
-  - Returns boolean indicating whether the user has the specified permission.
-
-[No sources needed since this section provides conceptual guidance]
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards.
