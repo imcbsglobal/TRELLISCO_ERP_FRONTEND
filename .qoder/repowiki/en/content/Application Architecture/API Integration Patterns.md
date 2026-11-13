@@ -11,17 +11,20 @@
 - [terpLicense.js](file://src/api/terpLicense.js)
 - [userMaster.js](file://src/api/userMaster.js)
 - [notifications.js](file://src/api/notifications.js)
+- [financialYear.js](file://src/api/financialYear.js)
 - [projectFlags.js](file://src/config/projectFlags.js)
 - [config.js](file://src/config/config.js)
+- [vite.config.js](file://vite.config.js)
+- [TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for T-ERP license management system (terpLicense.js)
-- Added detailed coverage of user master operations and admin account creation (userMaster.js)
-- Documented multi-channel notification system with WhatsApp and email delivery (notifications.js)
-- Updated architecture diagrams to include new service modules
-- Enhanced guidelines for handling external API integrations and third-party services
+- Added comprehensive documentation for the new financial year API module (financialYear.js) with Central Master integration
+- Updated architecture diagrams to include financial year service and proxy configuration
+- Enhanced guidelines for handling external API integrations with environment-specific routing
+- Added detailed coverage of CORS handling through Vite proxy configuration
+- Documented the financial year register pattern for country-based financial year management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -38,13 +41,13 @@
 ## Introduction
 This document explains the API integration layer architecture, focusing on:
 - Centralized Axios client configuration with interceptors for authentication and error handling
-- Service layer pattern by domain (blog, announcements, videos, T-ERP licenses, user management, notifications)
+- Service layer pattern by domain (blog, announcements, videos, T-ERP licenses, user management, notifications, financial years)
 - Error handling strategies, retry mechanisms, and loading state guidance
 - Examples of making API calls, file uploads, and response normalization
 - Caching strategies, request optimization, and performance considerations
 - Guidelines for adding new endpoints consistently
 
-The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, and multi-channel communications.
+The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration.
 
 ## Project Structure
 The API integration lives under `src/api` and is organized by domain modules that share a common Axios client:
@@ -57,7 +60,9 @@ The API integration lives under `src/api` and is organized by domain modules tha
 - `terpLicense.js`: T-ERP license management and project catalogue operations
 - `userMaster.js`: User master operations and admin account creation
 - `notifications.js`: Multi-channel notification system (WhatsApp, Email via multiple providers)
+- `financialYear.js`: Financial year register management with Central Master integration
 - `config.js`: Shared environment-based base URL configuration
+- `vite.config.js`: Development proxy configuration for external APIs
 
 ```mermaid
 graph TB
@@ -71,7 +76,9 @@ Promo["promoVideoApi.js<br/>Promo video services"]
 Terp["terpLicense.js<br/>T-ERP license management"]
 UserMaster["userMaster.js<br/>User master operations"]
 Notifications["notifications.js<br/>Multi-channel notifications"]
+FinancialYear["financialYear.js<br/>Financial year register"]
 Config["config.js<br/>Base URL config"]
+ViteConfig["vite.config.js<br/>Proxy configuration"]
 end
 Client --> Auth
 Client --> Blog
@@ -80,6 +87,7 @@ Promo --> Client
 Terp --> Config
 UserMaster --> Terp
 Notifications --> UserMaster
+FinancialYear --> ViteConfig
 ApiLegacy --> Config
 ```
 
@@ -93,7 +101,9 @@ ApiLegacy --> Config
 - [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
+- [vite.config.js:1-36](file://vite.config.js#L1-L36)
 
 **Section sources**
 - [client.js:1-88](file://src/api/client.js#L1-L88)
@@ -105,7 +115,9 @@ ApiLegacy --> Config
 - [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
+- [vite.config.js:1-36](file://vite.config.js#L1-L36)
 
 ## Core Components
 - Centralized Axios clients:
@@ -121,8 +133,11 @@ ApiLegacy --> Config
   - T-ERP license management with project catalogue and license creation
   - User master operations for admin account provisioning
   - Multi-channel notifications with WhatsApp and email delivery
+  - Financial year register management with Central Master integration
 - Error normalization:
   - Helpers convert DRF error bodies into readable messages
+- Environment-specific routing:
+  - Vite proxy configuration for external APIs without CORS support
 
 Key responsibilities:
 - Single source of truth for base URLs and headers
@@ -130,6 +145,7 @@ Key responsibilities:
 - Clear separation between public and authenticated flows
 - Predictable error shapes for UI consumption
 - Support for complex enterprise workflows and third-party integrations
+- Environment-aware endpoint resolution for development vs production
 
 **Section sources**
 - [client.js:21-75](file://src/api/client.js#L21-L75)
@@ -139,39 +155,46 @@ Key responsibilities:
 - [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
 
 ## Architecture Overview
 The API layer follows a layered approach:
 - Infrastructure: Axios instances and interceptors
 - Auth: Login/logout and token persistence
 - Services: Domain-specific API functions
-- Enterprise Services: License management, user provisioning, notifications
+- Enterprise Services: License management, user provisioning, notifications, financial year registration
+- External Integrations: Central Master API with proxy support
 - Consumers: Pages and components call service functions
 
 ```mermaid
 sequenceDiagram
 participant UI as "UI Component"
+participant FinancialSvc as "financialYear.js"
+participant Proxy as "Vite Proxy"
+participant Central as "Central Master API"
 participant LicenseSvc as "terpLicense.js"
 participant UserSvc as "userMaster.js"
 participant NotifySvc as "notifications.js"
 participant Client as "client.js"
 participant Server as "Backend API"
-UI->>LicenseSvc : createTerpLicense(data)
-LicenseSvc->>Server : POST /license/create/
-Server-->>LicenseSvc : { clientId, licenseKey }
-LicenseSvc->>UserSvc : createClientAdmin(clientId, data)
-UserSvc->>Server : POST /user-master/
-Server-->>UserSvc : { username, password }
-UserSvc->>NotifySvc : sendCredentialsEmail(credentials)
-NotifySvc->>Server : Send via WhatsApp/Email
-Server-->>NotifySvc : Delivery confirmation
-NotifySvc-->>UI : Success notification
+UI->>FinancialSvc : fetchFinancialYearCountries()
+FinancialSvc->>Proxy : GET /central-api/api/financial-year/country-wise/
+Proxy->>Central : GET /api/financial-year/country-wise/
+Central-->>Proxy : Country list
+Proxy-->>FinancialSvc : Normalized countries
+FinancialSvc-->>UI : Country options
+UI->>FinancialSvc : ensureClientCountry({clientId, country})
+FinancialSvc->>Proxy : POST /central-api/api/financial-year/customer-wise/
+Proxy->>Central : POST /api/financial-year/customer-wise/
+Central-->>Proxy : Registration confirmation
+Proxy-->>FinancialSvc : Success response
+FinancialSvc-->>UI : {created : true/false, country}
 ```
 
 **Diagram sources**
-- [terpLicense.js:170-198](file://src/api/terpLicense.js#L170-L198)
-- [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
-- [notifications.js:363-414](file://src/api/notifications.js#L363-L414)
+- [financialYear.js:38-52](file://src/api/financialYear.js#L38-L52)
+- [financialYear.js:107-115](file://src/api/financialYear.js#L107-L115)
+- [vite.config.js:27-32](file://vite.config.js#L27-L32)
 
 ## Detailed Component Analysis
 
@@ -246,8 +269,45 @@ Auth-->>UI : user
 - [auth.js:1-40](file://src/api/auth.js#L1-L40)
 - [client.js:21-75](file://src/api/client.js#L21-L75)
 
+### Financial Year Register Management
+**New** The financial year register manages country-based financial year assignments for clients through Central Master integration with sophisticated environment-specific routing.
+
+Responsibilities:
+- Fetch available countries for financial year selection
+- Bind client IDs to their respective countries
+- Retrieve existing financial year registrations per client
+- Ensure idempotent country registration
+- Handle CORS restrictions through Vite proxy configuration
+
+Key features:
+- Environment-aware endpoint resolution (development vs production)
+- Vite proxy integration for CORS-free development
+- Flexible payload normalization supporting various API response formats
+- Idempotent registration with existing record detection
+- Comprehensive error handling for HTML and JSON responses
+- Secure client ID handling with Gmail address validation
+
+```mermaid
+classDiagram
+class FinancialYearService {
++fetchFinancialYearCountries()
++saveClientCountry({clientId, countryName})
++findClientFinancialYears(clientId)
++ensureClientCountry({clientId, countryName})
++COUNTRY_ENDPOINT
++CUSTOMER_ENDPOINT
+}
+```
+
+**Diagram sources**
+- [financialYear.js:38-115](file://src/api/financialYear.js#L38-L115)
+
+**Section sources**
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
+- [vite.config.js:27-32](file://vite.config.js#L27-L32)
+
 ### T-ERP License Management System
-**New** The T-ERP license management system handles enterprise license provisioning with sophisticated client identification and project mapping capabilities.
+**Updated** The T-ERP license management system handles enterprise license provisioning with sophisticated client identification and project mapping capabilities, now integrated with financial year registration.
 
 Responsibilities:
 - Fetch project catalogue from T-ERP API
@@ -255,6 +315,7 @@ Responsibilities:
 - Identify returning customers via email and client ID matching
 - Normalize project data from various API response formats
 - Extract client IDs and license keys from responses
+- Integrate with financial year registration for country-based setup
 
 Key features:
 - Intelligent client workspace detection based on email addresses
@@ -262,6 +323,7 @@ Key features:
 - HTML error parsing for Django backend compatibility
 - Caching mechanism for client registers to reduce API calls
 - Flexible project data normalization supporting multiple response formats
+- Financial year registration coordination
 
 ```mermaid
 classDiagram
@@ -466,6 +528,30 @@ Recommendation:
 - [api.js:1-39](file://src/api/api.js#L1-L39)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
+### Vite Proxy Configuration for External APIs
+**New** The Vite development server includes proxy configurations for external APIs that don't send CORS headers, particularly Central Master integration.
+
+Key features:
+- Central Master proxy at `/central-api` pointing to `https://centralmastermanagement.imcbs.com`
+- T-ERP activation proxy at `/terp-api` pointing to `https://activate.imcbs.com`
+- Path rewriting to strip proxy prefixes
+- Secure HTTPS connections with proper SSL handling
+- Same-origin development experience for browser security
+
+```mermaid
+flowchart TD
+Browser["Browser Dev Server"] --> Proxy["Vite Proxy"]
+Proxy --> Central["Central Master API"]
+Proxy --> TERP["T-ERP Activation API"]
+Proxy --> Django["Django Backend API"]
+```
+
+**Diagram sources**
+- [vite.config.js:12-33](file://vite.config.js#L12-L33)
+
+**Section sources**
+- [vite.config.js:1-36](file://vite.config.js#L1-L36)
+
 ## Dependency Analysis
 ```mermaid
 graph LR
@@ -477,7 +563,12 @@ Terp["terpLicense.js"] --> Config["config.js"]
 UserMaster["userMaster.js"] --> ProjectFlags["projectFlags.js"]
 UserMaster --> Terp
 Notifications --> UserMaster
+FinancialYear["financialYear.js"] --> ViteConfig["vite.config.js"]
 ApiLegacy["api.js"] --> Config
+TERPLogin["TERPLogin.jsx"] --> FinancialYear
+TERPLogin --> Terp
+TERPLogin --> UserMaster
+TERPLogin --> Notifications
 ```
 
 **Diagram sources**
@@ -489,9 +580,12 @@ ApiLegacy["api.js"] --> Config
 - [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
 - [projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
 - [api.js:1-39](file://src/api/api.js#L1-L39)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
+- [vite.config.js:1-36](file://vite.config.js#L1-L36)
+- [TERPLogin.jsx:16](file://src/pages/TERPLogin.jsx#L16)
 
 **Section sources**
 - [client.js:1-88](file://src/api/client.js#L1-L88)
@@ -503,13 +597,17 @@ ApiLegacy["api.js"] --> Config
 - [terpLicense.js:1-222](file://src/api/terpLicense.js#L1-L222)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
 - [projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
+- [vite.config.js:1-36](file://vite.config.js#L1-L36)
+- [TERPLogin.jsx:1-200](file://src/pages/TERPLogin.jsx#L1-L200)
 
 ## Performance Considerations
 - Avoid duplicate network calls:
   - Cache lists at the component level or with a lightweight cache layer when appropriate
   - T-ERP license module implements register caching for client lists
+  - Financial year register benefits from browser caching for country lists
 - Minimize payload size:
   - Use query parameters for filtering/sorting instead of fetching all records
 - Defer non-critical requests:
@@ -525,6 +623,9 @@ ApiLegacy["api.js"] --> Config
   - Implement proper error handling for third-party services
   - Use exponential backoff for retry logic
   - Cache static configuration data
+- Development proxy optimization:
+  - Use Vite proxy for CORS-free development to avoid preflight requests
+  - Configure proxy timeouts appropriately for slow external APIs
 
 [No sources needed since this section provides general guidance]
 
@@ -550,12 +651,18 @@ Common issues and resolutions:
   - Verify WhatsApp API credentials and configuration
   - Check EmailJS setup and Gmail OAuth configuration
   - Validate mail relay accessibility and authentication
+- Financial year API connection issues:
+  - Verify Vite proxy configuration for development environment
+  - Check Central Master API availability and CORS settings
+  - Validate environment variables for production endpoints
+  - Ensure proper path rewriting in proxy configuration
 
 Operational tips:
 - Wrap API calls in try/catch and surface user-friendly messages
 - Log network errors with context (endpoint, method, payload hash) without exposing secrets
 - Add feature flags for experimental endpoints
 - Monitor third-party API availability and implement graceful degradation
+- Test both development proxy and production direct connections
 
 **Section sources**
 - [client.js:58-75](file://src/api/client.js#L58-L75)
@@ -565,6 +672,8 @@ Operational tips:
 - [terpLicense.js:67-78](file://src/api/terpLicense.js#L67-L78)
 - [userMaster.js:190-202](file://src/api/userMaster.js#L190-L202)
 - [notifications.js:84-112](file://src/api/notifications.js#L84-L112)
+- [financialYear.js:19-31](file://src/api/financialYear.js#L19-L31)
+- [vite.config.js:27-32](file://vite.config.js#L27-L32)
 
 ## Guidelines for Adding New Endpoints
 Follow these steps to maintain consistency:
@@ -572,6 +681,7 @@ Follow these steps to maintain consistency:
    - Use `api` for admin endpoints
    - Use `publicApi` for public endpoints
    - Use native fetch for external APIs that don't require authentication
+   - For external APIs without CORS support, configure Vite proxy in development
 2. Create or extend the domain module:
    - Add functions for each operation (list, get, create, update, delete)
    - Normalize responses to arrays or objects as expected by consumers
@@ -586,17 +696,24 @@ Follow these steps to maintain consistency:
 5. Keep base URLs centralized:
    - Do not hardcode paths; rely on baseURL from the client
    - Use environment variables for external API endpoints
+   - Configure Vite proxy for development with external APIs
 6. Align token usage:
    - Ensure token keys and schemes match the server expectations
 7. Add tests:
    - Mock axios/fetch and verify success/error paths
    - Test third-party API integrations with mock responses
+   - Test proxy configuration for development environments
 8. Document contracts:
    - Update this guide with any new response shapes or required fields
 9. For enterprise features:
    - Implement proper caching for frequently accessed data
    - Handle concurrent operations safely
    - Provide meaningful feedback for long-running processes
+10. For external API integrations:
+    - Configure Vite proxy for development if CORS is not supported
+    - Implement environment-specific endpoint resolution
+    - Handle both JSON and HTML error responses
+    - Provide fallback mechanisms for unavailable services
 
 Example patterns to follow:
 - Public read: see public post fetch
@@ -604,6 +721,7 @@ Example patterns to follow:
 - File upload: see blog upload and promo video create/update
 - External API integration: see T-ERP license management
 - Third-party service integration: see notification system
+- CORS-free external API: see financial year register with Vite proxy
 
 **Section sources**
 - [blogApi.js:25-47](file://src/api/blogApi.js#L25-L47)
@@ -612,8 +730,10 @@ Example patterns to follow:
 - [terpLicense.js:104-222](file://src/api/terpLicense.js#L104-L222)
 - [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
 - [notifications.js:84-414](file://src/api/notifications.js#L84-L414)
+- [financialYear.js:9-17](file://src/api/financialYear.js#L9-L17)
+- [vite.config.js:27-32](file://vite.config.js#L27-L32)
 
 ## Conclusion
-This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. The architecture now supports complex enterprise workflows including license management, user provisioning, and multi-channel communications. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. The addition of specialized modules for T-ERP license management, user master operations, and multi-channel notifications demonstrates the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application.
+This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. The addition of specialized modules for T-ERP license management, user master operations, multi-channel notifications, and financial year registration demonstrates the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. The Vite proxy configuration enables seamless development with external APIs that lack CORS support. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application.
 
 [No sources needed since this section summarizes without analyzing specific files]

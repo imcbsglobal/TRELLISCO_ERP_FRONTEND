@@ -1,0 +1,1 @@
+Bootstraps the Trellisco React application, wires routing and auth guards around page modules, and centralizes global CSS design tokens consumed by every child.

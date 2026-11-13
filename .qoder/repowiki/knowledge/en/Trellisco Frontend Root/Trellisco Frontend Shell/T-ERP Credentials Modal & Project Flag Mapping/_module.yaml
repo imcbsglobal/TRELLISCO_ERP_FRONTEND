@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: app_shell/terp
-title: T-ERP License Credentials Modal & Project Flag Mapping
+title: T-ERP Credentials Modal & Project Flag Mapping
 scope:
     - src/api/
     - src/components/CredentialsModal.jsx

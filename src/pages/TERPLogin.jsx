@@ -10,6 +10,7 @@ import {
   fetchTerpProjects,
   findClientWorkspace,
   getNetworkError,
+  prefetchTerpRegisters,
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
 import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
@@ -104,6 +105,9 @@ export default function TERPLogin() {
   // Country already stored in the financial-year register for this Gmail id. It
   // decided the books that exist, so the form shows it but cannot change it.
   const [registeredCountry, setRegisteredCountry] = useState("")
+  // True while the license register is being read, so step 1 can say why the
+  // owned-project ticks are not there yet.
+  const [checkingWorkspace, setCheckingWorkspace] = useState(false)
   const [company, setCompany] = useState(INITIAL_COMPANY)
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -196,6 +200,13 @@ export default function TERPLogin() {
     return () => { cancelled = true }
   }, [googleUser])
 
+  useEffect(() => {
+    // Pull both T-ERP registers while the visitor is still on step 1, so the
+    // projects they already own are ready to be ticked the moment Google returns
+    // instead of being fetched on that critical path.
+    prefetchTerpRegisters()
+  }, [])
+
   // A returning customer is recognised by the Gmail used to sign in and by the
   // company email typed on the form, because either can be the client id in T-ERP:
   // the directory says who they are, the register says what they already own.
@@ -204,11 +215,27 @@ export default function TERPLogin() {
     if (!candidate.includes("@")) return
     let cancelled = false
 
-    async function loadWorkspace() {
-      try {
-        const found = await findClientWorkspace(candidate)
+    // The ticks only need the license register, so the cards are marked as soon
+    // as it lands; the company name and place follow with the directory.
+    setCheckingWorkspace(true)
+    const tickOwnedProjects = (projects, corporateName) => {
+      if (cancelled) return
+      setCheckingWorkspace(false)
+      setWorkspace((current) => ({
+        clientId: current?.clientId || candidate,
+        companyName: current?.companyName || "",
+        corporateName: current?.corporateName || corporateName || "",
+        place: current?.place || "",
+        projects,
+      }))
+    }
+
+    findClientWorkspace(candidate, tickOwnedProjects)
+      .then((found) => {
         if (cancelled || !found) return
-        setWorkspace((current) => (current?.clientId === found.clientId ? current : found))
+        // Upgrade the partial workspace the register produced with the company
+        // name and place the directory adds — never downgrade it.
+        setWorkspace((current) => ({ ...current, ...found }))
         setCompany((current) => {
           const filled = {
             ...current,
@@ -218,12 +245,14 @@ export default function TERPLogin() {
           }
           return filled.name === current.name && filled.place === current.place ? current : filled
         })
-      } catch {
+      })
+      .catch(() => {
         // Recognition is a convenience: a brand new signup must still go through.
-      }
-    }
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingWorkspace(false)
+      })
 
-    loadWorkspace()
     return () => { cancelled = true }
   }, [googleUser, company.email])
 
@@ -445,16 +474,25 @@ export default function TERPLogin() {
         // for a legacy client that has no financial year yet.
         const country = await registerClientCountry(clientId, company.country)
 
-        setSelectedProjects([])
-        setSetupStep(1)
-        setSuccess(
-          `Added ${addedProjects.join(", ")} to ${companyName}.` +
-            (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
-            " Your existing T-ERP login still works — no new user and no new password were created." +
-            (country.error || ""),
-        )
-        // The new license is theirs now, so tick it without a page reload.
-        findClientWorkspace(email).then((found) => { if (found) setWorkspace(found) }).catch(() => {})
+        if (country.error) {
+          // The products were switched on, but the country could not be written:
+          // stay on the page so the operator reads it, and refresh the ticks for
+          // the project that was just added.
+          setSelectedProjects([])
+          setSetupStep(1)
+          setSuccess(
+            `Added ${addedProjects.join(", ")} to ${companyName}.` +
+              (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
+              " Your existing T-ERP login still works — no new user and no new password were created.",
+          )
+          setError(country.error.trim())
+          findClientWorkspace(email).then((found) => { if (found) setWorkspace(found) }).catch(() => {})
+          return
+        }
+
+        // Same exit as the credentials popup's Done button: the project is already
+        // on their account, so the signup is over and the wizard returns home.
+        navigate("/")
         return
       }
 
@@ -540,7 +578,7 @@ export default function TERPLogin() {
           <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {setupStep + 1} of 3</span></div>
           {setupStep === 1 ? (
             <div className="terp-login__product-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each."}</p></div>
+              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each."}</p></div>
               {workspace && <div className="terp-login__workspace"><b>{workspace.companyName || workspace.clientId}</b><small>{workspace.projects.length ? `${workspace.projects.join(", ")} ${workspace.projects.length > 1 ? "are" : "is"} already active and ticked below. Add another project whenever you need it.` : "This client already exists. Choose the projects to add."}</small></div>}
               <div className="terp-login__project-grid">
                 {loadingProjects && <div className="terp-login__loading">Loading available projects…</div>}

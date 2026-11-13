@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: app_shell
-title: Trellisco React App Shell
+title: Trellisco Frontend Shell
 scope:
     - src/App.jsx
     - src/main.jsx

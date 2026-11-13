@@ -115,34 +115,46 @@ async function fetchList(endpoint, fallback) {
 }
 
 // Both registers total ~100 KB and change only when a client is onboarded, so one
-// fetch per page load is enough however often the email field is edited.
-let registerCache = null
+// fetch per page load is enough however often the email field is edited. They are
+// cached separately because the ticks only need the license register: waiting for
+// the (larger) client directory as well made the owned-project ticks appear late.
+let clientDirectoryCache = null
+let licenseRegisterCache = null
 
-function loadRegisters() {
-  if (!registerCache) {
-    registerCache = Promise.all([
-      fetchList(TERP_CLIENT_IDS_ENDPOINT, "Unable to load the T-ERP client list"),
-      fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the T-ERP license register"),
-    ]).catch((error) => {
-      registerCache = null
-      throw error
-    })
+function loadClientDirectory() {
+  if (!clientDirectoryCache) {
+    clientDirectoryCache = fetchList(TERP_CLIENT_IDS_ENDPOINT, "Unable to load the T-ERP client list")
+      .catch((error) => {
+        // Drop the failed promise so the next lookup can retry.
+        clientDirectoryCache = null
+        throw error
+      })
   }
-  return registerCache
+  return clientDirectoryCache
+}
+
+function loadLicenseRegister() {
+  if (!licenseRegisterCache) {
+    licenseRegisterCache = fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the T-ERP license register")
+      .catch((error) => {
+        licenseRegisterCache = null
+        throw error
+      })
+  }
+  return licenseRegisterCache
 }
 
 /**
- * The workspace behind an email address, or null when it has never been
- * provisioned. Some client ids are the company email itself, which is why the
- * address used to sign in can be enough to recognise a returning customer.
+ * Starts both registers while the visitor is still on the first step, so they are
+ * already in memory by the time Google sign-in returns. Failures are ignored
+ * here: the lookup that really needs the data retries and reports them.
  */
-export async function findClientWorkspace(email) {
-  const wanted = String(email || "").trim().toLowerCase()
-  if (!wanted) return null
+export function prefetchTerpRegisters() {
+  Promise.allSettled([loadClientDirectory(), loadLicenseRegister()])
+}
 
-  const [clients, corporates] = await loadRegisters()
-
-  const client = clients.find((item) => String(item?.client_id || "").trim().toLowerCase() === wanted)
+// Projects a client already owns, taken from the license register alone.
+function ownedProjectsOf(corporates, wanted) {
   const projects = new Set()
   let corporateName = ""
   for (const corporate of corporates) {
@@ -154,14 +166,44 @@ export async function findClientWorkspace(email) {
       for (const project of shop?.projects || []) if (project) projects.add(project)
     }
   }
+  return { projects: [...projects], corporateName }
+}
 
-  if (!client && !projects.size) return null
+/**
+ * The workspace behind an email address, or null when it has never been
+ * provisioned. Some client ids are the company email itself, which is why the
+ * address used to sign in can be enough to recognise a returning customer.
+ *
+ * `onProjects` fires as soon as the license register resolves — it is the only
+ * input for "already owned" — so the cards can be ticked without waiting for the
+ * client directory that only adds the company name and place.
+ */
+export async function findClientWorkspace(email, onProjects) {
+  const wanted = String(email || "").trim().toLowerCase()
+  if (!wanted) return null
+
+  const register = loadLicenseRegister()
+  register
+    .then((corporates) => {
+      const owned = ownedProjectsOf(corporates, wanted)
+      if (owned.projects.length) onProjects?.(owned.projects, owned.corporateName)
+    })
+    .catch(() => {
+      // Reported by the full lookup below.
+    })
+
+  const [clients, corporates] = await Promise.all([loadClientDirectory(), register])
+
+  const client = clients.find((item) => String(item?.client_id || "").trim().toLowerCase() === wanted)
+  const { projects, corporateName } = ownedProjectsOf(corporates, wanted)
+
+  if (!client && !projects.length) return null
   return {
     clientId: client?.client_id || email,
     companyName: client?.company_name || "",
     corporateName,
     place: client?.place || "",
-    projects: [...projects],
+    projects,
   }
 }
 
