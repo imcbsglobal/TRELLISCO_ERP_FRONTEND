@@ -4,7 +4,7 @@
 // POST's preflight with a 405, so every call goes through the same-origin
 // '/terp-api' prefix (Vite proxy locally, nginx in production).
 
-import { TERP_ORIGIN, TERP_PROXY_PREFIX, viaProxy } from "./proxy"
+import { TERP_ORIGIN, TERP_PROXY_PREFIX, assertJson, viaProxy } from "./proxy"
 
 export const TERP_PROJECTS_ENDPOINT = viaProxy(
   import.meta.env.VITE_TERP_PROJECTS_API_URL || `${TERP_ORIGIN}/t-erp/mobileapp/api/projects/`,
@@ -115,12 +115,14 @@ export function normaliseProjects(payload) {
 export async function fetchTerpProjects() {
   const response = await fetch(TERP_PROJECTS_ENDPOINT)
   if (!response.ok) await throwApiError(response, "Unable to load T-ERP projects")
+  assertJson(response, "Unable to load T-ERP projects")
   return normaliseProjects(await response.json())
 }
 
 async function fetchList(endpoint, fallback) {
   const response = await fetch(endpoint)
   if (!response.ok) await throwApiError(response, fallback)
+  assertJson(response, fallback)
   const payload = await response.json().catch(() => ({}))
   return Array.isArray(payload) ? payload : payload?.data || payload?.results || []
 }
@@ -239,6 +241,7 @@ export async function createTerpLicense({ company, corporate, projects }) {
   })
 
   if (!response.ok) await throwApiError(response, "License creation failed")
+  assertJson(response, "License creation failed")
 
   // Some deployments answer 201 with an empty body — never let that throw.
   const rawBody = await response.text()

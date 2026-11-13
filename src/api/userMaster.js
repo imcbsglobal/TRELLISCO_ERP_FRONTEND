@@ -4,7 +4,7 @@
 // flag mirrors the projects that were bought.
 
 import { USER_MASTER_FLAGS, flagsForProjects } from "../config/projectFlags"
-import { CENTRAL_ORIGIN, CENTRAL_PROXY_PREFIX, viaProxy } from "./proxy"
+import { CENTRAL_ORIGIN, CENTRAL_PROXY_PREFIX, assertJson, viaProxy } from "./proxy"
 
 // Central Master sends no CORS headers, so the user table is read and written
 // through the same-origin '/central-api' prefix (Vite proxy locally, nginx in
@@ -137,6 +137,9 @@ function digitsOnly(value) {
 async function fetchAllUsers() {
   const response = await fetch(USER_MASTER_ENDPOINT)
   if (!response.ok) return []
+  // Anything but JSON means the request never reached Central Master; throwing
+  // keeps the caller from mistaking "unreadable" for "this client has no login".
+  assertJson(response, "Unable to read the Central Master user list")
   const payload = await response.json().catch(() => [])
   return Array.isArray(payload) ? payload : payload?.results || []
 }
@@ -212,6 +215,7 @@ export async function enableProjectsForClient({ logins = [], clientId = "", sele
       const failure = await readFailure(response, "Could not enable the new project on the existing login")
       throw new Error(failure.message)
     }
+    assertJson(response, "Could not enable the new project on the existing login")
     updated += 1
   }
 
@@ -286,6 +290,10 @@ export async function createClientAdmin({
     })
 
     if (response.ok) {
+      // A 200 that is not JSON is the site's own HTML fallback, never Central
+      // Master: reporting it as a created account would hand out a login that
+      // does not exist.
+      assertJson(response, "Could not create the T-ERP admin account")
       const rawBody = await response.text()
       let user
       try {

@@ -34,3 +34,22 @@ export function viaProxy(url, host, prefix) {
     return value
   }
 }
+
+/**
+ * A miss on the reverse proxy is invisible in the HTTP status: the site's own
+ * SPA fallback answers 200 with index.html, so the body then fails as a JSON
+ * parse error — or, worse, parses into an empty list and looks like "no data".
+ * Callers pass every successful response through this so a missing proxy is
+ * reported as exactly that.
+ */
+export function assertJson(response, label) {
+  const type = String(response.headers.get("content-type") || "").toLowerCase()
+  if (!type.includes("text/html")) return response
+
+  const path = response.url || "the requested path"
+  const prefix = [TERP_PROXY_PREFIX, CENTRAL_PROXY_PREFIX].find((item) => path.includes(item))
+  throw new Error(
+    `${label}: ${path} returned the site's HTML page instead of JSON — ` +
+      `the ${prefix || "API"} reverse proxy is not configured on the server (see deploy/nginx-cors-proxy.conf).`,
+  )
+}

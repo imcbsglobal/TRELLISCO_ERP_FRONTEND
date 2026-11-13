@@ -5,7 +5,7 @@
 // Access-Control-Allow-Origin, so every call goes through the same-origin
 // '/central-api' prefix (Vite proxy locally, nginx in production).
 
-import { CENTRAL_ORIGIN, CENTRAL_PROXY_PREFIX, viaProxy } from "./proxy"
+import { CENTRAL_ORIGIN, CENTRAL_PROXY_PREFIX, assertJson, viaProxy } from "./proxy"
 
 const COUNTRY_ENDPOINT = viaProxy(
   import.meta.env.VITE_FINANCIAL_YEAR_COUNTRY_API_URL || `${CENTRAL_ORIGIN}/api/financial-year/country-wise/`,
@@ -41,6 +41,7 @@ async function readFailure(response, fallback) {
 export async function fetchFinancialYearCountries() {
   const response = await fetch(COUNTRY_ENDPOINT)
   if (!response.ok) throw await readFailure(response, "Unable to load the country list")
+  assertJson(response, "Unable to load the country list")
 
   const payload = await response.json().catch(() => [])
   const items = Array.isArray(payload) ? payload : payload?.results || payload?.data || []
@@ -70,6 +71,7 @@ export async function saveClientCountry({ clientId, countryName }) {
   })
 
   if (!response.ok) throw await readFailure(response, "The client country could not be saved")
+  assertJson(response, "The client country could not be saved")
 
   // Some deployments answer 201 with an empty body — never let that throw.
   const rawBody = await response.text()
@@ -92,6 +94,7 @@ export async function findClientFinancialYears(clientId) {
 
   const response = await fetch(CUSTOMER_ENDPOINT)
   if (!response.ok) throw await readFailure(response, "Unable to load the client's financial year")
+  assertJson(response, "Unable to load the client's financial year")
 
   const payload = await response.json().catch(() => [])
   const items = Array.isArray(payload) ? payload : payload?.results || payload?.data || []
