@@ -10,7 +10,7 @@ import {
   fetchTerpProjects,
   findClientWorkspace,
   getNetworkError,
-  isLicenseLive,
+  isLicenseRegistered,
   isLicensePayload,
   prefetchTerpRegisters,
 } from "../api/terpLicense"
@@ -519,7 +519,7 @@ export default function TERPLogin() {
 
       // A license created during this page session is reused as-is, so a failed
       // account step never posts a duplicate license. One restored from an
-      // earlier attempt is reused only while T-ERP still knows the client: when
+      // earlier attempt is reused only while T-ERP still lists its client: when
       // the signup was wiped in T-ERP (license, client and user deleted) the
       // cached license is dead and the signup must start over like a first one.
       let license = createdHereRef.current ? licenseRef.current : null
@@ -527,15 +527,14 @@ export default function TERPLogin() {
         const cached = licenseRef.current || readCachedLicense(email)
         // A failed lookup keeps the cached license: dropping a live one would
         // cost a duplicate-license error on the next POST.
-        const stillLive = cached
-          ? await isLicenseLive({
+        const stillRegistered = cached
+          ? await isLicenseRegistered({
             email,
-            corporateName: company.corporateName,
-            companyName: company.name,
+            clientId: extractClientId(cached),
           }).catch(() => true)
           : false
 
-        if (cached && stillLive) {
+        if (cached && stillRegistered) {
           license = cached
         } else {
           license = await createTerpLicense({

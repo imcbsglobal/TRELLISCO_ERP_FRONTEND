@@ -304,42 +304,33 @@ export function extractLicenseKey(payload) {
   return deepFindValue(payload, LICENSE_KEY_KEYS)
 }
 
-// Names are compared without case, spacing or punctuation, exactly like the
-// project cards are matched elsewhere in the signup.
-const labelKey = (value) => String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()
-
 /**
- * True while T-ERP still holds a client for this signup.
+ * True while T-ERP still lists the client this cached license belongs to.
  *
- * A license cached in the tab is only reusable while that client exists. Once the
- * signup is wiped in T-ERP (license, client and user deleted), reusing the cached
- * license skips license creation entirely and the account step can only fail with
- * "Unknown client_id" — the signup has to start over like a first one.
+ * The criterion is deliberately the same one Central Master enforces: the client
+ * id must exist in the T-ERP client registers. Names are not used — a company the
+ * operator can re-type (or a same-named test company) would keep a deleted
+ * license "alive" and stop the signup from ever creating a new one.
  *
+ * A cached license whose client id is gone was wiped in T-ERP: reusing it skips
+ * license creation, so the account step can only fail with "Unknown client_id".
  * The registers are re-read because the cached license may be older than the copy
  * loaded when the page opened.
  */
-export async function isLicenseLive({ email = "", corporateName = "", companyName = "" } = {}) {
-  const wantedEmail = String(email || "").trim().toLowerCase()
-  const wantedCorporate = labelKey(corporateName)
-  const wantedCompany = labelKey(companyName)
-  if (!wantedEmail && !wantedCorporate && !wantedCompany) return false
+export async function isLicenseRegistered({ email = "", clientId = "" } = {}) {
+  const wanted = [email, clientId]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean)
+  if (!wanted.length) return false
 
   clientDirectoryCache = null
   licenseRegisterCache = null
   const [clients, corporates] = await Promise.all([loadClientDirectory(), loadLicenseRegister()])
 
-  const sameEmail = (value) => wantedEmail !== "" && String(value || "").trim().toLowerCase() === wantedEmail
-
-  if (clients.some((client) => sameEmail(client?.client_id))) return true
-
+  const known = new Set(clients.map((client) => String(client?.client_id || "").trim().toLowerCase()))
   for (const corporate of corporates) {
-    if (wantedCorporate && labelKey(corporate?.corporate_name) === wantedCorporate) return true
-    for (const shop of corporate?.shops || []) {
-      if (sameEmail(shop?.client_id)) return true
-      if (wantedCompany && labelKey(shop?.shop_name) === wantedCompany) return true
-    }
+    for (const shop of corporate?.shops || []) known.add(String(shop?.client_id || "").trim().toLowerCase())
   }
 
-  return false
+  return wanted.some((value) => known.has(value))
 }
