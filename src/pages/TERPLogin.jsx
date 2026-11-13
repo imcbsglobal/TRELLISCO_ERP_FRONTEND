@@ -565,10 +565,10 @@ export default function TERPLogin() {
           createdHereRef.current = false
           dropCachedLicense(email)
           throw new Error(
-            `The license was not created. T-ERP answered: "${license.message || `${skippedCount} licence(s) skipped`}" ` +
-              `and still lists no client "${email}". T-ERP kept the company "${company.name}" (corporate ` +
-              `"${company.corporateName}") from the deleted signup together with its license, so it skips the new one. ` +
-              `Delete that company and its license in T-ERP, then submit again — a clean company is licensed and ` +
+            `The license was not created. T-ERP answered: "${license.message || `${skippedCount} licence(s) skipped`}" — ` +
+              `it still holds a license/company for "${email}" from the deleted signup, so it creates nothing and ` +
+              `registers no client (that is why Central Master answers "Unknown client_id"). Delete that company and ` +
+              `its license rows in T-ERP, then submit again — a company T-ERP no longer knows is licensed and ` +
               `registered exactly like a first-time signup.`,
           )
         }
@@ -652,16 +652,15 @@ export default function TERPLogin() {
         })
       } catch (error) {
         if (!/unknown client_id/i.test(String(error?.message || ""))) throw error
-        // The license was accepted, but T-ERP never registered the company, so
-        // Central Master has no client to attach the login to. A corporate left
-        // over from a deleted signup keeps its old (now shop-less) record and
-        // blocks the shop from being created again, which is why the same email
-        // works once and fails on every retry.
+        // The license was accepted, but T-ERP has no client for it, so Central
+        // Master has nothing to attach the login to. T-ERP keeps a license/company
+        // row for an email whose corporate was deleted, and that row makes
+        // license/create skip every further attempt: the signup can never repair
+        // itself until the company and its licenses are removed in T-ERP.
         throw new Error(
           `${error.message} — T-ERP has no client for "${email}": the license exists, but the company was not ` +
-            `registered again. T-ERP already holds the corporate "${company.corporateName}" from the deleted ` +
-            `signup without a shop, which blocks the new shop "${company.name}". Delete that corporate in T-ERP ` +
-            `(no client-creation API exists) and submit again.`,
+            `registered again. Delete the company "${company.name}" and its license rows in T-ERP ` +
+            `(there is no client-creation API), then submit again.`,
           { cause: error },
         )
       }
