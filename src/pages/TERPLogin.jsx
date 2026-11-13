@@ -27,6 +27,17 @@ const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client"
 const DEFAULT_PACKAGES = ["Basic", "Standard", "Platinum", "Enterprise"]
 const INITIAL_COMPANY = { corporateName: "", name: "", place: "", email: "", contact_no: "", country: "" }
 
+// The company form is validated field by field: the order here decides which
+// input gets focus when the operator submits an incomplete form.
+const COMPANY_FIELDS = ["name", "corporateName", "place", "country", "contact_no"]
+const COMPANY_FIELD_IDS = {
+  name: "terp-company-name",
+  corporateName: "terp-company-corporate",
+  place: "terp-company-place",
+  country: "terp-company-country",
+  contact_no: "terp-company-contact",
+}
+
 // Project names arrive from two different services, so they are compared without
 // case, spacing or punctuation ("Melone Stay" vs "melone  stay").
 const normaliseName = (value) => String(value || "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()
@@ -109,6 +120,9 @@ export default function TERPLogin() {
   // owned-project ticks are not there yet.
   const [checkingWorkspace, setCheckingWorkspace] = useState(false)
   const [company, setCompany] = useState(INITIAL_COMPANY)
+  // Messages keyed by the company field they belong to, so the form marks
+  // exactly which input is missing instead of showing one combined error.
+  const [fieldErrors, setFieldErrors] = useState({})
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -156,6 +170,32 @@ export default function TERPLogin() {
 
   useEffect(() => {
     let cancelled = false
+    let frame = 0
+
+    // Google renders its button inside an <iframe> at a fixed pixel width, so the
+    // width is measured from the card: 360 is wider than a 360px phone card and
+    // would push the button past the card edge.
+    const paintGoogleButton = () => {
+      const host = googleButtonRef.current
+      if (!window.google?.accounts?.id || !host) return
+      const width = Math.min(360, Math.max(200, Math.floor(host.clientWidth || 360)))
+      // renderButton appends a fresh iframe on every call, so a resize repaint
+      // has to clear the previous one instead of stacking them.
+      host.replaceChildren()
+      window.google.accounts.id.renderButton(host, {
+        theme: "outline",
+        size: "large",
+        width,
+        text: "continue_with",
+        logo_alignment: "center",
+      })
+    }
+
+    const repaintGoogleButton = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(paintGoogleButton)
+    }
+
     loadGoogleScript()
       .then(() => {
         if (cancelled || !googleButtonRef.current || !import.meta.env.VITE_GOOGLE_CLIENT_ID) return
@@ -171,10 +211,16 @@ export default function TERPLogin() {
             setError("")
           },
         })
-        window.google.accounts.id.renderButton(googleButtonRef.current, { theme: "outline", size: "large", width: 360, text: "continue_with" })
+        paintGoogleButton()
+        // Rotating a phone or resizing a desktop window changes the card width.
+        window.addEventListener("resize", repaintGoogleButton)
       })
       .catch(() => setError("Google Sign-In could not be loaded. Check your connection and try again."))
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener("resize", repaintGoogleButton)
+    }
   }, [])
 
   // A client whose financial year is already on file keeps the country that
@@ -296,7 +342,18 @@ export default function TERPLogin() {
     card.querySelector("select")?.focus({ preventScroll: true })
   }
 
-  const updateCompany = (field) => (event) => setCompany((current) => ({ ...current, [field]: event.target.value }))
+  const clearFieldError = (field) => setFieldErrors((current) => {
+    if (!current[field]) return current
+    const next = { ...current }
+    delete next[field]
+    return next
+  })
+
+  const updateCompany = (field) => (event) => {
+    const { value } = event.target
+    setCompany((current) => ({ ...current, [field]: value }))
+    clearFieldError(field)
+  }
 
   const formatContactNumber = (value) => value.replace(/\D/g, "").slice(0, 10)
 
@@ -399,9 +456,23 @@ export default function TERPLogin() {
         : "Select at least one T-ERP project to continue.")
     }
     if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
-    if (!company.corporateName.trim() || !company.name.trim() || !company.place.trim() || !company.email.trim() || !company.contact_no.trim()) return setError("Complete all company details to continue.")
-    if (!company.country.trim()) return setError("Select the country the license applies to.")
-    if (company.contact_no.length !== 10) return setError("Enter a valid 10-digit contact number, for example 1234567890.")
+    // Missing fields are marked under their own input and the first one is
+    // focused, so the operator fixes the form in place.
+    const missing = {}
+    if (!company.name.trim()) missing.name = "Enter the company name."
+    if (!company.corporateName.trim()) missing.corporateName = "Enter the corporate or group name."
+    if (!company.place.trim()) missing.place = "Enter the place."
+    if (!company.country.trim()) missing.country = "Select the country the license applies to."
+    if (!company.contact_no.trim()) missing.contact_no = "Enter the contact number."
+    else if (company.contact_no.length !== 10) missing.contact_no = "Enter a valid 10-digit number, for example 1234567890."
+
+    if (Object.keys(missing).length) {
+      setFieldErrors(missing)
+      const first = COMPANY_FIELDS.find((field) => missing[field])
+      requestAnimationFrame(() => document.getElementById(COMPANY_FIELD_IDS[first])?.focus())
+      return setError(Object.values(missing)[0])
+    }
+    setFieldErrors({})
 
     setSubmitting(true)
     try {
@@ -610,8 +681,106 @@ export default function TERPLogin() {
           ) : (
           <div className="terp-login__company-block">
               <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license and the admin login we send you.</p></div>
-              <div className="terp-login__fields"><label>Company name<input value={company.name} onChange={updateCompany("name")} placeholder="ABC Company" /></label><label>Corporate / group name<input value={company.corporateName} onChange={updateCompany("corporateName")} placeholder="ABC Corporate" /></label><label>Place<input value={company.place} onChange={updateCompany("place")} placeholder="Kochi" /></label><label>Country{registeredCountry ? <input value={registeredCountry} readOnly aria-readonly="true" title="Your financial year is already on file for this country" /> : <select value={company.country} onChange={updateCompany("country")} disabled={loadingCountries} aria-describedby="terp-login-country-hint"><option value="">{loadingCountries ? "Loading countries…" : "Choose country"}</option>{countries.map((item) => <option key={item.code || item.name} value={item.name}>{item.name}{item.currency ? ` — ${item.currency}` : ""}</option>)}</select>}<span className="terp-login__hint" id="terp-login-country-hint">{registeredCountry ? "Already on file — cannot be changed." : "Sets the financial year of your books."}</span></label><label>Email<input type="email" value={googleUser?.email || ""} readOnly aria-readonly="true" title="This is the address you signed in with" /></label><label>Contact number<input type="tel" inputMode="numeric" autoComplete="tel" value={company.contact_no} onChange={(event) => setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))} placeholder="1234567890" maxLength="10" pattern="[0-9]{10}" /></label></div>
-              <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create T-ERP license"}</button></div>
+              <div className="terp-login__fields">
+                <div className="terp-login__field">
+                  <label htmlFor="terp-company-name">Company name</label>
+                  <input
+                    id="terp-company-name"
+                    name="companyName"
+                    value={company.name}
+                    onChange={updateCompany("name")}
+                    placeholder="ABC Company"
+                    autoComplete="organization"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    aria-invalid={fieldErrors.name ? true : undefined}
+                    aria-describedby={fieldErrors.name ? "terp-company-name-error" : undefined}
+                  />
+                  {fieldErrors.name && <span className="terp-login__field-error" id="terp-company-name-error">{fieldErrors.name}</span>}
+                </div>
+                <div className="terp-login__field">
+                  <label htmlFor="terp-company-corporate">Corporate / group name</label>
+                  <input
+                    id="terp-company-corporate"
+                    name="corporateName"
+                    value={company.corporateName}
+                    onChange={updateCompany("corporateName")}
+                    placeholder="ABC Corporate"
+                    autoComplete="organization"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    aria-invalid={fieldErrors.corporateName ? true : undefined}
+                    aria-describedby={fieldErrors.corporateName ? "terp-company-corporate-error" : undefined}
+                  />
+                  {fieldErrors.corporateName && <span className="terp-login__field-error" id="terp-company-corporate-error">{fieldErrors.corporateName}</span>}
+                </div>
+                <div className="terp-login__field">
+                  <label htmlFor="terp-company-place">Place</label>
+                  <input
+                    id="terp-company-place"
+                    name="place"
+                    value={company.place}
+                    onChange={updateCompany("place")}
+                    placeholder="Kochi"
+                    autoComplete="address-level2"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    aria-invalid={fieldErrors.place ? true : undefined}
+                    aria-describedby={fieldErrors.place ? "terp-company-place-error" : undefined}
+                  />
+                  {fieldErrors.place && <span className="terp-login__field-error" id="terp-company-place-error">{fieldErrors.place}</span>}
+                </div>
+                <div className="terp-login__field">
+                  <label htmlFor="terp-company-country">Country</label>
+                  {registeredCountry ? (
+                    <input id="terp-company-country" name="country" value={registeredCountry} readOnly aria-readonly="true" title="Your financial year is already on file for this country" />
+                  ) : (
+                    <select
+                      id="terp-company-country"
+                      name="country"
+                      value={company.country}
+                      onChange={updateCompany("country")}
+                      disabled={loadingCountries}
+                      aria-invalid={fieldErrors.country ? true : undefined}
+                      aria-describedby={fieldErrors.country ? "terp-company-country-error" : "terp-login-country-hint"}
+                    >
+                      <option value="">{loadingCountries ? "Loading countries…" : "Choose country"}</option>
+                      {countries.map((item) => (
+                        <option key={item.code || item.name} value={item.name}>{item.name}{item.currency ? ` — ${item.currency}` : ""}</option>
+                      ))}
+                    </select>
+                  )}
+                  {fieldErrors.country
+                    ? <span className="terp-login__field-error" id="terp-company-country-error">{fieldErrors.country}</span>
+                    : <span className="terp-login__hint" id="terp-login-country-hint">{registeredCountry ? "Already on file — cannot be changed." : "Sets the financial year of your books."}</span>}
+                </div>
+                <div className="terp-login__field">
+                  <label htmlFor="terp-company-email">Email</label>
+                  <input id="terp-company-email" type="email" name="email" value={googleUser?.email || ""} readOnly aria-readonly="true" title="This is the address you signed in with" />
+                </div>
+                <div className="terp-login__field">
+                  <label htmlFor="terp-company-contact">Contact number</label>
+                  <input
+                    id="terp-company-contact"
+                    type="tel"
+                    name="contact"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    enterKeyHint="done"
+                    value={company.contact_no}
+                    onChange={(event) => {
+                      setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))
+                      clearFieldError("contact_no")
+                    }}
+                    placeholder="1234567890"
+                    maxLength="10"
+                    aria-invalid={fieldErrors.contact_no ? true : undefined}
+                    aria-describedby={fieldErrors.contact_no ? "terp-company-contact-error" : undefined}
+                  />
+                  {fieldErrors.contact_no && <span className="terp-login__field-error" id="terp-company-contact-error">{fieldErrors.contact_no}</span>}
+                </div>
+              </div>
+              <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setFieldErrors({}); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create T-ERP license"}</button></div>
             </div>
           )}
         </form>

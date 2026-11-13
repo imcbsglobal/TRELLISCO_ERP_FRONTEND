@@ -3,7 +3,7 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-11-13T07:17:32Z"
+exported_at: "2026-11-13T08:44:19Z"
 modules:
     "":
         dir_name: Trellisco Marketing SPA Root
@@ -22,8 +22,8 @@ modules:
         depends_on: []
         related_to: []
     app_shell:
-        dir_name: Trellisco App Shell
-        title: Trellisco App Shell
+        dir_name: Trellisco SPA Shell
+        title: Trellisco SPA Shell
         scope:
             - src/App.jsx
             - src/main.jsx

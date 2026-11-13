@@ -130,7 +130,7 @@ export default function CredentialsModal({
 
   return (
     <div className="terp-credentials" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) handleClose() }}>
-      <div className="terp-credentials__card" role="dialog" aria-modal="true" aria-labelledby="terp-credentials-title">
+      <div className="terp-credentials__card" role="dialog" aria-modal="true" aria-labelledby="terp-credentials-title" aria-describedby="terp-credentials-lede">
         <header className="terp-credentials__head">
           <span className="terp-credentials__badge" aria-hidden="true">✓</span>
           <div>
@@ -140,7 +140,8 @@ export default function CredentialsModal({
           <button type="button" className="terp-credentials__close" onClick={handleClose} aria-label="Close">×</button>
         </header>
 
-        <p className="terp-credentials__lede">
+        <div className="terp-credentials__body">
+        <p className="terp-credentials__lede" id="terp-credentials-lede">
           Share these details with the customer. They are sent to the registered WhatsApp number and email address
           automatically — use the buttons if a channel needs another attempt.
         </p>
@@ -221,6 +222,8 @@ export default function CredentialsModal({
             )}
           </p>
         )}
+
+        </div>
 
         <footer className="terp-credentials__actions">
           <button type="button" className="terp-credentials__copy" onClick={copy}>

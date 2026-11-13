@@ -1,107 +1,1152 @@
-.terp-login {
-  --ink: #15233d;
-  --muted: #71809a;
-  --blue: #2969dc;
-  min-height: 100svh;
-  padding: 8rem clamp(1.25rem, 6vw, 7rem) 5rem;
-  display: grid;
-  grid-template-columns: minmax(240px, .72fr) minmax(0, 1fr);
-  gap: clamp(2rem, 7vw, 8rem);
-  align-items: center;
-  background: radial-gradient(circle at 8% 10%, #dceaff 0, transparent 32%), radial-gradient(circle at 95% 80%, #e7e0ff 0, transparent 28%), #f8fbff;
-  color: var(--ink);
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  T-ERP login / signup
+//  Mobile first: the form is a single column built for a 360px phone, and each
+//  breakpoint only adds what the extra room allows (two columns, a side panel,
+//  the mascot).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Tokens ───────────────────────────────────────────────────────────────────
+$font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+$ink: #15233d;
+$ink-soft: #3f4f6a;
+$muted: #64748c;
+$muted-soft: #93a0b3;
+
+$blue: #2969dc;
+$blue-dark: #1e57bd;
+$blue-soft: #eaf1ff;
+
+$green: #2f8f5b;
+$green-dark: #23664a;
+$green-soft: #f2faf5;
+
+$red: #b3271d;
+$red-soft: #fff6f5;
+
+$line: #dfe7f2;
+$line-soft: #e9eef7;
+
+$card-shadow: 0 22px 60px rgba(31, 66, 118, 0.11), 0 2px 6px rgba(31, 66, 118, 0.05);
+$button-shadow: 0 10px 22px rgba(41, 105, 220, 0.24);
+
+// The nav is 84px tall and sits in the normal flow, so the page only has to
+// fill what is left of the viewport below it.
+$nav-height: 84px;
+
+$bp-xs: 400px; // smallest phones
+$bp-sm: 520px; // two project cards side by side
+$bp-md: 640px; // two form columns, actions in one row
+$bp-lg: 900px; // side panel + card
+$bp-xl: 1280px; // centred page, roomier gutters
+
+@mixin focus-ring($color: rgba(41, 105, 220, 0.35)) {
+  &:focus-visible {
+    outline: 3px solid $color;
+    outline-offset: 2px;
+  }
 }
-.terp-login__intro { max-width: 470px; }
-.terp-login__eyebrow { color: var(--blue); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-.terp-login h1 { margin: 1rem 0; font-size: clamp(2.5rem, 5vw, 5rem); line-height: .98; letter-spacing: -.06em; color: var(--ink); }
-.terp-login__intro > p { font-size: 1.05rem; line-height: 1.65; color: #63718a; }
-.terp-login__steps { display: grid; gap: .9rem; margin-top: 3rem; color: #9aa7ba; font-size: .8rem; }
-.terp-login__steps b { margin-left: .8rem; color: #334563; font-size: .95rem; }.terp-login__steps span { opacity: .52; transition: opacity .3s, transform .3s, color .3s; }.terp-login__steps span.is-active, .terp-login__steps span.is-complete { opacity: 1; color: var(--blue); transform: translateX(5px); }.terp-login__steps span.is-complete b { color: #37966a; }
-.terp-login__mascot { position: relative; z-index: 0; width: min(100%, 390px); margin: 1.4rem auto 0; pointer-events: none; animation: terp-mascot-float 5s ease-in-out infinite; }.terp-login__mascot::after { content: ""; position: absolute; z-index: -1; left: 18%; right: 18%; bottom: 6%; height: 14%; border-radius: 50%; background: rgba(41, 105, 220, .2); filter: blur(18px); animation: terp-mascot-shadow 5s ease-in-out infinite; }.terp-login__mascot-glow { position: absolute; z-index: -1; inset: 18% 20% 10%; border-radius: 50%; background: rgba(95, 149, 255, .2); filter: blur(28px); animation: terp-mascot-glow 3.5s ease-in-out infinite alternate; }.terp-login__mascot img { display: block; width: 100%; height: auto; filter: drop-shadow(0 18px 18px rgba(40, 84, 160, .12)); }
-.terp-login__card { max-width: 720px; padding: clamp(1.3rem, 3vw, 2.6rem); border: 1px solid rgba(218, 228, 242, .9); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: 0 26px 80px rgba(49, 89, 145, .14); backdrop-filter: blur(14px); }
-.terp-login__card-head, .terp-login__section > div, .terp-login__user { display: flex; align-items: center; gap: .8rem; }
-.terp-login__card-head { margin-bottom: 1.5rem; }
-.terp-login__mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #3983ef, #6255d7); color: white; font-weight: 800; box-shadow: 0 8px 18px rgba(41, 105, 220, .25); }
-.terp-login__card-head p { margin: 0; color: #8794a9; font-size: .78rem; }.terp-login h2 { margin: .15rem 0 0; font-size: 1.5rem; }
-.terp-login__auth-screen { padding: 1.5rem 0 .4rem; text-align: center; animation: terp-step-in .55s cubic-bezier(.22, 1, .36, 1) both; }.terp-login__auth-screen h3 { margin: 2rem 0 .55rem; font-size: 1.35rem; }.terp-login__auth-screen > p { max-width: 34rem; margin: 0 auto 1.5rem; color: var(--muted); font-size: .9rem; line-height: 1.6; }.terp-login__auth-badge { display: inline-flex; align-items: center; gap: .55rem; padding: .45rem .7rem; border: 1px solid #dce8fb; border-radius: 999px; background: #f3f7ff; color: var(--blue); font-size: .75rem; animation: terp-badge-in .55s .1s both; }.terp-login__auth-badge span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--blue); color: #fff; font-size: .7rem; }.terp-login__privacy { display: block; margin-top: 1rem; color: #9aa7ba; font-size: .7rem; }
-.terp-login__google { padding: 1rem; border: 1px solid #edf0f5; border-radius: 16px; text-align: center; background: rgba(255,255,255,.7); }.terp-login__google p { margin: 0 0 .8rem; color: #566680; font-size: .9rem; }.terp-login__google > div { display: flex; justify-content: center; }
-.terp-login__user { padding: .7rem .9rem; margin-bottom: 1.1rem; border-radius: 12px; background: #eff7f1; color: #3c6350; font-size: .85rem; }.terp-login__user img { width: 28px; height: 28px; border-radius: 50%; }
-.terp-login__flow-status { display: flex; align-items: center; gap: .65rem; margin: .3rem 0 1.5rem; padding: .7rem .85rem; border: 1px solid #dcefe2; border-radius: 12px; background: #f5fbf7; color: #326348; }.terp-login__flow-dot { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #35a46b; color: #fff; font-size: .75rem; }.terp-login__flow-status span:nth-child(2) { display: grid; gap: .1rem; min-width: 0; }.terp-login__flow-status small { color: #6d9b80; font-size: .68rem; }.terp-login__flow-status b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .76rem; }.terp-login__flow-next { margin-left: auto; color: #6d9b80; font-size: .7rem; font-weight: 700; white-space: nowrap; }
-.terp-login__setup-form { animation: terp-form-in .65s cubic-bezier(.22, 1, .36, 1) both; }.terp-login__setup-form .terp-login__flow-status { animation: terp-step-in .45s .08s both; }.terp-login__setup-form .terp-login__section, .terp-login__setup-form .terp-login__fields, .terp-login__setup-form .terp-login__submit { animation: terp-step-in .45s .16s both; }.terp-login__setup-form .terp-login__project { animation: terp-step-in .45s both; }.terp-login__setup-form .terp-login__project:nth-child(2) { animation-delay: .08s; }.terp-login__setup-form .terp-login__project:nth-child(3) { animation-delay: .13s; }.terp-login__setup-form .terp-login__project:nth-child(4) { animation-delay: .18s; }.terp-login__setup-form .terp-login__project:nth-child(5) { animation-delay: .23s; }
-.terp-login__message { margin: 1rem 0; padding: .8rem 1rem; border-radius: 10px; font-size: .88rem; overflow-wrap: anywhere; }.terp-login__message--error { background: #fff0f0; color: #b42318; }.terp-login__message--success { background: #ebf9f0; color: #157347; }
-.terp-login__section { margin: 2rem 0 .85rem; }.terp-login__section > div { gap: .6rem; }.terp-login__number { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #e8f0ff; color: var(--blue); font-size: .78rem; font-weight: 800; }.terp-login h3 { margin: 0; font-size: 1rem; }.terp-login__section p { margin: .4rem 0 0 2.1rem; color: #8794a9; font-size: .78rem; }.terp-login__selection-count { margin-left: auto; padding: .3rem .55rem; border-radius: 999px; background: #edf3ff; color: var(--blue); font-size: .7rem; font-weight: 800; }
-.terp-login__project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }.terp-login__project { padding: .65rem; border: 1px solid #e1e8f3; border-radius: 16px; background: rgba(255,255,255,.6); transition: border-color .2s, box-shadow .2s, transform .2s; }.terp-login__project:hover { transform: translateY(-2px); border-color: #a9c5f7; box-shadow: 0 8px 20px rgba(57, 105, 180, .1); }.terp-login__project.is-selected { border-color: #6c9df0; background: #f6f9ff; box-shadow: 0 8px 22px rgba(41, 105, 220, .12); }
-.terp-login__project-select { width: 100%; display: flex; align-items: center; gap: .65rem; padding: .35rem; border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; }.terp-login__project-icon { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg, #dceaff, #e9e2ff); color: #3867bd; font-weight: 800; }.terp-login__project-copy { display: grid; gap: .15rem; min-width: 0; }.terp-login__project-copy b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .86rem; }.terp-login__project-copy small { color: var(--muted); font-size: .68rem; }.terp-login__check { display: grid; place-items: center; width: 21px; height: 21px; margin-left: auto; border: 1px solid #cbd8ea; border-radius: 7px; color: transparent; font-size: .75rem; }.is-selected .terp-login__check { border-color: var(--blue); background: var(--blue); color: #fff; }.terp-login__package { display: grid; gap: .35rem; margin-top: .65rem; padding-top: .65rem; border-top: 1px solid #e2e9f4; color: #52627c; font-size: .7rem; font-weight: 700; }.terp-login__loading { grid-column: 1 / -1; padding: 1.5rem; border: 1px dashed #cbd8ea; border-radius: 14px; color: var(--muted); text-align: center; font-size: .85rem; }
-.terp-login__fields { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }.terp-login label { display: grid; gap: .4rem; color: #40516d; font-size: .78rem; font-weight: 700; }.terp-login input, .terp-login select { width: 100%; padding: .78rem .85rem; border: 1px solid #dbe3ef; border-radius: 10px; background: white; color: var(--ink); font: inherit; font-size: .9rem; outline: none; }.terp-login input:focus, .terp-login select:focus { border-color: #4b8af0; box-shadow: 0 0 0 3px rgba(75,138,240,.12); }
-/* The email is the Google account used to sign in: shown, never edited. */
-.terp-login input[readonly], .terp-login input[readonly]:focus { border-color: #e3e9f3; border-style: dashed; background: #f4f6fb; filter: none; color: #5f6d84; cursor: not-allowed; box-shadow: none; }
-.terp-login__hint { color: var(--muted); font-size: .66rem; font-weight: 600; }
-.terp-login__submit { width: 100%; margin-top: 1.8rem; padding: 1rem; border: 0; border-radius: 12px; background: linear-gradient(135deg, #2969dc, #524fca); color: white; font: inherit; font-weight: 750; cursor: pointer; box-shadow: 0 10px 22px rgba(41, 105, 220, .22); transition: transform .2s, box-shadow .2s; }.terp-login__submit:hover { transform: translateY(-2px); box-shadow: 0 14px 26px rgba(41, 105, 220, .3); }.terp-login__submit:disabled { opacity: .6; cursor: wait; transform: none; }
-.terp-login__product-block, .terp-login__company-block { padding: 1.15rem 1.25rem; border: 1px solid #e5ebf4; border-radius: 18px; background: linear-gradient(145deg, rgba(249,251,255,.96), rgba(244,248,255,.72)); }.terp-login__product-block .terp-login__section, .terp-login__company-block .terp-login__section { margin-top: 0; }.terp-login__product-block .terp-login__project-grid { gap: .85rem; }.terp-login__company-block .terp-login__fields { gap: .9rem 1rem; }.terp-login__company-block .terp-login__form-actions { margin-top: 1.25rem; }
-/* Returning customer: projects they already pay for are ticked and locked. */
-.terp-login__workspace { display: grid; gap: .15rem; margin: 0 0 .85rem; padding: .65rem .8rem; border: 1px solid #d5ecdf; border-radius: 12px; background: #f3fbf6; color: #2f6b4c; }.terp-login__workspace b { font-size: .8rem; }.terp-login__workspace small { color: #4d7d62; font-size: .72rem; line-height: 1.45; }
-.terp-login__project.is-owned, .terp-login__project.is-owned:hover { border-color: #a7dcc0; background: #f3fbf6; box-shadow: 0 6px 16px rgba(53, 164, 107, .1); transform: none; }.terp-login__project.is-owned .terp-login__project-select { cursor: default; }.terp-login__project.is-owned .terp-login__check { border-color: #35a46b; background: #35a46b; color: #fff; }.terp-login__project.is-owned .terp-login__project-copy small { color: #2f7d55; font-weight: 700; }
-/* Selected without a package: the card is named in the error and scrolled to. */
-.terp-login__project.is-incomplete { border-color: #eaa9a4; background: #fff8f7; box-shadow: 0 0 0 3px rgba(214, 82, 74, .08); }.terp-login__project.is-incomplete .terp-login__check { border-color: #d6524a; background: #d6524a; color: #fff; }.terp-login__project.is-incomplete .terp-login__package em { color: #c0392f; font-style: normal; }.terp-login__project.is-incomplete .terp-login__package select { border-color: #eaa9a4; }
-@media (max-width: 800px) { .terp-login { padding-top: 6rem; grid-template-columns: 1fr; gap: 2rem; }.terp-login__intro { max-width: none; }.terp-login h1 { font-size: 3rem; } }
-@media (max-width: 560px) { .terp-login__project-grid, .terp-login__fields { grid-template-columns: 1fr; } }
 
-/* Primary step navigation */
-.terp-login__next { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; max-width: 390px; margin: 1.5rem 0 0 auto; padding: .75rem .8rem .75rem 1.15rem; border: 1px solid rgba(255,255,255,.22); border-radius: 14px; background: linear-gradient(110deg, #1f5ecb, #4d4bc2); color: #fff; font: inherit; font-size: .88rem; font-weight: 750; letter-spacing: .01em; cursor: pointer; box-shadow: 0 10px 22px rgba(41, 105, 220, .2), inset 0 1px 0 rgba(255,255,255,.16); transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
-.terp-login__next span { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: rgba(255,255,255,.17); font-size: 1.1rem; line-height: 1; transition: transform .2s ease, background .2s ease; }
-.terp-login__next:hover { filter: brightness(1.06); transform: translateY(-2px); box-shadow: 0 15px 28px rgba(41, 105, 220, .28), inset 0 1px 0 rgba(255,255,255,.2); }
-.terp-login__next:hover span { background: rgba(255,255,255,.25); transform: translateX(3px); }
-.terp-login__next:active { transform: translateY(0); box-shadow: 0 7px 14px rgba(41, 105, 220, .2); }
-.terp-login__next:focus-visible, .terp-login__back:focus-visible { outline: 3px solid rgba(41, 105, 220, .3); outline-offset: 3px; }
-.terp-login__form-actions { display: flex; align-items: center; gap: .8rem; margin-top: 1.4rem; }
-.terp-login__form-actions .terp-login__submit { margin-top: 0; flex: 1; }
-.terp-login__back { padding: .85rem 1.1rem; border: 1px solid #dbe3ef; border-radius: 11px; background: #fff; color: #52627c; font: inherit; font-weight: 700; cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
-.terp-login__back:hover { border-color: #91b4ed; background: #f4f8ff; color: var(--blue); }
+// ── Page ─────────────────────────────────────────────────────────────────────
+.terp-login {
+  --ink: #{$ink};
+  --muted: #{$muted};
+  --blue: #{$blue};
+  // The nav is 84px tall (64px on a phone) and sits in the normal flow, so the
+  // page only fills what is left of the viewport.
+  --nav-h: #{$nav-height};
 
-@keyframes terp-step-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes terp-form-in { from { opacity: 0; transform: translateX(18px) scale(.99); } to { opacity: 1; transform: translateX(0) scale(1); } }
-@keyframes terp-badge-in { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
-@keyframes terp-mascot-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-12px) rotate(1deg); } }
-@keyframes terp-mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: .7; } 50% { transform: scaleX(.78); opacity: .35; } }
-@keyframes terp-mascot-glow { from { opacity: .55; transform: scale(.92); } to { opacity: 1; transform: scale(1.06); } }
-@media (min-width: 801px) { .terp-login--setup .terp-login__mascot { width: min(100%, 270px); margin-top: 1rem; } }
-@media (prefers-reduced-motion: reduce) { .terp-login__auth-screen, .terp-login__auth-badge, .terp-login__setup-form, .terp-login__setup-form .terp-login__flow-status, .terp-login__setup-form .terp-login__section, .terp-login__setup-form .terp-login__fields, .terp-login__setup-form .terp-login__submit, .terp-login__mascot, .terp-login__mascot::after, .terp-login__mascot-glow { animation: none; } }
+  min-height: calc(100svh - var(--nav-h));
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 4vw, 1.75rem);
+  padding: clamp(1rem, 4vw, 2rem) clamp(0.9rem, 4vw, 2.5rem)
+    calc(clamp(1.5rem, 4vw, 2.5rem) + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 6% 0%, #e3edff 0, transparent 40%),
+    radial-gradient(circle at 100% 100%, #ece7ff 0, transparent 36%),
+    #f7faff;
+  color: $ink;
+  font-family: $font;
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
 
-/* Desktop setup view: keep the complete form in one viewport below the nav. */
-@media (min-width: 801px) {
-  .terp-login { min-height: calc(100svh - 84px); padding: 2rem clamp(1.25rem, 5vw, 6rem) 2.5rem; }
-  .terp-login:not(.terp-login--setup) { height: calc(100svh - 84px); max-height: calc(100svh - 84px); overflow: hidden; grid-template-columns: minmax(250px, .62fr) minmax(520px, .9fr); gap: clamp(2rem, 6vw, 7rem); }
-  .terp-login:not(.terp-login--setup) .terp-login__intro { max-width: 390px; }
-  .terp-login:not(.terp-login--setup) .terp-login__intro h1 { margin: .7rem 0; font-size: clamp(2.4rem, 4vw, 4.2rem); }
-  .terp-login:not(.terp-login--setup) .terp-login__intro > p { margin: .8rem 0; font-size: .92rem; line-height: 1.5; }
-  .terp-login:not(.terp-login--setup) .terp-login__steps { gap: .45rem; margin-top: 1.1rem; }
-  .terp-login:not(.terp-login--setup) .terp-login__mascot { width: min(100%, 255px); margin-top: .8rem; }
-  .terp-login:not(.terp-login--setup) .terp-login__card { max-width: 610px; padding: 1.8rem 2rem; }
-  .terp-login:not(.terp-login--setup) .terp-login__auth-screen { padding-top: .8rem; }
-  .terp-login:not(.terp-login--setup) .terp-login__auth-screen h3 { margin-top: 1.1rem; }
-  .terp-login:not(.terp-login--setup) .terp-login__auth-screen > p { margin-bottom: 1rem; }
-  .terp-login--setup { grid-template-columns: minmax(210px, .3fr) minmax(0, 1fr); gap: clamp(2rem, 4vw, 5rem); }
-  .terp-login--setup .terp-login__intro { max-width: 300px; }
-  .terp-login--setup .terp-login__intro h1 { font-size: clamp(2.2rem, 4vw, 4rem); }
-  .terp-login--setup .terp-login__steps { gap: .55rem; margin-top: 1.5rem; }
-  .terp-login--setup .terp-login__card { width: 100%; max-width: none; padding: 1.55rem 1.8rem; border-radius: 22px; }
-  .terp-login--setup .terp-login__card-head { margin-bottom: .8rem; }
-  .terp-login--setup .terp-login__mark { width: 38px; height: 38px; border-radius: 11px; }
-  .terp-login--setup .terp-login__flow-status { margin: .2rem 0 .8rem; padding: .5rem .7rem; }
-  .terp-login--setup .terp-login__setup-form { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: .75rem 1rem; }
-  .terp-login--setup .terp-login__flow-status, .terp-login--setup .terp-login__product-block, .terp-login--setup .terp-login__company-block, .terp-login--setup .terp-login__form-actions { grid-column: 1 / -1; }
-  .terp-login--setup .terp-login__product-block, .terp-login--setup .terp-login__company-block { min-width: 0; }
-  .terp-login--setup .terp-login__product-block, .terp-login--setup .terp-login__company-block { padding: 1rem 1.15rem; }
-  .terp-login--setup .terp-login__section { margin: .8rem 0 .45rem; }
-  .terp-login--setup .terp-login__section p { margin-top: .2rem; }
-  .terp-login--setup .terp-login__project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
-  .terp-login--setup .terp-login__project { min-height: 76px; padding: .7rem; border-radius: 14px; }
-  .terp-login--setup .terp-login__project-icon { flex-basis: 30px; width: 30px; height: 30px; border-radius: 9px; }
-  .terp-login--setup .terp-login__project-select { gap: .45rem; padding: .2rem; }
-  .terp-login--setup .terp-login__project-copy b { font-size: .82rem; }
-  .terp-login--setup .terp-login__project-copy small { font-size: .65rem; }
-  .terp-login--setup .terp-login__package { margin-top: .55rem; padding-top: .55rem; }
-  .terp-login--setup .terp-login__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem 1rem; }
-  .terp-login--setup input, .terp-login--setup select { padding: .65rem .75rem; font-size: .84rem; }
-  .terp-login--setup .terp-login__submit { margin-top: 1rem; padding: .8rem; }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    color: $ink;
+    letter-spacing: -0.02em;
+  }
+
+  // Fluid, but never so large that the card is pushed off a phone screen.
+  h1 {
+    font-size: clamp(1.6rem, 6.4vw, 3.4rem);
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+  }
+
+  h2 {
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
+    line-height: 1.25;
+  }
+
+  h3 {
+    font-size: clamp(1rem, 2.4vw, 1.1rem);
+    line-height: 1.3;
+  }
+
+  // ── Intro ──────────────────────────────────────────────────────────────────
+  &__intro {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 100%;
+  }
+
+  &__eyebrow {
+    color: $blue;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  &__intro > p {
+    max-width: 46ch;
+    margin: 0;
+    color: #5b6a83;
+    font-size: clamp(0.9rem, 2.3vw, 1.02rem);
+    line-height: 1.62;
+  }
+
+  // The card already counts the steps ("Step 2 of 3") on small screens.
+  &__steps {
+    display: none;
+  }
+
+  // Decorative: only worth the vertical space once there is a side panel.
+  &__mascot {
+    display: none;
+  }
+
+  // ── Card ───────────────────────────────────────────────────────────────────
+  &__card {
+    width: 100%;
+    max-width: 560px;
+    margin-inline: auto;
+    padding: clamp(1.05rem, 4vw, 2.2rem);
+    border: 1px solid $line;
+    border-radius: clamp(18px, 4vw, 26px);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: $card-shadow;
+    backdrop-filter: blur(16px);
+  }
+
+  &__card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: clamp(0.9rem, 3vw, 1.35rem);
+
+    p {
+      margin: 0 0 0.1rem;
+      color: $muted-soft;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+  }
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #3d87f2, #6255d7);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(41, 105, 220, 0.26);
+  }
+
+  // ── Messages ───────────────────────────────────────────────────────────────
+  &__message {
+    margin: 0 0 1rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+
+    &--error {
+      border: 1px solid #f4cdc9;
+      background: $red-soft;
+      color: $red;
+    }
+
+    &--success {
+      border: 1px solid #c3e6d2;
+      background: $green-soft;
+      color: $green-dark;
+    }
+  }
+
+  // ── Google sign-in ─────────────────────────────────────────────────────────
+  &__auth-screen {
+    padding: 0.4rem 0 0.2rem;
+    text-align: center;
+    animation: terp-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    h3 {
+      margin: 1.3rem 0 0.5rem;
+    }
+
+    > p {
+      max-width: 36ch;
+      margin: 0 auto 1.25rem;
+      color: $muted;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+  }
+
+  &__auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.7rem 0.4rem 0.45rem;
+    border: 1px solid #d8e6fb;
+    border-radius: 999px;
+    background: #f1f6ff;
+    color: $blue;
+    font-size: 0.72rem;
+    font-weight: 700;
+    animation: terp-badge-in 0.5s 0.08s both;
+
+    span {
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: $blue;
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+  }
+
+  &__google {
+    display: grid;
+    justify-items: center;
+    gap: 0.85rem;
+    padding: clamp(0.9rem, 3vw, 1.15rem);
+    border: 1px solid $line-soft;
+    border-radius: 16px;
+    background: #fbfdff;
+
+    p {
+      margin: 0;
+      color: #566680;
+      font-size: 0.86rem;
+    }
+
+    // Google renders an <iframe> with a fixed pixel width; it must never be
+    // wider than the card on a small phone.
+    > div {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    iframe {
+      max-width: 100%;
+    }
+  }
+
+  &__privacy {
+    display: block;
+    margin-top: 0.9rem;
+    color: $muted-soft;
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+
+  // ── Signed-in bar ──────────────────────────────────────────────────────────
+  &__flow-status {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #d7ecdf;
+    border-radius: 12px;
+    background: $green-soft;
+    color: $green-dark;
+
+    span:nth-child(2) {
+      display: grid;
+      flex: 1;
+      gap: 0.1rem;
+      min-width: 0;
+    }
+
+    small {
+      color: #6a9a7f;
+      font-size: 0.64rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    b {
+      overflow: hidden;
+      font-size: 0.78rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__flow-dot {
+    display: grid;
+    place-items: center;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #35a46b;
+    color: #fff;
+    font-size: 0.74rem;
+  }
+
+  &__flow-next {
+    margin-left: auto;
+    color: #4f8a68;
+    font-size: 0.68rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  &__setup-form {
+    animation: terp-form-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    .terp-login__section,
+    .terp-login__fields,
+    .terp-login__form-actions {
+      animation: terp-step-in 0.45s 0.1s both;
+    }
+  }
+
+  // ── Step heading ───────────────────────────────────────────────────────────
+  &__section {
+    margin: 0 0 0.85rem;
+
+    > div {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    p {
+      margin: 0.35rem 0 0 2.05rem;
+      color: $muted-soft;
+      font-size: 0.76rem;
+      line-height: 1.5;
+    }
+  }
+
+  &__number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: $blue-soft;
+    color: $blue;
+    font-size: 0.76rem;
+    font-weight: 800;
+  }
+
+  &__selection-count {
+    margin-left: auto;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    background: $blue-soft;
+    color: $blue;
+    font-size: 0.66rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  // ── Returning customer ─────────────────────────────────────────────────────
+  &__workspace {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0 0 0.85rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #d3ebdd;
+    border-radius: 12px;
+    background: $green-soft;
+    color: $green-dark;
+
+    b {
+      font-size: 0.8rem;
+    }
+
+    small {
+      color: #4d7d62;
+      font-size: 0.71rem;
+      line-height: 1.45;
+    }
+  }
+
+  // ── Company details ────────────────────────────────────────────────────────
+  // Declared before the project cards so their compact package select can
+  // override the shared field rules below (same specificity, later wins).
+  &__fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+  }
+
+  // One label + control + message stack per field. Stacking them lets a field
+  // error sit under its own input instead of inside the <label> text.
+  &__field {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+
+    > label {
+      color: $ink-soft;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+  }
+
+  &__field-error {
+    color: $red;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  &__hint {
+    color: $muted-soft;
+    font-size: 0.67rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  input,
+  select {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0.7rem 0.8rem;
+    border: 1.5px solid $line;
+    border-radius: 11px;
+    background: #fff;
+    color: $ink;
+    font-family: $font;
+    // 16px keeps iOS from zooming the page when a field is focused.
+    font-size: 1rem;
+    line-height: 1.3;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+
+    &::placeholder {
+      color: #9aa8bd;
+    }
+
+    // Hover is a pointer-only nicety: a tapped field must not look hovered.
+    @media (hover: hover) {
+      &:hover:not(:disabled):not([readonly]) {
+        border-color: #c6d5ea;
+      }
+    }
+
+    &:focus {
+      border-color: #4b8af0;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(75, 138, 240, 0.14);
+    }
+
+    &.is-invalid,
+    &[aria-invalid="true"] {
+      border-color: #df8a83;
+      background: #fffaf9;
+
+      &:focus {
+        border-color: #cf6d64;
+        box-shadow: 0 0 0 3px rgba(179, 39, 29, 0.12);
+      }
+    }
+
+    &:disabled {
+      border-color: #e5ebf4;
+      background: #f4f6fb;
+      color: #8b98ac;
+      cursor: not-allowed;
+    }
+  }
+
+  // The native arrow cannot be sized, so it is replaced with an inline chevron.
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.2 1.6 6 6.2l4.8-4.6' fill='none' stroke='%2364748c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 11px 7px;
+    cursor: pointer;
+
+    &::-ms-expand {
+      display: none;
+    }
+  }
+
+  // The email is the Google account used to sign in: shown, never edited.
+  input[readonly] {
+    border-style: dashed;
+    border-color: #e3e9f3;
+    background: #f4f6fb;
+    color: #5f6d84;
+    cursor: default;
+
+    &:focus {
+      border-color: #dbe4f1;
+      box-shadow: none;
+    }
+  }
+
+  // ── Project cards ──────────────────────────────────────────────────────────
+  &__project-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  &__project {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.55rem;
+    border: 1px solid $line-soft;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
+
+    // Hover only where a pointer exists: a tapped card must not stay lifted.
+    @media (hover: hover) {
+      &:hover {
+        transform: translateY(-2px);
+        border-color: #b7cdf3;
+        box-shadow: 0 10px 22px rgba(48, 94, 168, 0.1);
+      }
+    }
+
+    &.is-selected {
+      border-color: #6c9df0;
+      background: #f5f9ff;
+      box-shadow: 0 8px 20px rgba(41, 105, 220, 0.12);
+    }
+
+    &.is-owned {
+      border-color: #a7dcc0;
+      background: $green-soft;
+      box-shadow: none;
+
+      &:hover {
+        transform: none;
+      }
+
+      .terp-login__check {
+        border-color: $green;
+        background: $green;
+        color: #fff;
+      }
+
+      .terp-login__project-select {
+        cursor: default;
+      }
+
+      .terp-login__project-copy small {
+        color: #2f7d55;
+        font-weight: 700;
+      }
+    }
+
+    &.is-incomplete {
+      border-color: #eaa9a4;
+      background: #fff8f7;
+      box-shadow: 0 0 0 3px rgba(214, 82, 74, 0.08);
+
+      .terp-login__check {
+        border-color: #d6524a;
+        background: #d6524a;
+        color: #fff;
+      }
+
+      .terp-login__package em {
+        color: $red;
+      }
+    }
+  }
+
+  &__project-select {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.3rem;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: $ink;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    @include focus-ring;
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &__project-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #dceaff, #e9e2ff);
+    color: #3867bd;
+    font-size: 0.9rem;
+    font-weight: 800;
+  }
+
+  &__project-copy {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+
+    b {
+      overflow: hidden;
+      font-size: 0.85rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    small {
+      color: $muted;
+      font-size: 0.67rem;
+      line-height: 1.35;
+    }
+  }
+
+  &__check {
+    display: grid;
+    place-items: center;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    margin-left: auto;
+    border: 1.5px solid #ccd8ea;
+    border-radius: 7px;
+    color: transparent;
+    font-size: 0.72rem;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+  }
+
+  .is-selected &__check {
+    border-color: $blue;
+    background: $blue;
+    color: #fff;
+  }
+
+  // Package picker — only rendered once a card is selected.
+  &__package {
+    display: grid;
+    gap: 0.3rem;
+    margin-top: 0.55rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed $line;
+    color: #4d5d78;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+
+    em {
+      color: $red;
+      font-style: normal;
+    }
+
+    select {
+      min-height: 44px;
+      padding: 0.5rem 1.9rem 0.5rem 0.6rem;
+      background-position: right 0.6rem center;
+      background-size: 10px 6px;
+      // Font size is left to the shared field rule: anything under 16px makes
+      // iOS zoom the whole page as soon as the picker is focused.
+      font-weight: 600;
+    }
+  }
+
+  &__loading {
+    grid-column: 1 / -1;
+    padding: 1.5rem 1rem;
+    border: 1px dashed #cbd8ea;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.6);
+    color: $muted;
+    font-size: 0.84rem;
+    text-align: center;
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+  &__product-block,
+  &__company-block {
+    padding: clamp(0.9rem, 3vw, 1.25rem);
+    border: 1px solid $line-soft;
+    border-radius: 16px;
+    background: linear-gradient(150deg, rgba(249, 251, 255, 0.96), rgba(243, 247, 255, 0.7));
+  }
+
+  &__product-block &__section,
+  &__company-block &__section {
+    margin-top: 0;
+  }
+
+  &__form-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+  }
+
+  &__submit,
+  &__back {
+    min-height: 50px;
+    padding: 0.8rem 1.1rem;
+    border-radius: 13px;
+    font-family: $font;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    @include focus-ring;
+  }
+
+  &__submit {
+    flex: 1;
+    border: 0;
+    background: linear-gradient(135deg, #2f6fe0, #4f4bc8);
+    color: #fff;
+    letter-spacing: 0.01em;
+    box-shadow: $button-shadow;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+        box-shadow: 0 14px 28px rgba(41, 105, 220, 0.3);
+      }
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: progress;
+      box-shadow: none;
+      transform: none;
+    }
+  }
+
+  &__back {
+    border: 1.5px solid $line;
+    background: #fff;
+    color: #4c5c78;
+    font-weight: 700;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+
+    @media (hover: hover) {
+      &:hover {
+        border-color: #a9c4ef;
+        background: #f5f9ff;
+        color: $blue;
+      }
+    }
+  }
+
+  // "Continue to company details" — the primary action of step 1.
+  &__next {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+    min-height: 52px;
+    margin-top: 1.1rem;
+    padding: 0.65rem 0.7rem 0.65rem 1.05rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    background: linear-gradient(110deg, #1f5ecb, #4d4bc2);
+    color: #fff;
+    font-family: $font;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: $button-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    @include focus-ring;
+
+    span {
+      display: grid;
+      place-items: center;
+      flex: 0 0 32px;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.18);
+      font-size: 1.05rem;
+      line-height: 1;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        filter: brightness(1.06);
+
+        span {
+          background: rgba(255, 255, 255, 0.26);
+          transform: translateX(3px);
+        }
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// ── Small phones ─────────────────────────────────────────────────────────────
+@media (max-width: #{$bp-xs - 1px}) {
+  .terp-login__flow-next {
+    display: none;
+  }
+
+  .terp-login__project-copy small {
+    font-size: 0.64rem;
+  }
+}
+
+// The nav bar drops to 64px on phones, so the page keeps the same usable height.
+@media (max-width: 480px) {
+  .terp-login {
+    --nav-h: 64px;
+  }
+}
+
+// ── From 520px: two project cards per row ────────────────────────────────────
+@media (min-width: $bp-sm) {
+  .terp-login__project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// ── From 640px: two form columns, actions side by side ───────────────────────
+@media (min-width: $bp-md) {
+  .terp-login__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem 1rem;
+  }
+
+  .terp-login__form-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .terp-login__back {
+    flex: 0 0 auto;
+  }
+}
+
+// ── From 900px: side panel + card ────────────────────────────────────────────
+@media (min-width: $bp-lg) {
+  .terp-login {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.62fr) minmax(0, 1.15fr);
+    align-items: start;
+    gap: clamp(2rem, 4vw, 4.5rem);
+    padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(2rem, 3vw, 3rem);
+  }
+
+  .terp-login__intro {
+    position: sticky;
+    top: clamp(1.5rem, 3vw, 2.5rem);
+    max-width: 430px;
+    padding-top: 0.4rem;
+  }
+
+  .terp-login__steps {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 1.6rem;
+    color: $muted-soft;
+    font-size: 0.78rem;
+
+    span {
+      opacity: 0.55;
+      transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+    }
+
+    span.is-active,
+    span.is-complete {
+      opacity: 1;
+      color: $blue;
+      transform: translateX(5px);
+    }
+
+    span.is-complete b {
+      color: $green;
+    }
+
+    b {
+      margin-left: 0.7rem;
+      color: #334563;
+      font-size: 0.92rem;
+    }
+  }
+
+  .terp-login__mascot {
+    display: block;
+    position: relative;
+    z-index: 0;
+    width: min(100%, 320px);
+    margin: 1.6rem auto 0;
+    pointer-events: none;
+    animation: terp-mascot-float 5s ease-in-out infinite;
+
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: auto 18% 5%;
+      height: 13%;
+      border-radius: 50%;
+      background: rgba(41, 105, 220, 0.2);
+      filter: blur(18px);
+      animation: terp-mascot-shadow 5s ease-in-out infinite;
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 18px 18px rgba(40, 84, 160, 0.12));
+    }
+  }
+
+  .terp-login__mascot-glow {
+    position: absolute;
+    z-index: -1;
+    inset: 18% 20% 10%;
+    border-radius: 50%;
+    background: rgba(95, 149, 255, 0.2);
+    filter: blur(28px);
+    animation: terp-mascot-glow 3.5s ease-in-out infinite alternate;
+  }
+
+  .terp-login__card {
+    max-width: 720px;
+    margin-inline: 0;
+  }
+
+  .terp-login__project {
+    min-height: 74px;
+  }
+
+  // The signup form is the whole reason for this page: give it the wider half.
+  .terp-login--setup {
+    grid-template-columns: minmax(190px, 0.42fr) minmax(0, 1.32fr);
+  }
+
+  .terp-login--setup .terp-login__intro {
+    max-width: 330px;
+  }
+
+  .terp-login--setup .terp-login__mascot {
+    width: min(100%, 230px);
+    margin-top: 1.1rem;
+  }
+
+  .terp-login--setup .terp-login__card {
+    max-width: 900px;
+  }
+
+  .terp-login--setup .terp-login__next {
+    max-width: 380px;
+    margin-left: auto;
+  }
+
+  .terp-login--setup .terp-login__project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// ── Setup on a phone/tablet: drop the intro copy so the form starts higher ───
+@media (max-width: #{$bp-lg - 1px}) {
+  .terp-login--setup {
+    gap: 0.85rem;
+    padding-top: clamp(0.9rem, 4vw, 1.5rem);
+  }
+
+  .terp-login--setup .terp-login__intro > p {
+    display: none;
+  }
+
+  .terp-login--setup h1 {
+    font-size: clamp(1.45rem, 5.6vw, 2.1rem);
+  }
+}
+
+// ── From 1280px: centre the page and open up the gutters ─────────────────────
+@media (min-width: $bp-xl) {
+  .terp-login {
+    padding-inline: max(2.5rem, calc((100vw - 1280px) / 2));
+    gap: clamp(2rem, 5vw, 6rem);
+  }
+
+  .terp-login__intro {
+    max-width: 460px;
+  }
+
+  .terp-login--setup .terp-login__card {
+    max-width: 940px;
+  }
+}
+
+// ── Wide screens: the company form fits three fields per row ─────────────────
+@media (min-width: 1440px) {
+  .terp-login--setup .terp-login__fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+// ── Short desktop windows: keep the mascot from owning the sidebar ───────────
+@media (min-width: $bp-lg) and (max-height: 760px) {
+  .terp-login__mascot {
+    width: min(100%, 220px);
+  }
+
+  .terp-login__steps {
+    margin-top: 1rem;
+  }
+}
+
+// ── Animations ───────────────────────────────────────────────────────────────
+@keyframes terp-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes terp-form-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes terp-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes terp-mascot-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+@keyframes terp-mascot-shadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scaleX(0.78);
+    opacity: 0.35;
+  }
+}
+
+@keyframes terp-mascot-glow {
+  from {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terp-login__auth-screen,
+  .terp-login__auth-badge,
+  .terp-login__setup-form,
+  .terp-login__setup-form .terp-login__section,
+  .terp-login__setup-form .terp-login__fields,
+  .terp-login__setup-form .terp-login__form-actions,
+  .terp-login__mascot,
+  .terp-login__mascot::after,
+  .terp-login__mascot-glow {
+    animation: none;
+  }
+
+  .terp-login__project,
+  .terp-login__submit,
+  .terp-login__next,
+  .terp-login__back {
+    transition: none;
+  }
 }

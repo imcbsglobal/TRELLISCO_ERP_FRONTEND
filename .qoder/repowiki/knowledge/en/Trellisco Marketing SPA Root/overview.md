@@ -1,0 +1,1 @@
+Vite + React project root that bootstraps the Trellisco marketing SPA, wires dev proxies to Django and T-ERP backends, and centralizes ESLint rules for all child modules.
