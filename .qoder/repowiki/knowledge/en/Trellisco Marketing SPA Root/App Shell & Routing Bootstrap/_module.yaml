@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: app_shell
-title: Trellisco SPA Shell
+title: App Shell & Routing Bootstrap
 scope:
     - src/App.jsx
     - src/main.jsx

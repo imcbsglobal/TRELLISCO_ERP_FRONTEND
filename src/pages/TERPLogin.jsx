@@ -515,10 +515,15 @@ export default function TERPLogin() {
       licenseRef.current = license
       cacheLicense(email, license)
 
-      // The client id is the customer's Gmail address, not the random code the
-      // license API generates: the same id then identifies the Central Master
-      // login, the WhatsApp/email message and their T-ERP sign-in.
+      // The id the customer is told about is their Gmail address: the same id
+      // then identifies the Central Master login, the WhatsApp/email message and
+      // their T-ERP sign-in.
       const clientId = email
+      // Central Master only accepts an id T-ERP has licensed. The email is what
+      // the customer recognises and is tried first; the id the license API
+      // actually created is the fallback when T-ERP never registered the email
+      // under it (that is the "Unknown client_id" rejection).
+      const licensedClientId = extractClientId(license)
       const licenseKey = extractLicenseKey(license)
       const companyName = company.name.trim()
       const addedProjects = selectedProjects.map((item) => item.project)
@@ -573,6 +578,7 @@ export default function TERPLogin() {
 
       const account = await createClientAdmin({
         clientId,
+        alternateClientIds: licensedClientId ? [licensedClientId] : [],
         firstName,
         lastName,
         email,
@@ -584,14 +590,19 @@ export default function TERPLogin() {
         usernameEmail: googleUser?.email || email,
       })
 
+      // The login may have been accepted under the id the license generated
+      // rather than the email, so the country and the credentials follow the id
+      // Central Master stored.
+      const accountClientId = account.clientId || clientId
+
       // The country decides which financial year the client's books follow, so
-      // it is registered against the same Gmail client id right after the login
+      // it is registered against the same client id right after the login
       // exists — but never over an existing registration.
-      const country = await registerClientCountry(clientId, company.country)
+      const country = await registerClientCountry(accountClientId, company.country)
       const countryNote = country.error || ""
 
       const created = {
-        clientId,
+        clientId: accountClientId,
         licenseKey,
         companyName,
         email,

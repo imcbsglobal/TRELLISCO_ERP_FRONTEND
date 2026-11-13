@@ -130,6 +130,15 @@ function isContactConflict(status, rawBody) {
   return /unique set/i.test(rawBody) && /(email|phone_number)/i.test(rawBody)
 }
 
+// Central Master only accepts a client id that T-ERP has already licensed, and
+// the id the license API generated is not always the email address typed as the
+// company contact. This is the single rejection that means "try the other id"
+// instead of "this client cannot be provisioned".
+function isUnknownClientId(status, rawBody) {
+  if (status !== 400) return false
+  return /unknown client_id/i.test(rawBody)
+}
+
 function digitsOnly(value) {
   return String(value || "").replace(/\D/g, "")
 }
@@ -245,9 +254,16 @@ async function readFailure(response, fallback) {
  * details are already taken, nothing is created and no password is ever rotated
  * behind the operator's back. The message stays generic on purpose — usernames
  * and client ids never belong in a message rendered on screen.
+ *
+ * `clientId` is tried first and every entry of `alternateClientIds` after it,
+ * but only when Central Master answers "Unknown client_id": a rejected id never
+ * created a record, so the next one is safe to try. The id that was accepted is
+ * returned as `clientId` so the caller can register the country and hand out
+ * credentials against the id T-ERP really knows.
  */
 export async function createClientAdmin({
   clientId,
+  alternateClientIds = [],
   firstName,
   lastName,
   email,
@@ -271,53 +287,78 @@ export async function createClientAdmin({
     throw new Error("This client already has an admin login. No new user was created.")
   }
 
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const payload = buildAdminPayload({
-      clientId,
-      username,
-      password,
-      email,
-      phoneNumber,
-      firstName,
-      lastName,
-      flags,
-    })
+  // The email the customer knows first, the id the license API generated after
+  // it, each id only once.
+  const candidates = [clientId, ...alternateClientIds]
+    .map((value) => String(value || "").trim())
+    .filter((value, index, all) => Boolean(value) && all.indexOf(value) === index)
 
-    const response = await fetch(USER_MASTER_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
+  for (const candidate of candidates) {
+    let rejectedClientId = false
 
-    if (response.ok) {
-      // A 200 that is not JSON is the site's own HTML fallback, never Central
-      // Master: reporting it as a created account would hand out a login that
-      // does not exist.
-      assertJson(response, "Could not create the T-ERP admin account")
-      const rawBody = await response.text()
-      let user
-      try {
-        user = rawBody ? JSON.parse(rawBody) : {}
-      } catch {
-        user = {}
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const payload = buildAdminPayload({
+        clientId: candidate,
+        username,
+        password,
+        email,
+        phoneNumber,
+        firstName,
+        lastName,
+        flags,
+      })
+
+      const response = await fetch(USER_MASTER_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        // A 200 that is not JSON is the site's own HTML fallback, never Central
+        // Master: reporting it as a created account would hand out a login that
+        // does not exist.
+        assertJson(response, "Could not create the T-ERP admin account")
+        const rawBody = await response.text()
+        let user
+        try {
+          user = rawBody ? JSON.parse(rawBody) : {}
+        } catch {
+          user = {}
+        }
+        // Central Master echoes the id it stored; that is the one the rest of
+        // the signup must use.
+        return {
+          username,
+          password,
+          flags,
+          user,
+          reused: false,
+          endpoint: USER_MASTER_ENDPOINT,
+          clientId: String(user?.client_id || candidate),
+        }
       }
-      return { username, password, flags, user, reused: false, endpoint: USER_MASTER_ENDPOINT }
+
+      const failure = await readFailure(response, "Could not create the T-ERP admin account")
+      lastFailure = failure
+
+      if (isUsernameConflict(response.status, failure.rawBody)) {
+        // Username collided — number the same handle so the login stays
+        // recognisable, and only draw an unrelated one when there is no handle.
+        username = baseUsername ? numberedUsername(baseUsername, attempt + 2) : generateUsername()
+        continue
+      }
+
+      if (isContactConflict(response.status, failure.rawBody)) {
+        throw new Error("This client already has an admin login. No second account was created.")
+      }
+
+      // Nothing was written, so the next candidate id can be tried safely.
+      rejectedClientId = isUnknownClientId(response.status, failure.rawBody)
+      break
     }
 
-    const failure = await readFailure(response, "Could not create the T-ERP admin account")
-    lastFailure = failure
-
-    if (isUsernameConflict(response.status, failure.rawBody)) {
-      // Username collided — number the same handle so the login stays
-      // recognisable, and only draw an unrelated one when there is no handle.
-      username = baseUsername ? numberedUsername(baseUsername, attempt + 2) : generateUsername()
-      continue
-    }
-
-    if (isContactConflict(response.status, failure.rawBody)) {
-      throw new Error("This client already has an admin login. No second account was created.")
-    }
-    break
+    if (!rejectedClientId) break
   }
 
   throw new Error(lastFailure?.message || "Could not create the T-ERP admin account.")

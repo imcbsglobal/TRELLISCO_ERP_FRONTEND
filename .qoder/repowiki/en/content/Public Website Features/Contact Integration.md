@@ -4,11 +4,22 @@
 **Referenced Files in This Document**
 - [Contact.jsx](file://src/pages/Contact.jsx)
 - [TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
+- [TERPLogin.scss](file://src/pages/TERPLogin.scss)
 - [FloatingChatbot.jsx](file://src/components/FloatingChatbot.jsx)
 - [notifications.js](file://src/api/notifications.js)
 - [CredentialsModal.jsx](file://src/components/CredentialsModal.jsx)
+- [CredentialsModal.scss](file://src/components/CredentialsModal.scss)
 - [config.js](file://src/config/config.js)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated TERPLogin component documentation to reflect enhanced Google Sign-In integration and improved form validation
+- Completely redesigned CredentialsModal section to document the new mobile-first bottom sheet design
+- Added comprehensive coverage of the dual-channel credentials delivery system (WhatsApp + Email)
+- Documented the new CSS custom properties and responsive design patterns
+- Enhanced accessibility compliance documentation for both components
+- Updated architecture diagrams to reflect the improved user experience flows
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -25,30 +36,30 @@
 ## Introduction
 This document explains the contact integration features in the frontend application, focusing on:
 - WhatsApp direct messaging links for customer support routing
-- TERP login and license creation flow with secure credential delivery
-- Contact form handling, validation patterns, and user experience flows
-- External service integrations, security considerations, fallback mechanisms
-- Accessibility compliance for contact forms
-- Mobile optimization for WhatsApp integration
-- Analytics tracking recommendations for contact conversions
+- Enhanced TERP login and license creation flow with secure credential delivery via dual channels
+- Advanced contact form handling, comprehensive validation patterns, and sophisticated user experience flows
+- External service integrations, security considerations, and robust fallback mechanisms
+- Full accessibility compliance for all contact forms and interactive elements
+- Mobile-first optimization for WhatsApp integration and credential delivery
+- Analytics tracking recommendations for contact conversions and setup completion
 
-The implementation spans a public contact page, a floating chat assistant, and a multi-step T-ERP setup flow that integrates Google authentication, external APIs, WhatsApp messaging, and email delivery.
+The implementation spans a public contact page, a floating chat assistant, and an enhanced multi-step T-ERP setup flow that integrates Google authentication, external APIs, dual-channel messaging (WhatsApp and email), and a redesigned credentials modal with mobile-first bottom sheet design.
 
 ## Project Structure
 The contact-related functionality is primarily implemented across these files:
 - Public contact page with office details, phone-to-WhatsApp links, and a message form
 - Floating chatbot providing product information and support routing
-- T-ERP login and license creation flow with credential delivery via WhatsApp and email
-- Notification API layer for WhatsApp and Gmail-based email sending
-- Modal for displaying and retrying credential delivery
+- Enhanced T-ERP login and license creation flow with advanced Google Sign-In integration and improved form validation
+- Dual-channel notification API layer for WhatsApp and Gmail-based email sending
+- Redesigned credentials modal with mobile-first bottom sheet design and comprehensive delivery status tracking
 
 ```mermaid
 graph TB
 ContactPage["Contact Page<br/>Office info + WhatsApp links + Form"]
 Chatbot["Floating Chatbot<br/>Product Q&A + Support routing"]
-TERPLogin["TERP Login Flow<br/>Google auth + License + Admin account"]
-Notifications["Notifications API<br/>WhatsApp + Email"]
-CredentialsModal["Credentials Modal<br/>Delivery status + Retry"]
+TERPLogin["Enhanced TERP Login Flow<br/>Google auth + License + Admin account"]
+Notifications["Dual-Channel Notifications<br/>WhatsApp + Email Delivery"]
+CredentialsModal["Redesigned Credentials Modal<br/>Mobile-first bottom sheet + Status tracking"]
 ContactPage --> |"wa.me links"| WhatsAppGateway["WhatsApp Gateway"]
 TERPLogin --> |"License + Admin account"| ExternalAPIs["External T-ERP APIs"]
 TERPLogin --> Notifications
@@ -65,17 +76,19 @@ TERPLogin --> CredentialsModal
 
 **Section sources**
 - [Contact.jsx:1-259](file://src/pages/Contact.jsx#L1-L259)
-- [TERPLogin.jsx:1-319](file://src/pages/TERPLogin.jsx#L1-L319)
+- [TERPLogin.jsx:1-805](file://src/pages/TERPLogin.jsx#L1-L805)
+- [TERPLogin.scss:1-800](file://src/pages/TERPLogin.scss#L1-L800)
 - [FloatingChatbot.jsx:1-370](file://src/components/FloatingChatbot.jsx#L1-L370)
 - [notifications.js:1-230](file://src/api/notifications.js#L1-L230)
-- [CredentialsModal.jsx:1-178](file://src/components/CredentialsModal.jsx#L1-L178)
+- [CredentialsModal.jsx:1-238](file://src/components/CredentialsModal.jsx#L1-L238)
+- [CredentialsModal.scss:1-579](file://src/components/CredentialsModal.scss#L1-L579)
 
 ## Core Components
-- Contact page: Displays office locations, phone numbers linked to WhatsApp, and a simple contact form with basic browser validation.
-- Floating chatbot: Provides quick answers about products and routes users to support channels (email and phone).
-- TERP login flow: Multi-step process integrating Google Sign-In, project selection, company details, license creation, admin account creation, and credential delivery via WhatsApp and email.
-- Notifications API: Handles WhatsApp gateway calls and email delivery through either a custom mail API or Gmail OAuth.
-- Credentials modal: Presents created credentials and shows delivery status with retry options.
+- **Contact page**: Displays office locations, phone numbers linked to WhatsApp, and a simple contact form with basic browser validation.
+- **Floating chatbot**: Provides quick answers about products and routes users to support channels (email and phone).
+- **Enhanced TERP login flow**: Multi-step process integrating Google Sign-In with dynamic button rendering, project selection, company details validation, license creation, admin account creation, and dual-channel credential delivery via WhatsApp and email.
+- **Dual-channel notifications API**: Handles WhatsApp gateway calls and email delivery through either a custom mail API or Gmail OAuth, with comprehensive error handling and retry mechanisms.
+- **Redesigned credentials modal**: Mobile-first bottom sheet presentation showing created credentials with real-time delivery status tracking, copy-to-clipboard functionality, and retry options for failed deliveries.
 
 **Section sources**
 - [Contact.jsx:94-252](file://src/pages/Contact.jsx#L94-L252)
@@ -85,34 +98,38 @@ TERPLogin --> CredentialsModal
 - [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
 
 ## Architecture Overview
-The contact integration architecture connects user-facing components with external services:
+The enhanced contact integration architecture connects user-facing components with external services through improved reliability and user experience:
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
 participant Contact as "Contact Page"
 participant Chatbot as "Floating Chatbot"
-participant TERP as "TERP Login Flow"
-participant Notif as "Notifications API"
+participant TERP as "Enhanced TERP Login Flow"
+participant Notif as "Dual-Channel Notifications"
 participant WA as "WhatsApp Gateway"
 participant Mail as "Gmail API / Mail API"
 participant ERP as "T-ERP External APIs"
+participant Modal as "Redesigned Credentials Modal"
 User->>Contact : Open contact page
 Contact-->>User : Office info + wa.me links
 User->>Contact : Submit contact form
 Contact-->>User : Success state (no backend yet)
 User->>Chatbot : Ask product/support question
 Chatbot-->>User : Answer + support link
-User->>TERP : Start T-ERP setup
-TERP->>TERP : Google Sign-In
+User->>TERP : Start enhanced T-ERP setup
+TERP->>TERP : Dynamic Google Sign-In loading
 TERP->>ERP : Create license + admin account
+TERP->>Modal : Show credentials immediately
 TERP->>Notif : Deliver credentials via WhatsApp
 Notif->>WA : Send WhatsApp message
 WA-->>Notif : Delivery result
 TERP->>Notif : Deliver credentials via Email
 Notif->>Mail : Send email
 Mail-->>Notif : Delivery result
-TERP-->>User : Show credentials + delivery status
+Notif-->>TERP : Real-time status updates
+TERP-->>Modal : Update delivery rows
+Modal-->>User : Interactive status + retry options
 ```
 
 **Diagram sources**
@@ -219,43 +236,47 @@ Analytics tracking recommendation:
 - [FloatingChatbot.jsx:178-246](file://src/components/FloatingChatbot.jsx#L178-L246)
 - [FloatingChatbot.jsx:253-367](file://src/components/FloatingChatbot.jsx#L253-L367)
 
-### TERP Login Flow: Authentication, License Creation, and Credential Delivery
-The TERP login flow guides users through Google authentication, project selection, company details, license creation, and admin account setup. After successful setup, credentials are delivered via WhatsApp and email.
+### Enhanced TERP Login Flow: Authentication, License Creation, and Dual-Channel Credential Delivery
+The enhanced TERP login flow guides users through Google authentication, project selection, company details, license creation, and admin account setup. After successful setup, credentials are delivered via both WhatsApp and email simultaneously.
+
+**Updated** Major enhancements include dynamic Google Sign-In script loading, improved form validation with field-specific error handling, and sophisticated dual-channel delivery system.
 
 Key behaviors:
-- Google Identity Services script is dynamically loaded and used for sign-in.
-- Projects and packages are selected before proceeding.
-- Company details are validated (including a 10-digit contact number).
-- License creation and admin account creation call external APIs.
-- Credentials are sent asynchronously via WhatsApp and email; the modal appears immediately.
-- Delivery statuses are tracked and allow retries.
+- **Dynamic Google Sign-In**: Google Identity Services script is loaded dynamically with proper error handling and responsive button sizing.
+- **Enhanced Project Selection**: Projects and packages are selected with visual feedback and validation.
+- **Advanced Company Validation**: Company details are validated field-by-field with specific error messages and automatic focus management.
+- **Dual-Channel Delivery**: Credentials are sent asynchronously via both WhatsApp and email; the modal appears immediately with real-time status updates.
+- **Retry Mechanisms**: Failed deliveries can be retried independently for each channel.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant TERP as "TERP Login"
+participant TERP as "Enhanced TERP Login"
 participant Google as "Google Identity"
 participant ERP as "T-ERP APIs"
-participant Notif as "Notifications API"
+participant Notif as "Dual-Channel Notifications"
 participant WA as "WhatsApp Gateway"
 participant Mail as "Gmail API / Mail API"
-participant Modal as "Credentials Modal"
+participant Modal as "Redesigned Credentials Modal"
 User->>TERP : Open setup page
-TERP->>Google : Load GSI + render button
+TERP->>TERP : Load GSI script dynamically
+TERP->>Google : Render responsive sign-in button
 Google-->>TERP : ID token + profile
 User->>TERP : Select projects + package
+TERP->>TERP : Field-by-field validation
 User->>TERP : Enter company details
 TERP->>ERP : Create license
 TERP->>ERP : Create client admin
-TERP->>Modal : Show credentials
-TERP->>Notif : Deliver via WhatsApp
+TERP->>Modal : Show credentials immediately
+TERP->>Notif : Deliver via WhatsApp (async)
 Notif->>WA : Send message
 WA-->>Notif : Result
-TERP->>Notif : Deliver via Email
+TERP->>Notif : Deliver via Email (async)
 Notif->>Mail : Send email
 Mail-->>Notif : Result
-Notif-->>TERP : Status updates
+Notif-->>TERP : Real-time status updates
 TERP-->>Modal : Update delivery rows
+Modal-->>User : Interactive status + retry options
 ```
 
 **Diagram sources**
@@ -266,29 +287,35 @@ TERP-->>Modal : Update delivery rows
 - [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
 
 Validation patterns:
-- At least one project must be selected.
-- Every selected project must have a package chosen.
-- Company fields are required; contact number must be exactly 10 digits.
+- At least one project must be selected with a valid package.
+- Company fields are validated individually with specific error messages.
+- Contact number must be exactly 10 digits with numeric input optimization.
 - Google sign-in is required before submission.
+- Field-specific error handling with automatic focus management.
 
 Error handling and fallbacks:
 - Network errors are caught and presented with context about which endpoint failed.
-- Delivery failures set a failed state with a message and allow retry.
+- Delivery failures set a failed state with detailed messages and allow independent retries.
 - If email or WhatsApp configuration is missing, explicit errors are thrown.
+- Graceful degradation when external services are unavailable.
 
 Security considerations:
 - Google ID token is kept in memory only; production should verify server-side.
-- Sensitive credentials are shown in a modal and can be copied to clipboard.
+- Sensitive credentials are shown in a modal with copy-to-clipboard functionality.
 - WhatsApp and email delivery functions validate recipients and configuration.
+- Session storage caching for license reuse prevents duplicate accounts.
 
 Accessibility and UX notes:
 - Error and success messages use appropriate roles (`alert`, `status`).
 - Modal traps focus and closes on Escape key.
-- Copy-to-clipboard feedback is provided.
+- Copy-to-clipboard feedback is provided with visual confirmation.
+- Responsive Google Sign-In button adapts to screen size.
+- Numeric input uses `inputMode="numeric"` and `pattern` for better mobile keyboards.
 
 Mobile optimization:
-- Google Sign-In button size and layout are optimized for touch.
+- Google Sign-In button size and layout are optimized for touch with dynamic resizing.
 - Numeric input uses `inputMode="numeric"` and `pattern` for better mobile keyboards.
+- Form fields are optimized for mobile with proper spacing and touch targets.
 
 Analytics tracking recommendation:
 - Track steps completed (Google auth, project selection, company details), license creation success, and delivery outcomes (WhatsApp/email sent/failed).
@@ -298,17 +325,93 @@ Analytics tracking recommendation:
 - [TERPLogin.jsx:81-102](file://src/pages/TERPLogin.jsx#L81-L102)
 - [TERPLogin.jsx:184-247](file://src/pages/TERPLogin.jsx#L184-L247)
 - [TERPLogin.jsx:249-318](file://src/pages/TERPLogin.jsx#L249-L318)
+- [TERPLogin.jsx:448-622](file://src/pages/TERPLogin.jsx#L448-L622)
 - [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
 
-### Notifications API: WhatsApp and Email Delivery
-The notifications module centralizes delivery logic for WhatsApp and email.
+### Redesigned Credentials Modal: Mobile-First Bottom Sheet Design
+The credentials modal presents a completely redesigned interface with mobile-first bottom sheet design, comprehensive delivery status tracking, and enhanced accessibility features.
+
+**Updated** Complete redesign featuring mobile-first bottom sheet pattern, CSS custom properties, and comprehensive accessibility compliance.
 
 Key behaviors:
-- WhatsApp: Normalizes recipient numbers, constructs query parameters, calls the configured gateway, and checks both HTTP status and payload status.
-- Email: Supports two transports:
+- **Mobile-First Design**: Full-width bottom sheet on mobile devices that transforms into centered dialog on desktop (640px+).
+- **Real-Time Delivery Status**: Live tracking of WhatsApp and email delivery with visual status indicators.
+- **Interactive Retry System**: Independent retry mechanisms for each delivery channel with loading states.
+- **Copy-to-Clipboard**: One-click copying of all credentials with visual feedback.
+- **Enhanced Accessibility**: Full ARIA compliance, keyboard navigation, and screen reader support.
+
+```mermaid
+classDiagram
+class CredentialsModal {
++open boolean
++credentials object
++whatsapp object
++email object
++onClose() void
++onDone() void
++onRetryWhatsApp() void
++onRetryEmail() void
++retryingWhatsApp boolean
++retryingEmail boolean
++copyToClipboard() void
+}
+class DeliveryRow {
++label string
++status string
++message string
++onRetry() void
++retrying boolean
++extraComponent
+}
+class MobileSheet {
++bottomSheetAnimation() void
++grabHandle() void
++safeAreaHandling() void
+}
+CredentialsModal --> DeliveryRow : "renders multiple"
+CredentialsModal --> MobileSheet : "mobile behavior"
+```
+
+**Diagram sources**
+- [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
+
+Design features:
+- **Bottom Sheet Pattern**: Smooth slide-up animation from bottom edge with grab handle indicator.
+- **Responsive Layout**: Transforms from full-width sheet to centered dialog at 640px breakpoint.
+- **CSS Custom Properties**: Comprehensive design tokens for colors, typography, and spacing.
+- **Touch-Optimized**: 40px minimum touch targets, momentum scrolling, and safe area handling.
+- **Visual Feedback**: Color-coded delivery statuses (sent/failed/pending/idle) with clear messaging.
+
+Accessibility and UX notes:
+- Modal has `role="dialog"`, `aria-modal="true"`, and accessible title/description.
+- Close button has accessible label and keyboard support (Escape key).
+- Focus trapping within modal when open.
+- Body scroll prevention when modal is active.
+- Screen reader announcements for status changes.
+- High contrast ratios and readable font sizes.
+
+Mobile optimization:
+- Bottom sheet design optimized for thumb interaction.
+- Safe area insets handled for modern mobile devices.
+- Momentum scrolling enabled for smooth interactions.
+- Touch-friendly button sizes (minimum 40px).
+
+**Section sources**
+- [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
+- [CredentialsModal.scss:1-579](file://src/components/CredentialsModal.scss#L1-L579)
+
+### Dual-Channel Notifications API: WhatsApp and Email Delivery
+The enhanced notifications module centralizes delivery logic for both WhatsApp and email with comprehensive error handling and retry capabilities.
+
+**Updated** Enhanced with improved error handling, dual-channel support, and comprehensive configuration management.
+
+Key behaviors:
+- **WhatsApp Delivery**: Normalizes recipient numbers, constructs query parameters, calls configured gateway, and checks both HTTP status and payload status.
+- **Email Delivery**: Supports two transports with automatic fallback:
   - Custom mail API via `VITE_MAIL_API_URL`
   - Gmail API via OAuth using Google Identity Services
-- Configuration constants are read from environment variables.
+- **Configuration Management**: Environment variables provide flexible configuration for different deployment environments.
+- **Error Recovery**: Detailed error messages and retry mechanisms for failed deliveries.
 
 ```mermaid
 flowchart TD
@@ -326,6 +429,8 @@ ChooseTransport --> |WhatsApp| NormalizeNumber["Normalize phone number"]
 NormalizeNumber --> CallWA["Call WhatsApp gateway"]
 CallWA --> CheckStatus["Check HTTP + payload status"]
 CheckStatus --> Result
+Result --> TrackStatus["Update delivery status"]
+TrackStatus --> End(["Complete"])
 ```
 
 **Diagram sources**
@@ -338,11 +443,13 @@ Security considerations:
 - WhatsApp secret and account are passed via environment variables.
 - Gmail OAuth requires user consent; tokens are cached briefly.
 - Base64 encoding is used for MIME message construction.
+- Input validation prevents injection attacks.
 
 Fallback mechanisms:
 - If WhatsApp gateway returns HTTP 200 but payload indicates failure, an error is thrown.
 - If Gmail API rejects the message, detailed error text is included.
 - If neither mail API nor Gmail client ID is configured, a clear error is thrown.
+- Independent retry mechanisms for each delivery channel.
 
 **Section sources**
 - [notifications.js:6-18](file://src/api/notifications.js#L6-L18)
@@ -351,61 +458,22 @@ Fallback mechanisms:
 - [notifications.js:90-199](file://src/api/notifications.js#L90-L199)
 - [notifications.js:204-229](file://src/api/notifications.js#L204-L229)
 
-### Credentials Modal: Delivery Status and Retry
-The credentials modal displays created credentials and tracks delivery status for WhatsApp and email.
-
-Key behaviors:
-- Shows username, password, client ID, role, license key, email, phone, and projects.
-- Displays delivery status rows with copy-to-clipboard and retry actions.
-- Closes on Escape and prevents body scroll when open.
-
-```mermaid
-classDiagram
-class CredentialsModal {
-+open boolean
-+credentials object
-+whatsapp object
-+email object
-+onClose() void
-+onRetryWhatsApp() void
-+onRetryEmail() void
-+retryingWhatsApp boolean
-+retryingEmail boolean
-}
-class DeliveryRow {
-+label string
-+status string
-+message string
-+onRetry() void
-+retrying boolean
-}
-CredentialsModal --> DeliveryRow : "renders"
-```
-
-**Diagram sources**
-- [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
-
-Accessibility and UX notes:
-- Modal has `role="dialog"`, `aria-modal="true"`, and an accessible title.
-- Close button has an accessible label.
-- Keyboard navigation supports Escape to close.
-
-**Section sources**
-- [CredentialsModal.jsx:36-177](file://src/components/CredentialsModal.jsx#L36-L177)
-
 ## Dependency Analysis
-The contact integration depends on several modules and external services:
+The enhanced contact integration depends on several modules and external services with improved reliability:
 
 ```mermaid
 graph LR
 Contact["Contact.jsx"] --> Nav["Nav component"]
-TERP["TERPLogin.jsx"] --> TerpLicense["terpLicense API"]
+TERP["Enhanced TERPLogin.jsx"] --> TerpLicense["terpLicense API"]
 TERP --> UserMaster["userMaster API"]
-TERP --> Notifications["notifications.js"]
+TERP --> FinancialYear["financialYear API"]
+TERP --> Notifications["enhanced notifications.js"]
 Notifications --> Env["Environment variables"]
-TERP --> CredentialsModal["CredentialsModal.jsx"]
+TERP --> CredentialsModal["Redesigned CredentialsModal.jsx"]
 FloatingChatbot["FloatingChatbot.jsx"] --> Styles["SCSS styles"]
 Contact --> Styles
+TERP --> TERPStyles["TERPLogin.scss"]
+CredentialsModal --> ModalStyles["CredentialsModal.scss"]
 ```
 
 **Diagram sources**
@@ -416,21 +484,22 @@ Contact --> Styles
 - [FloatingChatbot.jsx:1-4](file://src/components/FloatingChatbot.jsx#L1-L4)
 
 Coupling and cohesion:
-- TERPLogin is tightly coupled with notifications and credentials modal for delivery and presentation.
-- Notifications encapsulates external service logic, improving cohesion.
-- Contact and FloatingChatbot are loosely coupled and focused on user-facing interactions.
+- Enhanced TERPLogin is tightly coupled with notifications and redesigned credentials modal for delivery and presentation.
+- Notifications encapsulates external service logic with improved error handling, enhancing cohesion.
+- Contact and FloatingChatbot remain loosely coupled and focused on user-facing interactions.
+- Modular CSS architecture with separate SCSS files for maintainability.
 
 Potential circular dependencies:
 - None observed between the analyzed files.
 
 External dependencies:
-- Google Identity Services for sign-in and Gmail OAuth.
-- WhatsApp gateway for messaging.
-- Gmail API or custom mail API for email delivery.
+- Google Identity Services for sign-in and Gmail OAuth with dynamic loading.
+- WhatsApp gateway for messaging with comprehensive error handling.
+- Gmail API or custom mail API for email delivery with fallback mechanisms.
 
 Interface contracts:
-- Notifications exports normalized number formatting, message builders, and delivery functions.
-- TERPLogin expects license and admin account creation results and extracts identifiers.
+- Enhanced notifications exports normalized number formatting, message builders, and delivery functions with improved error reporting.
+- Enhanced TERPLogin expects license and admin account creation results with sophisticated error handling.
 
 **Section sources**
 - [TERPLogin.jsx:1-19](file://src/pages/TERPLogin.jsx#L1-L19)
@@ -441,27 +510,38 @@ Interface contracts:
 
 ## Performance Considerations
 - Avoid unnecessary re-renders in the contact form by keeping state minimal and using controlled inputs efficiently.
-- Lazy-load Google Identity Services script only when needed to reduce initial bundle size.
+- Lazy-load Google Identity Services script only when needed to reduce initial bundle size with proper error handling.
 - Debounce analytics events if tracking many micro-interactions (e.g., quick question clicks).
 - Cache short-lived tokens in the notifications module to avoid repeated OAuth flows during a session.
 - Use efficient DOM operations in the chatbot to prevent jank when appending messages.
+- Optimize CSS animations with hardware acceleration for smooth mobile interactions.
+- Implement proper cleanup of event listeners and timers to prevent memory leaks.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 Common issues and resolutions:
-- WhatsApp delivery fails:
+- **WhatsApp delivery fails**:
   - Ensure `VITE_WHATSAPP_SECRET` and `VITE_WHATSAPP_ACCOUNT` are configured.
   - Verify recipient number normalization produces a valid international format.
   - Check gateway response payload status even when HTTP status is 200.
-- Email delivery fails:
+  - Use the retry button in the credentials modal for failed deliveries.
+- **Email delivery fails**:
   - Configure either `VITE_MAIL_API_URL` or `VITE_GMAIL_CLIENT_ID`.
   - For Gmail, ensure OAuth consent is granted and token acquisition succeeds.
   - Inspect Gmail API error details for rejection reasons.
-- Google Sign-In not loading:
+  - Use the retry button or mail app fallback in the credentials modal.
+- **Google Sign-In not loading**:
   - Confirm network access to Google Identity Services.
   - Verify `VITE_GOOGLE_CLIENT_ID` is set.
-- Contact form does not submit:
+  - Check browser console for script loading errors.
+  - Ensure the Google Sign-In button container has proper dimensions.
+- **Credentials modal not displaying properly**:
+  - Verify CSS custom properties are properly defined.
+  - Check for z-index conflicts with other modals.
+  - Ensure body overflow is properly managed.
+  - Test on different screen sizes for responsive behavior.
+- **Contact form does not submit**:
   - The current implementation simulates submission; wire up a real backend endpoint.
   - Ensure all required fields pass HTML5 validation.
 
@@ -471,17 +551,18 @@ Common issues and resolutions:
 - [notifications.js:208-229](file://src/api/notifications.js#L208-L229)
 - [TERPLogin.jsx:81-102](file://src/pages/TERPLogin.jsx#L81-L102)
 - [TERPLogin.jsx:184-247](file://src/pages/TERPLogin.jsx#L184-L247)
+- [TERPLogin.jsx:448-622](file://src/pages/TERPLogin.jsx#L448-L622)
 - [Contact.jsx:103-111](file://src/pages/Contact.jsx#L103-L111)
 
 ## Conclusion
-The contact integration combines straightforward public contact methods with a robust T-ERP setup flow. WhatsApp direct links provide immediate support access, while the TERP login flow securely creates licenses and admin accounts, delivering credentials via multiple channels. The notifications module abstracts external service complexity, and the credentials modal offers clear delivery status and retry capabilities. Accessibility and mobile optimization are considered throughout, and analytics tracking recommendations enable measurement of conversion paths.
+The enhanced contact integration combines straightforward public contact methods with a sophisticated T-ERP setup flow featuring mobile-first design principles. WhatsApp direct links provide immediate support access, while the enhanced TERP login flow securely creates licenses and admin accounts with dual-channel credential delivery. The redesigned credentials modal offers an intuitive bottom sheet interface with real-time delivery status tracking and comprehensive accessibility support. The notifications module abstracts external service complexity with improved error handling, and the entire system is built with mobile-first responsive design patterns and CSS custom properties for maintainability.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
 ### Configuration Reference
-- Environment variables used by the integration:
+- Environment variables used by the enhanced integration:
   - `VITE_WHATSAPP_API_URL`: WhatsApp gateway endpoint
   - `VITE_WHATSAPP_SECRET`: WhatsApp gateway secret
   - `VITE_WHATSAPP_ACCOUNT`: WhatsApp gateway account
@@ -495,3 +576,15 @@ The contact integration combines straightforward public contact methods with a r
 **Section sources**
 - [notifications.js:6-18](file://src/api/notifications.js#L6-L18)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
+
+### CSS Custom Properties Reference
+- Design tokens used throughout the enhanced components:
+  - Typography: `$font`, `$mono` for consistent font usage
+  - Colors: `$ink`, `$body`, `$muted`, `$blue`, `$green`, `$red` for brand consistency
+  - Spacing: Consistent padding and margin values
+  - Shadows: `$card-shadow`, `$button-shadow` for depth hierarchy
+  - Breakpoints: `$bp-xs`, `$bp-sm`, `$bp-md`, `$bp-lg`, `$bp-xl` for responsive design
+
+**Section sources**
+- [TERPLogin.scss:10-44](file://src/pages/TERPLogin.scss#L10-L44)
+- [CredentialsModal.scss:8-31](file://src/components/CredentialsModal.scss#L8-L31)

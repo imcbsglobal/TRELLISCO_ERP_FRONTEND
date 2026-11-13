@@ -3,7 +3,7 @@ schema_version: 1
 locale: en-US
 branch: main
 nodes_managed: true
-exported_at: "2026-11-13T08:44:19Z"
+exported_at: "2026-11-13T09:14:45Z"
 modules:
     "":
         dir_name: Trellisco Marketing SPA Root
@@ -22,8 +22,8 @@ modules:
         depends_on: []
         related_to: []
     app_shell:
-        dir_name: Trellisco SPA Shell
-        title: Trellisco SPA Shell
+        dir_name: App Shell & Routing Bootstrap
+        title: App Shell & Routing Bootstrap
         scope:
             - src/App.jsx
             - src/main.jsx
@@ -35,8 +35,8 @@ modules:
         depends_on: []
         related_to: []
     app_shell/terp:
-        dir_name: T-ERP Credentials Modal & Project Flag Mapping
-        title: T-ERP Credentials Modal & Project Flag Mapping
+        dir_name: T-ERP Post-License Credentials Modal & Project Flag Mapping
+        title: T-ERP Post-License Credentials Modal & Project Flag Mapping
         scope:
             - src/api/
             - src/components/CredentialsModal.jsx
