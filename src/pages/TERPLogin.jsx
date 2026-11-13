@@ -548,6 +548,32 @@ export default function TERPLogin() {
       licenseRef.current = license
       cacheLicense(email, license)
 
+      // T-ERP reports what it actually wrote: created_count 0 with skipped_count 1
+      // means the company still has a license for these projects, so nothing was
+      // created and no client id was registered. Central Master can then only
+      // answer "Unknown client_id", which used to be reported as a created license.
+      const createdCount = Number(license.created_count) || 0
+      const skippedCount = Number(license.skipped_count) || 0
+      const freshLicense = createdHereRef.current && createdCount > 0
+
+      if (!freshLicense) {
+        const stillRegistered = await isLicenseRegistered({ email, clientId: extractClientId(license) }).catch(() => true)
+        if (!stillRegistered) {
+          // Nothing left can be fixed from here: drop the dead license so the next
+          // submit asks T-ERP again instead of reusing it.
+          licenseRef.current = null
+          createdHereRef.current = false
+          dropCachedLicense(email)
+          throw new Error(
+            `The license was not created. T-ERP answered: "${license.message || `${skippedCount} licence(s) skipped`}" ` +
+              `and still lists no client "${email}". T-ERP kept the company "${company.name}" (corporate ` +
+              `"${company.corporateName}") from the deleted signup together with its license, so it skips the new one. ` +
+              `Delete that company and its license in T-ERP, then submit again — a clean company is licensed and ` +
+              `registered exactly like a first-time signup.`,
+          )
+        }
+      }
+
       // The id the customer is told about is their Gmail address: the same id
       // then identifies the Central Master login, the WhatsApp/email message and
       // their T-ERP sign-in.
