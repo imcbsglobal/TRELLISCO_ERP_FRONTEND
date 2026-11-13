@@ -609,19 +609,36 @@ export default function TERPLogin() {
       // in with; there is no separate contact-person field on the form.
       const { firstName, lastName } = splitContactName(googleUser?.name, companyName)
 
-      const account = await createClientAdmin({
-        clientId,
-        alternateClientIds: licensedClientId ? [licensedClientId] : [],
-        firstName,
-        lastName,
-        email,
-        phoneNumber,
-        selectedProjects,
-        // The username is the Gmail handle the client signed in with
-        // ("sajiththomas231@gmail.com" -> "sajiththomas231"), not the company
-        // email that doubles as the client id.
-        usernameEmail: googleUser?.email || email,
-      })
+      let account
+      try {
+        account = await createClientAdmin({
+          clientId,
+          alternateClientIds: licensedClientId ? [licensedClientId] : [],
+          firstName,
+          lastName,
+          email,
+          phoneNumber,
+          selectedProjects,
+          // The username is the Gmail handle the client signed in with
+          // ("sajiththomas231@gmail.com" -> "sajiththomas231"), not the company
+          // email that doubles as the client id.
+          usernameEmail: googleUser?.email || email,
+        })
+      } catch (error) {
+        if (!/unknown client_id/i.test(String(error?.message || ""))) throw error
+        // The license was accepted, but T-ERP never registered the company, so
+        // Central Master has no client to attach the login to. A corporate left
+        // over from a deleted signup keeps its old (now shop-less) record and
+        // blocks the shop from being created again, which is why the same email
+        // works once and fails on every retry.
+        throw new Error(
+          `${error.message} — T-ERP has no client for "${email}": the license exists, but the company was not ` +
+            `registered again. T-ERP already holds the corporate "${company.corporateName}" from the deleted ` +
+            `signup without a shop, which blocks the new shop "${company.name}". Delete that corporate in T-ERP ` +
+            `(no client-creation API exists) and submit again.`,
+          { cause: error },
+        )
+      }
 
       // The login may have been accepted under the id the license generated
       // rather than the email, so the country and the credentials follow the id

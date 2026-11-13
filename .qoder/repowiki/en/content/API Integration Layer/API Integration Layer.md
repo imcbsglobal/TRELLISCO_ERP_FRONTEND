@@ -7,8 +7,17 @@
 - [blogApi.js](file://src/api/blogApi.js)
 - [announcements.js](file://src/api/announcements.js)
 - [promoVideoApi.js](file://src/api/promoVideoApi.js)
+- [userMaster.js](file://src/api/userMaster.js)
+- [TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
 - [config.js](file://src/config/config.js)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for the enhanced `createClientAdmin()` function with alternate client ID support
+- Updated client provisioning workflow to include automatic retry logic for Unknown client_id errors
+- Added new section covering Central Master integration and client registration processes
+- Enhanced authentication flow documentation to include client ID resolution mechanisms
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -29,6 +38,7 @@ This document describes the TRELLISCO_ERP_FRONTEND integration layer that centra
 - Blog API endpoints for CRUD operations, file uploads, and scheduling.
 - Announcements API for company-wide messages and visibility controls.
 - Promotional video API for media upload, metadata management, and active video selection.
+- **Enhanced client provisioning system with automatic retry logic and alternate client ID support.**
 - Request/response schemas, error handling patterns, authentication methods, and rate limiting considerations.
 - Usage examples and best practices for extending the integration layer.
 
@@ -39,6 +49,8 @@ The integration layer lives under `src/api` and is consumed by admin pages and p
 - `blogApi.js`: Blog post CRUD, file upload, and scheduling helpers.
 - `announcements.js`: Announcement listing, creation, update, deletion, and active announcement retrieval.
 - `promoVideoApi.js`: Promo video listing, creation, update, deletion, and active promo retrieval.
+- `userMaster.js`: **Enhanced client provisioning with alternate client ID support and automatic retry logic.**
+- `TERPLogin.jsx`: **Updated T-ERP login flow with improved client ID resolution.**
 - `config.js`: A small config export (not used by the main Axios clients).
 
 ```mermaid
@@ -49,12 +61,16 @@ Auth["auth.js<br/>Login / Logout / Token helpers"]
 Blog["blogApi.js<br/>Blog CRUD + Upload + Scheduling"]
 Ann["announcements.js<br/>Announcement CRUD + Active"]
 Promo["promoVideoApi.js<br/>Promo Video CRUD + Active"]
+UserMaster["userMaster.js<br/>Enhanced Client Provisioning"]
+TERPLogin["TERPLogin.jsx<br/>T-ERP Login Flow"]
 Config["config.js<br/>API base URL export"]
 end
 Client --> Auth
 Client --> Blog
 Client --> Ann
 Client -.-> Promo
+Client -.-> UserMaster
+TERPLogin --> UserMaster
 Config -.-> Client
 ```
 
@@ -64,6 +80,8 @@ Config -.-> Client
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [userMaster.js:1-368](file://src/api/userMaster.js#L1-L368)
+- [TERPLogin.jsx:1-849](file://src/pages/TERPLogin.jsx#L1-L849)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
 **Section sources**
@@ -72,6 +90,8 @@ Config -.-> Client
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [userMaster.js:1-368](file://src/api/userMaster.js#L1-L368)
+- [TERPLogin.jsx:1-849](file://src/pages/TERPLogin.jsx#L1-L849)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
 ## Core Components
@@ -83,6 +103,10 @@ Config -.-> Client
   - Helpers provide get/set/clear semantics for tokens and user info.
 - Error normalization:
   - Each module converts Axios or fetch errors into readable JavaScript Errors using backend-provided details when available.
+- **Enhanced client provisioning:**
+  - `createClientAdmin()`: Advanced client account creation with alternate client ID support and automatic retry logic.
+  - Automatic fallback to alternate client IDs when primary ID is rejected as "Unknown client_id".
+  - Improved client ID resolution for country registration and credential handout processes.
 
 Key responsibilities:
 - `client.js`: Base URL resolution, token persistence, Axios instance setup, request/response interceptors.
@@ -90,6 +114,7 @@ Key responsibilities:
 - `blogApi.js`: Post listing/detail (admin/public), create/update/delete, file upload, publish toggle, scheduling helpers, and FormData builder.
 - `announcements.js`: Announcement CRUD and active announcement retrieval.
 - `promoVideoApi.js`: Promo video CRUD and active promo retrieval.
+- **`userMaster.js`: Enhanced client provisioning with intelligent client ID resolution and retry mechanisms.**
 
 **Section sources**
 - [client.js:21-88](file://src/api/client.js#L21-L88)
@@ -97,6 +122,7 @@ Key responsibilities:
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
 
 ## Architecture Overview
 The integration layer uses two HTTP clients:
@@ -112,30 +138,40 @@ Public vs admin visibility:
 - Public endpoints return only what visitors should see (e.g., published blog posts).
 - Admin endpoints return all records including drafts and scheduled items.
 
+**Enhanced Client Provisioning Flow:**
+- The `createClientAdmin()` function implements sophisticated client ID resolution with automatic retry logic.
+- Primary client ID is attempted first, followed by alternate client IDs when "Unknown client_id" errors occur.
+- The function returns the actual client ID that was accepted by Central Master for subsequent operations.
+
 ```mermaid
 sequenceDiagram
 participant UI as "Admin UI"
-participant Auth as "auth.js"
-participant Client as "client.js api"
+participant TERPLogin as "TERPLogin.jsx"
+participant UserMaster as "userMaster.js"
+participant CentralMaster as "Central Master API"
 participant Backend as "Backend API"
-UI->>Auth : login(email, password, {remember})
-Auth->>Client : POST /blog/admin/login/
-Client->>Backend : Request with JSON body
-Backend-->>Client : {token, user}
-Client-->>Auth : Response
-Auth->>Auth : setToken(token, {remember})
-Auth->>UI : user
-UI->>Client : GET /blog/posts/
-Client->>Client : Interceptor adds Authorization : Token <key>
-Client->>Backend : Authenticated request
-Backend-->>Client : Posts data
-Client-->>UI : Posts
+UI->>TERPLogin : Submit company details
+TERPLogin->>UserMaster : createClientAdmin({clientId, alternateClientIds})
+UserMaster->>CentralMaster : POST with primary clientId
+CentralMaster-->>UserMaster : Unknown client_id error
+UserMaster->>CentralMaster : POST with alternateClientId
+CentralMaster-->>UserMaster : Success with accepted clientId
+UserMaster-->>TERPLogin : {username, password, clientId}
+TERPLogin->>Backend : Register country with resolved clientId
+Backend-->>TERPLogin : Country registration result
+TERPLogin-->>UI : Display credentials
 ```
 
 **Diagram sources**
+- [TERPLogin.jsx:612-624](file://src/pages/TERPLogin.jsx#L612-L624)
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
+
+**Section sources**
 - [auth.js:4-19](file://src/api/auth.js#L4-L19)
 - [client.js:47-75](file://src/api/client.js#L47-L75)
-- [blogApi.js:10-13](file://src/api/blogApi.js#L10-L13)
+- [TERPLogin.jsx:612-624](file://src/pages/TERPLogin.jsx#L612-L624)
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
 
 ## Detailed Component Analysis
 
@@ -218,6 +254,74 @@ Auth-->>Page : user
 - [auth.js:21-29](file://src/api/auth.js#L21-L29)
 - [auth.js:31-40](file://src/api/auth.js#L31-L40)
 - [client.js:21-42](file://src/api/client.js#L21-L42)
+
+### Enhanced Client Provisioning System
+**New Section** - Enhanced client provisioning with advanced client ID resolution and retry logic.
+
+Capabilities:
+- **Primary client ID attempt**: Tries the provided client ID first.
+- **Automatic retry mechanism**: When Central Master returns "Unknown client_id", automatically attempts alternate client IDs.
+- **Intelligent client ID resolution**: Returns the actual client ID that was accepted by Central Master.
+- **Username collision handling**: Automatically generates numbered usernames when conflicts occur.
+- **Contact conflict detection**: Prevents duplicate accounts for the same contact information.
+
+Key features:
+- `alternateClientIds` parameter support for fallback client identification.
+- Automatic retry logic with configurable attempt limits.
+- Enhanced error handling for various failure scenarios.
+- Integration with Central Master's user management system.
+
+Request/response schemas:
+- Input parameters:
+  - `clientId`: Primary client identifier
+  - `alternateClientIds`: Array of fallback client identifiers
+  - `firstName`, `lastName`: Contact person details
+  - `email`, `phoneNumber`: Contact information
+  - `selectedProjects`: Array of selected project configurations
+  - `attempts`: Maximum retry attempts (default: 4)
+  - `usernameEmail`: Email address for username derivation
+- Response object:
+  - `username`: Generated or derived username
+  - `password`: Securely generated password
+  - `flags`: Product flags based on selected projects
+  - `user`: Complete user object from Central Master
+  - `reused`: Boolean indicating if existing account was reused
+  - `endpoint`: Central Master endpoint used
+  - `clientId`: Actual client ID that was accepted
+
+```mermaid
+flowchart TD
+Start(["createClientAdmin called"]) --> CheckExisting["Check for existing logins"]
+CheckExisting --> ExistingFound{"Existing login found?"}
+ExistingFound --> |Yes| ThrowError["Throw error: client already has admin login"]
+ExistingFound --> |No| BuildCandidates["Build candidate list<br/>(clientId + alternateClientIds)"]
+BuildCandidates --> ProcessCandidate["Process each candidate ID"]
+ProcessCandidate --> AttemptLimit{"Within attempt limit?"}
+AttemptLimit --> |No| NextCandidate["Try next candidate ID"]
+AttemptLimit --> |Yes| SendRequest["POST to Central Master"]
+SendRequest --> ResponseOK{"Response OK?"}
+ResponseOK --> |Yes| ParseResponse["Parse response and extract clientId"]
+ResponseOK --> |No| HandleError["Handle specific error types"]
+HandleError --> UsernameConflict{"Username conflict?"}
+HandleError --> ContactConflict{"Contact conflict?"}
+HandleError --> UnknownClientId{"Unknown client_id?"}
+UsernameConflict --> GenerateNewUsername["Generate numbered username"]
+ContactConflict --> ThrowError
+UnknownClientId --> NextCandidate
+GenerateNewUsername --> AttemptLimit
+ParseResponse --> ReturnSuccess["Return created account with resolved clientId"]
+NextCandidate --> ProcessCandidate
+```
+
+**Diagram sources**
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
+- [userMaster.js:121-131](file://src/api/userMaster.js#L121-L131)
+
+**Section sources**
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
+- [userMaster.js:121-131](file://src/api/userMaster.js#L121-L131)
 
 ### Blog API
 Capabilities:
@@ -395,18 +499,23 @@ graph LR
 Client["client.js"] --> Auth["auth.js"]
 Client --> Blog["blogApi.js"]
 Client --> Ann["announcements.js"]
+Client -.-> UserMaster["userMaster.js"]
 Promo["promoVideoApi.js"] -.-> Client
+TERPLogin["TERPLogin.jsx"] --> UserMaster
 Config["config.js"] -.-> Client
 ```
 
 Observations:
 - `auth.js`, `blogApi.js`, and `announcements.js` depend on `client.js` for Axios instances and token helpers.
 - `promoVideoApi.js` uses native fetch and reads token from `client.js` helpers but does not import Axios.
+- **`userMaster.js` integrates with Central Master API and provides enhanced client provisioning capabilities.**
+- **`TERPLogin.jsx` orchestrates the complete T-ERP setup flow including client provisioning.**
 - `config.js` exports a base URL constant but is not used by the primary Axios clients.
 
 Potential coupling:
 - All modules assume DRF-style error shapes for normalization.
 - Token scheme must remain `Token <key>` across the stack.
+- **Client provisioning relies on Central Master's user management system with robust error handling.**
 
 **Section sources**
 - [client.js:1-88](file://src/api/client.js#L1-L88)
@@ -414,6 +523,8 @@ Potential coupling:
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
+- [userMaster.js:1-368](file://src/api/userMaster.js#L1-L368)
+- [TERPLogin.jsx:1-849](file://src/pages/TERPLogin.jsx#L1-L849)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
 ## Performance Considerations
@@ -421,6 +532,8 @@ Potential coupling:
 - Batch operations where possible at the backend level; the frontend currently issues single-request calls per operation.
 - Avoid unnecessary re-renders by caching results in component state or a lightweight cache layer.
 - For large file uploads, consider progress indicators and chunking strategies at the UI layer.
+- **Client provisioning includes built-in retry logic to minimize network failures and improve reliability.**
+- **Alternate client ID resolution reduces failed provisioning attempts through intelligent fallback mechanisms.**
 
 [No sources needed since this section provides general guidance]
 
@@ -436,6 +549,15 @@ Common issues and resolutions:
   - Use `toIsoOrEmpty` to convert local datetime inputs to ISO strings or empty values.
 - Announcements returning unexpected shapes:
   - Normalize responses using the provided helper functions; some endpoints may return paginated objects.
+- **Client provisioning failures:**
+  - Check if the primary client ID is valid in Central Master's license registry.
+  - Verify that alternate client IDs are properly configured when expected.
+  - Monitor for "Unknown client_id" errors which trigger automatic retry logic.
+  - Ensure proper error handling for username and contact conflicts.
+- **T-ERP login flow issues:**
+  - Verify Google authentication is working correctly before attempting client provisioning.
+  - Check that the client ID resolution process completes successfully.
+  - Monitor the retry mechanism for unknown client ID scenarios.
 
 **Section sources**
 - [client.js:10-16](file://src/api/client.js#L10-L16)
@@ -443,9 +565,11 @@ Common issues and resolutions:
 - [blogApi.js:81-85](file://src/api/blogApi.js#L81-L85)
 - [blogApi.js:117-135](file://src/api/blogApi.js#L117-L135)
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
+- [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
+- [userMaster.js:345-364](file://src/api/userMaster.js#L345-L364)
 
 ## Conclusion
-The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized approach to HTTP communication with clear separation between admin and public contexts. It standardizes authentication, error handling, and request construction while offering well-defined APIs for blogs, announcements, and promotional videos. Following the documented patterns ensures consistent behavior, easier maintenance, and safe extension points for new features.
+The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized approach to HTTP communication with clear separation between admin and public contexts. It standardizes authentication, error handling, and request construction while offering well-defined APIs for blogs, announcements, promotional videos, and **enhanced client provisioning**. The new client provisioning system with automatic retry logic and alternate client ID support significantly improves reliability and user experience during the T-ERP setup process. Following the documented patterns ensures consistent behavior, easier maintenance, and safe extension points for new features.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
@@ -475,12 +599,18 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
   - `PATCH /api/blog/promo-videos/{id}/`
   - `DELETE /api/blog/promo-videos/{id}/`
   - `GET /api/blog/promo-videos/active/`
+- **Central Master (Enhanced)**
+  - `POST /central-api/user-master/` (via proxy)
+  - `GET /central-api/user-master/` (for user lookup)
+  - `PATCH /central-api/user-master/{id}/` (for enabling projects)
 
 **Section sources**
 - [auth.js:4-29](file://src/api/auth.js#L4-L29)
 - [blogApi.js:10-56](file://src/api/blogApi.js#L10-L56)
 - [announcements.js:22-61](file://src/api/announcements.js#L22-L61)
 - [promoVideoApi.js:49-85](file://src/api/promoVideoApi.js#L49-L85)
+- [userMaster.js:12-16](file://src/api/userMaster.js#L12-L16)
+- [userMaster.js:218-222](file://src/api/userMaster.js#L218-L222)
 
 ### Request/Response Schemas
 - Authentication
@@ -497,6 +627,11 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - Promotional Videos
   - Create/Update payload (multipart/form-data):
     - Fields: `video`, `title`, `subtitle`, `buttonLabel`, `buttonUrl`, `isActive`, `publishAt`, `deleteAt`
+- **Enhanced Client Provisioning**
+  - Create client admin request:
+    - Fields: `clientId`, `alternateClientIds[]`, `firstName`, `lastName`, `email`, `phoneNumber`, `selectedProjects[]`, `attempts`, `usernameEmail`
+  - Create client admin response:
+    - Fields: `username`, `password`, `flags`, `user`, `reused`, `endpoint`, `clientId`
 
 **Section sources**
 - [auth.js:4-19](file://src/api/auth.js#L4-L19)
@@ -504,20 +639,29 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - [blogApi.js:63-74](file://src/api/blogApi.js#L63-L74)
 - [blogApi.js:117-135](file://src/api/blogApi.js#L117-L135)
 - [promoVideoApi.js:36-47](file://src/api/promoVideoApi.js#L36-L47)
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
 
 ### Error Handling Patterns
 - Axios-based modules normalize errors using backend-provided details or first field error messages.
 - Fetch-based modules parse response bodies and throw readable Errors with fallback messages.
+- **Enhanced client provisioning includes sophisticated error categorization:**
+  - Username conflict detection with automatic username regeneration
+  - Contact conflict prevention to avoid duplicate accounts
+  - Unknown client ID handling with automatic fallback to alternate IDs
+  - Network error wrapping with contextual information
 
 **Section sources**
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
 - [promoVideoApi.js:14-34](file://src/api/promoVideoApi.js#L14-L34)
 - [blogApi.js:63-74](file://src/api/blogApi.js#L63-L74)
+- [userMaster.js:121-140](file://src/api/userMaster.js#L121-L140)
+- [userMaster.js:234-246](file://src/api/userMaster.js#L234-L246)
 
 ### Rate Limiting Considerations
 - No explicit client-side rate limiting is implemented.
 - Consider implementing exponential backoff or retry logic for transient failures.
 - Respect backend rate limits and implement UI feedback for throttling scenarios.
+- **Enhanced client provisioning includes built-in retry logic with configurable attempt limits to handle transient failures gracefully.**
 
 [No sources needed since this section provides general guidance]
 
@@ -527,9 +671,15 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - Normalize errors consistently across modules.
 - Centralize environment configuration and validate it at build time.
 - Prefer functional helpers over inline fetch/Axios calls to maintain consistency.
+- **For client provisioning operations:**
+  - Always provide both primary and alternate client IDs when available.
+  - Implement proper error handling for "Unknown client_id" scenarios.
+  - Use the returned `clientId` from successful provisioning for subsequent operations.
+  - Leverage the built-in retry mechanisms rather than implementing custom retry logic.
 
 **Section sources**
 - [client.js:47-88](file://src/api/client.js#L47-L88)
 - [blogApi.js:117-135](file://src/api/blogApi.js#L117-L135)
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
 - [promoVideoApi.js:14-34](file://src/api/promoVideoApi.js#L14-L34)
+- [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)

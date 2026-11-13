@@ -20,11 +20,11 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for the new prefetchTerpRegisters() function and refactored license register loading mechanism
-- Updated T-ERP license management section to document separate client directory and corporate client endpoints
-- Enhanced performance considerations with preloading strategies for enterprise workflows
-- Updated architecture diagrams to reflect the new parallel loading pattern for T-ERP registers
-- Added detailed coverage of the two-tier caching strategy for client directory and license register
+- Enhanced T-ERP license management with new validation functions (isLicensePayload) and improved createTerpLicense() function with edge case handling
+- Added robust error recovery mechanisms for license creation and validation
+- Updated T-ERP license management section to document enhanced validation and error handling capabilities
+- Enhanced troubleshooting guide with specific guidance for license-related issues
+- Updated performance considerations to reflect improved error handling strategies
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -47,7 +47,7 @@ This document explains the API integration layer architecture, focusing on:
 - Caching strategies, request optimization, and performance considerations
 - Guidelines for adding new endpoints consistently
 
-The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. **Updated** The system now includes sophisticated preloading capabilities for T-ERP license data to optimize user experience during Google sign-in flows.
+The goal is to make the API layer predictable, secure, and easy to extend while keeping public and authenticated flows clearly separated. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. **Updated** The system now includes sophisticated preloading capabilities for T-ERP license data to optimize user experience during Google sign-in flows, along with enhanced validation and error recovery mechanisms for license creation.
 
 ## Project Structure
 The API integration lives under `src/api` and is organized by domain modules that share a common Axios client:
@@ -57,7 +57,7 @@ The API integration lives under `src/api` and is organized by domain modules tha
 - `blogApi.js`: Blog domain service functions (posts, uploads, form builders)
 - `announcements.js`: Announcements domain service functions
 - `promoVideoApi.js`: Promo video domain service functions (uses native fetch but shares token source)
-- `terpLicense.js`: T-ERP license management and project catalogue operations with advanced preloading
+- `terpLicense.js`: T-ERP license management and project catalogue operations with advanced preloading and enhanced validation
 - `userMaster.js`: User master operations and admin account creation
 - `notifications.js`: Multi-channel notification system (WhatsApp, Email via multiple providers)
 - `financialYear.js`: Financial year register management with Central Master integration
@@ -73,7 +73,7 @@ Auth["auth.js<br/>Login/logout helpers"]
 Blog["blogApi.js<br/>Blog domain services"]
 Announcements["announcements.js<br/>Announcements domain services"]
 Promo["promoVideoApi.js<br/>Promo video services"]
-Terp["terpLicense.js<br/>T-ERP license management + preloading"]
+Terp["terpLicense.js<br/>T-ERP license management + preloading + validation"]
 UserMaster["userMaster.js<br/>User master operations"]
 Notifications["notifications.js<br/>Multi-channel notifications"]
 FinancialYear["financialYear.js<br/>Financial year register"]
@@ -98,7 +98,7 @@ ApiLegacy --> Config
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
+- [terpLicense.js:1-337](file://src/api/terpLicense.js#L1-L337)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -112,7 +112,7 @@ ApiLegacy --> Config
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
+- [terpLicense.js:1-337](file://src/api/terpLicense.js#L1-L337)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -130,7 +130,7 @@ ApiLegacy --> Config
   - Response interceptor clears token on 401 and rejects errors
 - Domain service modules:
   - Blog, announcements, promo videos each expose typed functions for CRUD operations
-  - T-ERP license management with project catalogue, license creation, and **advanced preloading capabilities**
+  - T-ERP license management with project catalogue, license creation, **advanced preloading capabilities**, and **enhanced validation mechanisms**
   - User master operations for admin account provisioning
   - Multi-channel notifications with WhatsApp and email delivery
   - Financial year register management with Central Master integration
@@ -147,13 +147,14 @@ Key responsibilities:
 - Support for complex enterprise workflows and third-party integrations
 - Environment-aware endpoint resolution for development vs production
 - **Advanced preloading strategies for optimal user experience**
+- **Robust license validation and error recovery mechanisms**
 
 **Section sources**
 - [client.js:21-75](file://src/api/client.js#L21-L75)
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
+- [terpLicense.js:1-337](file://src/api/terpLicense.js#L1-L337)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -198,8 +199,8 @@ LicenseSvc-->>UI : Complete workspace data
 ```
 
 **Diagram sources**
-- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
-- [terpLicense.js:124-145](file://src/api/terpLicense.js#L124-L145)
+- [terpLicense.js:165-167](file://src/api/terpLicense.js#L165-L167)
+- [terpLicense.js:137-158](file://src/api/terpLicense.js#L137-L158)
 - [TERPLogin.jsx:203-208](file://src/pages/TERPLogin.jsx#L203-L208)
 - [TERPLogin.jsx:213-257](file://src/pages/TERPLogin.jsx#L213-L257)
 
@@ -277,13 +278,15 @@ Auth-->>UI : user
 - [client.js:21-75](file://src/api/client.js#L21-L75)
 
 ### Advanced T-ERP License Management System
-**Updated** The T-ERP license management system now features sophisticated preloading capabilities with separate client directory and corporate client endpoints, optimized for enterprise workflows and Google sign-in integration.
+**Enhanced** The T-ERP license management system now features sophisticated preloading capabilities with separate client directory and corporate client endpoints, optimized for enterprise workflows and Google sign-in integration, along with **robust validation and error recovery mechanisms**.
 
 **New Features:**
 - **Parallel Preloading**: `prefetchTerpRegisters()` initiates background loading of both client directory and license register
 - **Two-Tier Caching Strategy**: Separate caches for client directory and license register to optimize performance
 - **Progressive Data Loading**: License register loads first for immediate owned project detection, followed by client directory for company details
 - **Enterprise-Specific Endpoints**: Dedicated endpoints for client IDs (`/terp-api/client-id-list/get-client-ids/`) and corporate clients (`/terp-api/corporate-clientid/list/`)
+- **Enhanced Validation**: `isLicensePayload()` function validates license responses with comprehensive error checking
+- **Robust Error Recovery**: Improved `createTerpLicense()` function with edge case handling and detailed error reporting
 
 Responsibilities:
 - Fetch project catalogue from T-ERP API
@@ -293,6 +296,8 @@ Responsibilities:
 - Extract client IDs and license keys from responses
 - **Preload enterprise data during initial page load for optimal UX**
 - **Provide progressive workspace detection with callback support**
+- **Validate license responses and handle edge cases gracefully**
+- **Implement comprehensive error recovery mechanisms**
 
 Key features:
 - Intelligent client workspace detection based on email addresses
@@ -301,6 +306,8 @@ Key features:
 - **Advanced caching mechanism with separate client directory and license register caches**
 - **Background preloading with Promise.allSettled for non-blocking initialization**
 - **Progressive data loading with callback support for immediate owned project feedback**
+- **Comprehensive license payload validation with `isLicensePayload()` function**
+- **Enhanced error handling in `createTerpLicense()` with detailed error messages and recovery strategies**
 - Flexible project data normalization supporting multiple response formats
 - Financial year registration coordination
 
@@ -318,16 +325,19 @@ class TERPLicenseService {
 -loadClientDirectory()
 -loadLicenseRegister()
 -ownedProjectsOf(corporates, wanted)
++isLicensePayload(payload)
++isLicenseRegistered({email, clientId})
 }
 ```
 
 **Diagram sources**
-- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
-- [terpLicense.js:124-145](file://src/api/terpLicense.js#L124-L145)
-- [terpLicense.js:181-208](file://src/api/terpLicense.js#L181-L208)
+- [terpLicense.js:165-167](file://src/api/terpLicense.js#L165-L167)
+- [terpLicense.js:137-158](file://src/api/terpLicense.js#L137-L158)
+- [terpLicense.js:228-282](file://src/api/terpLicense.js#L228-L282)
+- [terpLicense.js:320-336](file://src/api/terpLicense.js#L320-L336)
 
 **Section sources**
-- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
+- [terpLicense.js:1-337](file://src/api/terpLicense.js#L1-L337)
 
 ### User Master Operations
 **New** The user master system manages admin account creation and product flag management for T-ERP clients.
@@ -599,7 +609,7 @@ TERPLogin --> Notifications
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
+- [terpLicense.js:1-337](file://src/api/terpLicense.js#L1-L337)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -616,7 +626,7 @@ TERPLogin --> Notifications
 - [blogApi.js:1-135](file://src/api/blogApi.js#L1-L135)
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
-- [terpLicense.js:1-264](file://src/api/terpLicense.js#L1-L264)
+- [terpLicense.js:1-337](file://src/api/terpLicense.js#L1-L337)
 - [userMaster.js:1-282](file://src/api/userMaster.js#L1-L282)
 - [notifications.js:1-415](file://src/api/notifications.js#L1-L415)
 - [financialYear.js:1-118](file://src/api/financialYear.js#L1-L118)
@@ -653,11 +663,13 @@ TERPLogin --> Notifications
   - Use Vite proxy for CORS-free development to avoid preflight requests
   - Configure proxy timeouts appropriately for slow external APIs
 
-**Updated** The T-ERP license management system now implements sophisticated preloading strategies:
+**Enhanced** The T-ERP license management system now implements sophisticated preloading strategies with **improved error handling and validation**:
 - **Parallel Loading**: Both client directory and license register load simultaneously
 - **Separate Caching**: Independent caches prevent blocking between datasets
 - **Progressive Enhancement**: License register loads first for immediate owned project detection
 - **Non-blocking Initialization**: Background preloading doesn't block initial page rendering
+- **Enhanced Validation**: `isLicensePayload()` function provides comprehensive response validation
+- **Robust Error Recovery**: Improved error handling prevents duplicate license creation and provides detailed error messages
 
 [No sources needed since this section provides general guidance]
 
@@ -676,11 +688,21 @@ Common issues and resolutions:
 - T-ERP license creation failures:
   - Check CORS configuration for external APIs
   - Verify client ID and corporate name formatting
+  - **Use `isLicensePayload()` to validate license responses and handle edge cases**
+  - **Implement proper error recovery mechanisms in `createTerpLicense()`**
 - **T-ERP preloading issues**:
   - Ensure `prefetchTerpRegisters()` is called during initial page load
   - Verify both client directory and corporate client endpoints are accessible
   - Check Vite proxy configuration for `/terp-api` paths
   - Monitor console for failed Promise.allSettled operations
+- **License validation errors**:
+  - **Use `isLicensePayload()` to validate license responses before processing**
+  - **Handle empty responses, non-JSON bodies, and success=false scenarios**
+  - **Implement comprehensive error messages with detailed context**
+- **License creation edge cases**:
+  - **Handle HTTP 2xx responses with invalid payloads**
+  - **Detect and report duplicate license attempts**
+  - **Implement fallback mechanisms for failed license creation**
 - User master account creation issues:
   - Ensure unique client_id, email, and phone_number combinations
   - Check username conflict resolution logic
@@ -701,14 +723,17 @@ Operational tips:
 - Monitor third-party API availability and implement graceful degradation
 - Test both development proxy and production direct connections
 - **Monitor preloading performance and implement fallback strategies for failed background requests**
+- **Implement comprehensive error handling for license validation and creation processes**
+- **Use detailed error messages to aid in debugging license-related issues**
 
 **Section sources**
 - [client.js:58-75](file://src/api/client.js#L58-L75)
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
 - [blogApi.js:63-74](file://src/api/blogApi.js#L63-L74)
 - [api.js:11-36](file://src/api/api.js#L11-L36)
-- [terpLicense.js:67-78](file://src/api/terpLicense.js#L67-L78)
-- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
+- [terpLicense.js:78-89](file://src/api/terpLicense.js#L78-L89)
+- [terpLicense.js:228-282](file://src/api/terpLicense.js#L228-L282)
+- [terpLicense.js:165-167](file://src/api/terpLicense.js#L165-L167)
 - [userMaster.js:190-202](file://src/api/userMaster.js#L190-L202)
 - [notifications.js:84-112](file://src/api/notifications.js#L84-L112)
 - [financialYear.js:19-31](file://src/api/financialYear.js#L19-L31)
@@ -728,6 +753,8 @@ Follow these steps to maintain consistency:
    - Convert DRF error bodies into readable messages
    - Throw standard JavaScript Errors with clear messages
    - Implement proper error parsing for HTML responses from external APIs
+   - **For license-related endpoints, implement comprehensive validation using functions like `isLicensePayload()`**
+   - **Handle edge cases such as empty responses, non-JSON bodies, and success=false scenarios**
 4. For file uploads:
    - Build FormData explicitly
    - Set Content-Type to multipart/form-data
@@ -742,18 +769,22 @@ Follow these steps to maintain consistency:
    - Mock axios/fetch and verify success/error paths
    - Test third-party API integrations with mock responses
    - Test proxy configuration for development environments
+   - **Test license validation functions and error recovery mechanisms**
 8. Document contracts:
    - Update this guide with any new response shapes or required fields
+   - **Document validation rules and error handling strategies for license endpoints**
 9. For enterprise features:
    - Implement proper caching for frequently accessed data
    - Handle concurrent operations safely
    - Provide meaningful feedback for long-running processes
    - **Consider implementing preloading strategies for critical enterprise data**
+   - **Implement robust error recovery mechanisms for critical business operations**
 10. For external API integrations:
     - Configure Vite proxy for development if CORS is not supported
     - Implement environment-specific endpoint resolution
     - Handle both JSON and HTML error responses
     - Provide fallback mechanisms for unavailable services
+    - **Implement comprehensive validation and error handling for critical API interactions**
 
 Example patterns to follow:
 - Public read: see public post fetch
@@ -763,13 +794,16 @@ Example patterns to follow:
 - Third-party service integration: see notification system
 - CORS-free external API: see financial year register with Vite proxy
 - **Advanced preloading: see `prefetchTerpRegisters()` for enterprise data optimization**
+- **License validation: see `isLicensePayload()` for comprehensive response validation**
+- **Error recovery: see enhanced `createTerpLicense()` for robust error handling**
 
 **Section sources**
 - [blogApi.js:25-47](file://src/api/blogApi.js#L25-L47)
 - [announcements.js:22-61](file://src/api/announcements.js#L22-L61)
 - [promoVideoApi.js:49-85](file://src/api/promoVideoApi.js#L49-L85)
-- [terpLicense.js:152-154](file://src/api/terpLicense.js#L152-L154)
-- [terpLicense.js:104-264](file://src/api/terpLicense.js#L104-L264)
+- [terpLicense.js:165-167](file://src/api/terpLicense.js#L165-L167)
+- [terpLicense.js:228-282](file://src/api/terpLicense.js#L228-L282)
+- [terpLicense.js:104-337](file://src/api/terpLicense.js#L104-L337)
 - [userMaster.js:213-279](file://src/api/userMaster.js#L213-L279)
 - [notifications.js:84-414](file://src/api/notifications.js#L84-L414)
 - [financialYear.js:9-17](file://src/api/financialYear.js#L9-L17)
@@ -778,6 +812,8 @@ Example patterns to follow:
 ## Conclusion
 This API integration layer centralizes Axios configuration, enforces consistent authentication, and organizes domain logic into dedicated service modules. The architecture now supports complex enterprise workflows including license management, user provisioning, multi-channel communications, and financial year registration with Central Master integration. By separating public and authenticated flows, normalizing errors, and providing reusable helpers for uploads and payloads, the codebase remains scalable and maintainable. 
 
-**Updated** The addition of sophisticated preloading capabilities through `prefetchTerpRegisters()` demonstrates the system's evolution toward optimizing user experience for enterprise workflows. The two-tier caching strategy with separate client directory and corporate client endpoints enables progressive data loading, while the parallel initialization pattern ensures minimal impact on initial page rendering. The specialized modules for T-ERP license management, user master operations, multi-channel notifications, and financial year registration showcase the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. The Vite proxy configuration enables seamless development with external APIs that lack CORS support. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application, considering preloading strategies for critical enterprise data to enhance user experience.
+**Enhanced** The addition of sophisticated preloading capabilities through `prefetchTerpRegisters()` demonstrates the system's evolution toward optimizing user experience for enterprise workflows. The two-tier caching strategy with separate client directory and corporate client endpoints enables progressive data loading, while the parallel initialization pattern ensures minimal impact on initial page rendering. The specialized modules for T-ERP license management, user master operations, multi-channel notifications, and financial year registration showcase the system's ability to handle sophisticated business requirements while maintaining clean architectural boundaries. The Vite proxy configuration enables seamless development with external APIs that lack CORS support. 
+
+**Most importantly**, the enhanced T-ERP license management system now includes robust validation mechanisms through `isLicensePayload()` and improved error recovery in `createTerpLicense()`, ensuring reliable license creation and handling of edge cases. These enhancements provide better error reporting, prevent duplicate license creation, and offer comprehensive validation for license responses. Follow the guidelines for adding new endpoints to keep behavior predictable and consistent across the application, considering preloading strategies for critical enterprise data and implementing robust validation and error handling for license-related operations to enhance user experience and system reliability.
 
 [No sources needed since this section summarizes without analyzing specific files]

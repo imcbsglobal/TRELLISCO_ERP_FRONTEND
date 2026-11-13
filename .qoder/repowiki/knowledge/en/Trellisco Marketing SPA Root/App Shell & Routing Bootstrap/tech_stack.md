@@ -1,1 +1,0 @@
-React 18 (`react-dom/client` `createRoot`) with `react-router-dom` v6 declarative routing; CSS custom properties for shared theming.
