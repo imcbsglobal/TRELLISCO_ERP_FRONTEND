@@ -17,11 +17,11 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced T-ERP login system with integrated company registration through Central Master API
-- Improved workspace detection with enhanced client ID-based validation and session-scoped caching
-- Removed phone number-based client identification functionality; user login now only matches by client ID and email
-- Enhanced license management with session-based caching for improved performance and background refresh capabilities
-- Integrated comprehensive company master API calls for complete business entity registration
+- Enhanced T-ERP login form with stricter validation requirements (GSTIN and PAN now mandatory)
+- Added support for alternateClientIds parameter to handle multiple client ID scenarios
+- Improved logo upload validation accepting only PNG/JPG/WebP formats with enhanced error handling
+- Integrated new pushCompanyMaster function for fresh company registrations during signup flow
+- Strengthened form validation with comprehensive field-level error handling and real-time feedback
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -32,7 +32,7 @@
 6. [Centralized License Register Loading](#centralized-license-register-loading)
 7. [Prefetch Optimization Strategy](#prefetch-optimization-strategy)
 8. [Asynchronous Project Ownership Detection](#asynchronous-project-ownership-detection)
-9. [Project Selection and Workspace Recognition](#project-selection-and-workspace-recognition)
+9. [Project Selection and Workspace Recognition](#project-selection-and-workspaceRecognition)
 10. [Company Registration and Master Data Management](#company-registration-and-master-data-management)
 11. [Credential Delivery System](#credential-delivery-system)
 12. [Traditional Admin Authentication](#traditional-admin-authentication)
@@ -216,7 +216,7 @@ useEffect(() => {
 - [src/pages/TERPLogin.jsx:136-155](file://src/pages/TERPLogin.jsx#L136-L155)
 
 ## Enhanced T-ERP Login Flow
-The enhanced login flow now includes financial year management, improved country handling, advanced client ID-based license validation with optimized data loading, and integrated company registration:
+The enhanced login flow now includes financial year management, improved country handling, advanced client ID-based license validation with optimized data loading, and integrated company registration with comprehensive validation requirements:
 
 ### Step 1: Google Authentication
 - Dynamic loading of Google Identity Services
@@ -245,12 +245,13 @@ The enhanced login flow now includes financial year management, improved country
 - Protection against duplicate license creation
 - Sophisticated edge case detection for orphaned licenses
 
-### Step 5: Integrated Company Registration
+### Step 5: Integrated Company Registration with Enhanced Validation
 - Comprehensive company details submission to Central Master
-- GSTIN and PAN validation and storage
+- **NEW**: Mandatory GSTIN and PAN validation with strict format checking
 - Complete address and contact information management
-- Logo upload and processing
+- **NEW**: Enhanced logo upload validation accepting only PNG/JPG/WebP formats
 - Referral code tracking
+- **NEW**: Support for alternateClientIds parameter for multiple client ID scenarios
 
 ```mermaid
 flowchart TD
@@ -261,15 +262,16 @@ ProjectSelection --> CountryCheck["Load Available Countries"]
 CountryCheck --> ExistingCountry{"Existing Country?"}
 ExistingCountry --> |Yes| LockedCountry["Display Registered Country"]
 ExistingCountry --> |No| CountrySelection["Select Country"]
-LockedCountry --> Validation["Form Validation"]
+LockedCountry --> Validation["Form Validation<br/>(GSTIN/PAN Mandatory)"]
 CountrySelection --> Validation
-Validation --> LicenseCreation["Create T-ERP License"]
+Validation --> LogoValidation["Logo Upload Validation<br/>(PNG/JPG/WebP Only)"]
+LogoValidation --> LicenseCreation["Create T-ERP License"]
 LicenseCreation --> CacheValidation["Validate Cached License<br/>vs Client Registry"]
 CacheValidation --> OrphanedCheck{"License Orphaned?"}
 OrphanedCheck --> |Yes| Cleanup["Cleanup Orphaned License<br/>(Delete Cache)"]
 OrphanedCheck --> |No| CountryRegistration["Register Country (if new)"]
 Cleanup --> Retry["Retry License Creation"]
-CountryRegistration --> CompanyRegistration["Register Company Details<br/>(Central Master)"]
+CountryRegistration --> CompanyRegistration["Register Company Details<br/>(Central Master)<br/>with alternateClientIds"]
 CompanyRegistration --> AdminAccount["Create Admin Account"]
 AdminAccount --> CredentialDelivery["Send Credentials"]
 CredentialDelivery --> Success(["Setup Complete"])
@@ -400,13 +402,13 @@ export async function findClientWorkspace(email, onProjects) {
 
   const register = loadLicenseRegister()
   register
-    .then((corporates) => {
-      const owned = ownedProjectsOf(corporates, wanted)
-      if (owned.projects.length) onProjects?.(owned.projects, owned.corporateName)
-    })
-    .catch(() => {
-      // Reported by the full lookup below.
-    })
+  .then((corporates) => {
+    const owned = ownedProjectsOf(corporates, wanted)
+    if (owned.projects.length) onProjects?.(owned.projects, owned.corporateName)
+  })
+  .catch(() => {
+    // Reported by the full lookup below.
+  })
 
   const [clients, corporates] = await Promise.all([loadClientDirectory(), register])
 
@@ -524,9 +526,9 @@ const tickedOwned = projects.filter((item) => ownedProjects.has(normaliseName(it
 - [src/pages/TERPLogin.jsx:259-261](file://src/pages/TERPLogin.jsx#L259-L261)
 
 ## Company Registration and Master Data Management
-The system now includes comprehensive company registration through Central Master's company register API:
+The system now includes comprehensive company registration through Central Master's company register API with enhanced validation and multiple client ID support:
 
-### Central Master Company Registration Architecture
+### Enhanced Company Registration Architecture
 ```mermaid
 sequenceDiagram
 participant TERPLogin as "TERPLogin Component"
@@ -535,8 +537,9 @@ participant LicenseAPI as "T-ERP License API"
 participant UserMaster as "Central Master User API"
 TERPLogin->>LicenseAPI : Create T-ERP License
 LicenseAPI-->>TERPLogin : Return license details (client_id, license_key)
-TERPLogin->>CompanyMaster : Register company details
-CompanyMaster->>CompanyMaster : Validate GSTIN/PAN formats
+TERPLogin->>CompanyMaster : Register company details with alternateClientIds
+CompanyMaster->>CompanyMaster : Validate GSTIN/PAN formats (mandatory)
+CompanyMaster->>CompanyMaster : Validate logo format (PNG/JPG/WebP only)
 CompanyMaster->>CompanyMaster : Check existing company records
 CompanyMaster-->>TERPLogin : Confirm company registration
 TERPLogin->>UserMaster : Create admin account
@@ -547,29 +550,44 @@ UserMaster-->>TERPLogin : Return admin credentials
 - [src/pages/TERPLogin.jsx:572-595](file://src/pages/TERPLogin.jsx#L572-L595)
 - [src/api/companyMaster.js:156-162](file://src/api/companyMaster.js#L156-L162)
 
-### Company Registration Implementation
-The system collects comprehensive company information and submits it to Central Master after license creation:
+### Enhanced Company Registration Implementation
+The system collects comprehensive company information with strict validation and submits it to Central Master after license creation:
 
 ```javascript
-const registerCompanyMaster = async ({ clientId: recordClientId, licenseKey: recordLicenseKey, email: recordEmail, phoneNumber: recordPhone, companyName: recordName }) => {
+const registerCompanyMaster = async ({ 
+  freshCompany = false,
+  clientId: recordClientId,
+  alternateClientIds = [],
+  licenseKey: recordLicenseKey,
+  email: recordEmail,
+  phoneNumber: recordPhone,
+  companyName: recordName,
+}) => {
+  const details = {
+    clientId: recordClientId,
+    alternateClientIds,
+    licenseKey: recordLicenseKey,
+    companyName: recordName,
+    email: recordEmail,
+    phoneNumber: recordPhone,
+    referralCode: company.referralCode,
+    gstNumber: company.gstNumber,
+    panNumber: company.panNumber,
+    addressLine1: company.addressLine1,
+    addressLine2: company.addressLine2,
+    city: company.place,
+    district: company.district,
+    state: company.state,
+    country: company.country,
+    logo: String(company.logo || "").split(",")[1] || "",
+  }
+
   try {
-    return await ensureCompanyMaster({
-      clientId: recordClientId,
-      licenseKey: recordLicenseKey,
-      companyName: recordName,
-      email: recordEmail,
-      phoneNumber: recordPhone,
-      referralCode: company.referralCode,
-      gstNumber: company.gstNumber,
-      panNumber: company.panNumber,
-      addressLine1: company.addressLine1,
-      addressLine2: company.addressLine2,
-      city: company.place,
-      district: company.district,
-      state: company.state,
-      country: company.country,
-      logo: String(company.logo || "").split(",")[1] || "",
-    })
+    const saved = freshCompany ? await pushCompanyMaster(details) : await ensureCompanyMaster(details)
+    if (saved?.logoDropped) {
+      return { ...saved, error: " The company logo was not accepted by the register, so the company details were saved without it." }
+    }
+    return saved
   } catch (companyError) {
     return { created: false, error: ` The company details could not be saved to Central Master: ${companyError.message}` }
   }
@@ -758,10 +776,10 @@ The authentication system implements multiple security measures with enhanced fi
 - Secure transmission of financial year mappings
 - Protection against country manipulation attacks
 
-### Company Data Security
-- GSTIN and PAN format validation before submission
+### Enhanced Company Data Security
+- **NEW**: Mandatory GSTIN and PAN validation with strict format checking before submission
+- **NEW**: Enhanced logo file validation accepting only PNG/JPG/WebP formats with size limits
 - Secure transmission of sensitive business information
-- Logo file size and type validation
 - Referral code sanitization and validation
 
 ### Enhanced Client ID-Based License Security
@@ -770,6 +788,7 @@ The authentication system implements multiple security measures with enhanced fi
 - **NEW**: Protection against stale license reuse through client ID verification instead of name matching
 - **NEW**: Session-scoped license caching with proper cleanup mechanisms for orphaned licenses
 - **NEW**: Sophisticated edge case detection for various license states (deleted, orphaned, valid)
+- **NEW**: Support for alternateClientIds parameter to handle multiple client ID scenarios
 
 ### Credential Security
 - Random password generation with complexity requirements
@@ -781,7 +800,7 @@ The authentication system implements multiple security measures with enhanced fi
 - XSS prevention through React's default escaping
 - Secure token handling with appropriate storage mechanisms
 - Financial year data integrity validation
-- Company data validation and sanitization
+- Enhanced company data validation and sanitization
 
 ### Communication Security
 - HTTPS enforcement for all API calls
@@ -858,12 +877,24 @@ Common issues and their solutions:
 ### Company Registration Issues
 - **Problem**: Company registration fails
   - **Solution**: Check Central Master API connectivity and CORS configuration
-  - **Solution**: Verify GSTIN and PAN format validation
-  - **Solution**: Ensure logo file meets size and format requirements
+  - **Solution**: Verify GSTIN and PAN format validation (now mandatory)
+  - **Solution**: Ensure logo file meets PNG/JPG/WebP format requirements
+  - **Solution**: Verify alternateClientIds parameter handling
 
 - **Problem**: Company data not persisting
   - **Solution**: Check Central Master database connectivity
   - **Solution**: Verify company registration endpoint availability
+
+### Form Validation Issues
+- **Problem**: GSTIN or PAN validation errors
+  - **Solution**: Ensure GSTIN follows 15-character format (e.g., 32AAACA1234A1Z5)
+  - **Solution**: Ensure PAN follows 10-character format (e.g., AAACA1234A)
+  - **Solution**: Check that values are entered in uppercase as required
+
+- **Problem**: Logo upload validation errors
+  - **Solution**: Ensure file format is PNG, JPG, or WebP only
+  - **Solution**: Verify file size is under 2MB limit
+  - **Solution**: Check that file type is properly detected by browser
 
 ### Credential Delivery Issues
 - **Problem**: WhatsApp messages not delivered
@@ -892,6 +923,9 @@ The TRELLISCO ERP frontend now implements a comprehensive authentication and aut
 
 - **Dual Authentication Flows**: Supporting both T-ERP customers and administrators
 - **Advanced Customer Onboarding**: With Google Sign-In, project selection, financial year management, automated credential delivery, and integrated company registration
+- **Enhanced Form Validation**: With mandatory GSTIN and PAN validation, strict format checking, and comprehensive field-level error handling
+- **Improved Logo Upload Validation**: Accepting only PNG/JPG/WebP formats with enhanced error handling and size limits
+- **Multi-Client ID Support**: Through alternateClientIds parameter for handling complex client identification scenarios
 - **Centralized License Register Loading**: Optimized data loading with module-level caching for improved performance
 - **Prefetch Optimization**: Intelligent preloading of critical data before user interaction
 - **Asynchronous Project Ownership Detection**: Callback-based updates for immediate UI responsiveness
@@ -905,5 +939,6 @@ The TRELLISCO ERP frontend now implements a comprehensive authentication and aut
 - **Sophisticated Edge Case Detection**: Advanced handling of various license states including deleted clients and orphaned licenses
 - **Improved Error Recovery**: Comprehensive cleanup mechanisms for problematic license states with clear user guidance
 - **Integrated Company Master API**: Complete business entity registration with GSTIN, PAN, and comprehensive address management
+- **New pushCompanyMaster Function**: Dedicated function for fresh company registrations during the signup flow
 
-The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements.
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements. The enhanced validation requirements and improved error handling make the system more robust and user-friendly, reducing form submission failures and providing clearer feedback to users.

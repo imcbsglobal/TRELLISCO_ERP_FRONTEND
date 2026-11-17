@@ -261,22 +261,6 @@ async function writeCompany(details) {
 }
 
 /**
- * Writes the company once per client id.
- *
- * A client that only came back to add a project already has their row, and
- * rewriting it from a form the operator may have half-filled would replace
- * statutory data (GSTIN, PAN, address) that support relies on. Callers get
- * `created: false` and the row that is really stored. A read that cannot be
- * answered at all still fails here: writing blind could duplicate a row.
- */
-export async function ensureCompanyMaster(details) {
-  const existing = await findCompanyMaster(details.clientId, { alternateClientIds: details.alternateClientIds })
-  if (existing.length) return { created: false, clientId: existing[0].client_id, record: existing[0] }
-
-  return writeCompany(details)
-}
-
-/**
  * Writes the company details of a client that has just been licensed.
  *
  * This is the signup path, so the client id was minted seconds ago and nothing
@@ -284,6 +268,11 @@ export async function ensureCompanyMaster(details) {
  * when it answers, an existing row is respected; when it 404s (see the retry
  * note above) the write runs anyway. Gating this write behind that read is what
  * made the company details of new demo accounts disappear.
+ *
+ * It is deliberately not used for a client who only came back to add a project:
+ * their row is where the signup reads their details from, and writing it again
+ * from a form nobody filled would replace the statutory data (GSTIN, PAN,
+ * address, logo) that support relies on.
  */
 export async function pushCompanyMaster(details) {
   const existing = await findCompanyMaster(details.clientId, {

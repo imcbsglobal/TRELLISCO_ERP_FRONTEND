@@ -8,6 +8,7 @@ import {
   extractClientId,
   extractLicenseKey,
   fetchTerpProjects,
+  findClientRecord,
   findClientWorkspace,
   getNetworkError,
   isLicenseRegistered,
@@ -17,7 +18,7 @@ import {
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
 import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
-import { ensureCompanyMaster, pushCompanyMaster } from "../api/companyMaster"
+import { findCompanyMaster, pushCompanyMaster } from "../api/companyMaster"
 import {
   buildCredentialsMessage,
   buildCredentialsSubject,
@@ -480,8 +481,14 @@ export default function TERPLogin() {
     setCompany((current) => ({ ...current, logo: "", logoName: "" }))
   }
 
-  const continueToCompany = () => {
+  const continueToCompany = async () => {
     setError("")
+    // Until the register answers, a returning client is indistinguishable from a
+    // new one, and asking them for details that are already on file is exactly
+    // what this step must avoid.
+    if (checkingWorkspace) {
+      return setError("Still checking whether this client already exists — try again in a moment.")
+    }
     if (!selectedProjects.length) {
       return setError(
         workspace
@@ -491,7 +498,93 @@ export default function TERPLogin() {
     }
     if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
     setIncompleteProjects([])
+
+    // A client who already owns a project already has their company row on file,
+    // so they are never asked for it again: the stored details are read here and
+    // posted straight to the license API with the new project.
+    if (workspace) {
+      setSubmitting(true)
+      try {
+        const stored = await readStoredCompany([workspace.clientId, company.email, googleUser?.email])
+        setCompany((current) => ({ ...current, ...stored }))
+        // Without a name, a place and a contact number the license API would be
+        // given a company it cannot identify, so this client falls back to the
+        // form — the only case where it is still shown.
+        if (!stored.name || !stored.place || !stored.contact_no) {
+          setError(
+            "Your company details could not be read from Central Master, so they have to be entered once. " +
+              "They are saved against your client id and will not be asked for again.",
+          )
+          setSetupStep(2)
+          return
+        }
+        await runSignup(stored)
+      } catch (lookupError) {
+        setError(getNetworkError(lookupError, "the company register"))
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
+
     setSetupStep(2)
+  }
+
+  // The company details Central Master already holds for a returning client:
+  // the register row is the source of truth, the T-ERP directory names the
+  // company and its place, and the login they already own carries the contact
+  // number when the register has no row for them yet. Only the fields the license
+  // API itself posts are taken — the statutory ones are already stored and are
+  // never re-typed here.
+  const readStoredCompany = async (clientIds) => {
+    const wanted = clientIds.map((value) => String(value || "").trim()).filter(Boolean)
+    const logins = await findClientLogins({
+      clientId: wanted[0],
+      email: googleUser?.email || company.email,
+    }).catch(() => [])
+    // A client whose T-ERP id is a generated code is only listed under that code,
+    // and the login they own is the one place this page can read it from.
+    const candidates = [
+      ...new Set([
+        ...wanted,
+        ...logins.map((login) => String(login?.client_id || "").trim()),
+      ].filter(Boolean)),
+    ]
+    if (!candidates.length) return {}
+
+    const [rows, records] = await Promise.all([
+      findCompanyMaster(candidates[0], { alternateClientIds: candidates.slice(1) }).catch(() => []),
+      Promise.all(candidates.map((id) => findClientRecord(id).catch(() => null))),
+    ])
+    const row = rows[0] || null
+    const record = records.find(Boolean) || null
+    // A client provisioned before the company register existed has no row, but
+    // the number they were sent a login for is still on file. Both registers hold
+    // numbers that predate the 10-digit rule, so only a full one is used.
+    const cleanPhone = (value) => String(value || "").replace(/\D/g, "").slice(0, 10)
+    const rowPhone = cleanPhone(row?.phone_number)
+    const loginPhone = logins
+      .map((login) => cleanPhone(login?.phone_number))
+      .find((value) => value.length === 10)
+    const stored = {}
+
+    const put = (field, value) => {
+      const cleaned = String(value || "").trim()
+      if (cleaned) stored[field] = cleaned
+    }
+    put("name", row?.company_name || workspace?.companyName || record?.companyName)
+    put("place", row?.city || workspace?.place || record?.place)
+    put("contact_no", (rowPhone.length === 10 ? rowPhone : "") || loginPhone)
+    put("country", row?.country || registeredCountry)
+    put("addressLine1", row?.address_line_1)
+    put("addressLine2", row?.address_line_2)
+    put("district", row?.district)
+    put("state", row?.state)
+    put("gstNumber", row?.gst_number)
+    put("panNumber", row?.pan_number)
+    put("referralCode", row?.referral_code)
+
+    return stored
   }
 
   const credentialsMessage = (target) => buildCredentialsMessage({
@@ -575,12 +668,12 @@ export default function TERPLogin() {
   // already collects are reused here — name, email, contact number, country and
   // the place, which the register calls the city — so nothing is asked twice.
   //
-  // `freshCompany` marks the signup path, where the client id was minted seconds
-  // ago: there the write runs even when the register's list cannot be read, since
-  // that read 404s on part of Central Master's fleet. A returning client keeps
-  // the strict read-then-write, because their row may already be on file.
+  // This only ever runs on the signup path, where the client id was minted
+  // seconds ago and nothing can be on file for it yet: the write runs even when
+  // the register's list cannot be read, since that read 404s on part of Central
+  // Master's fleet. A returning client never reaches here — their row is what
+  // their details are read from, and rewriting it would blank stored values.
   const registerCompanyMaster = async ({
-    freshCompany = false,
     clientId: recordClientId,
     alternateClientIds = [],
     licenseKey: recordLicenseKey,
@@ -613,7 +706,7 @@ export default function TERPLogin() {
     }
 
     try {
-      const saved = freshCompany ? await pushCompanyMaster(details) : await ensureCompanyMaster(details)
+      const saved = await pushCompanyMaster(details)
       // The register decodes the image itself: when it refused the logo the row
       // was written again without it, and that is what the operator is told.
       if (saved?.logoDropped) {
@@ -625,10 +718,19 @@ export default function TERPLogin() {
     }
   }
 
-  const submit = async (event) => {
+  const submit = (event) => {
     event.preventDefault()
+    return runSignup()
+  }
+
+  // `stored` is set when the client is returning and their company details were
+  // read from Central Master instead of typed here. Nothing on the form was
+  // asked, so only what the license API itself needs is required.
+  const runSignup = async (stored = null) => {
     setError("")
     setSuccess("")
+    const form = stored ? { ...company, ...stored } : company
+    const fromRegister = Boolean(stored)
     if (!googleUser) return setError("Continue with Google before submitting your company details.")
     // The ticks that say what the client already owns come from the register. A
     // submit while it is still loading cannot see them and would post a licence
@@ -645,27 +747,30 @@ export default function TERPLogin() {
     // Missing fields are marked under their own input and the first one is
     // focused, so the operator fixes the form in place.
     const missing = {}
-    if (!company.name.trim()) missing.name = "Enter the company name."
-    if (!company.place.trim()) missing.place = "Enter the place."
-    if (!company.country.trim()) missing.country = "Select the country the license applies to."
-    if (!company.contact_no.trim()) missing.contact_no = "Enter the contact number."
-    else if (company.contact_no.length !== 10) missing.contact_no = "Enter a valid 10-digit number, for example 1234567890."
-    // Central Master's company register has a column for each of the address
-    // fields, so they are asked for up front rather than patched in later.
-    if (!company.addressLine1.trim()) missing.addressLine1 = "Enter the street address."
-    if (!company.district.trim()) missing.district = "Enter the district."
-    if (!company.state.trim()) missing.state = "Enter the state."
-    // The register refuses a blank GSTIN or PAN ("This field may not be blank"),
-    // so leaving them out only made the company record silently fail. They are
-    // required here and whatever is typed has to be the shape support will see
-    // on the certificate.
-    if (!company.gstNumber.trim()) missing.gstNumber = "Enter the GSTIN."
-    else if (!GST_PATTERN.test(company.gstNumber.trim())) {
-      missing.gstNumber = "Enter a valid 15-character GSTIN, for example 32AAACA1234A1Z5."
-    }
-    if (!company.panNumber.trim()) missing.panNumber = "Enter the PAN."
-    else if (!PAN_PATTERN.test(company.panNumber.trim())) {
-      missing.panNumber = "Enter a valid 10-character PAN, for example AAACA1234A."
+    if (!form.name.trim()) missing.name = "Enter the company name."
+    if (!form.place.trim()) missing.place = "Enter the place."
+    if (!form.country.trim()) missing.country = "Select the country the license applies to."
+    if (!form.contact_no.trim()) missing.contact_no = "Enter the contact number."
+    else if (form.contact_no.length !== 10) missing.contact_no = "Enter a valid 10-digit number, for example 1234567890."
+    // The address and statutory numbers only exist for Central Master's company
+    // register, which a returning client's row already fills — asking again just
+    // to blank stored values is exactly what this form must not do.
+    if (!fromRegister) {
+      if (!form.addressLine1.trim()) missing.addressLine1 = "Enter the street address."
+      if (!form.district.trim()) missing.district = "Enter the district."
+      if (!form.state.trim()) missing.state = "Enter the state."
+      // The register refuses a blank GSTIN or PAN ("This field may not be
+      // blank"), so leaving them out only made the company record silently
+      // fail. They are required here and whatever is typed has to be the shape
+      // support will see on the certificate.
+      if (!form.gstNumber.trim()) missing.gstNumber = "Enter the GSTIN."
+      else if (!GST_PATTERN.test(form.gstNumber.trim())) {
+        missing.gstNumber = "Enter a valid 15-character GSTIN, for example 32AAACA1234A1Z5."
+      }
+      if (!form.panNumber.trim()) missing.panNumber = "Enter the PAN."
+      else if (!PAN_PATTERN.test(form.panNumber.trim())) {
+        missing.panNumber = "Enter a valid 10-character PAN, for example AAACA1234A."
+      }
     }
 
     if (Object.keys(missing).length) {
@@ -680,8 +785,8 @@ export default function TERPLogin() {
     try {
       // The company email is the Google address the client signed in with, so
       // the client id always matches the login they authenticated with.
-      const email = (googleUser?.email || company.email).trim()
-      const phoneNumber = company.contact_no.replace(/\D/g, "")
+      const email = (googleUser?.email || form.email).trim()
+      const phoneNumber = form.contact_no.replace(/\D/g, "")
 
       // One client id = one login. Central Master's user list is the only place
       // that can prove the client already exists, so nothing at all is created
@@ -728,7 +833,7 @@ export default function TERPLogin() {
           license = cached
         } else {
           license = await createTerpLicense({
-            company,
+            company: form,
             projects: selectedProjects.map(({ project, package: packageName }) => ({ project, package: packageName })),
           })
           createdHereRef.current = true
@@ -773,7 +878,7 @@ export default function TERPLogin() {
       // under it (that is the "Unknown client_id" rejection).
       const licensedClientId = extractClientId(license)
       const licenseKey = extractLicenseKey(license)
-      const companyName = company.name.trim()
+      const companyName = form.name.trim()
       const addedProjects = selectedProjects.map((item) => item.project)
 
       // An existing login decides who gets the licence, and neither case may mint
@@ -804,19 +909,12 @@ export default function TERPLogin() {
         // A returning customer only came back for a new product: if their country
         // is already on file it is left exactly as it is, and it is only added
         // for a legacy client that has no financial year yet.
-        const country = await registerClientCountry(clientId, company.country)
-        // Same rule for the company register: it is written only when Central
-        // Master has no row for this client yet, so the GSTIN, PAN and address
-        // support already confirmed are never replaced by this form.
-        const companyRecord = await registerCompanyMaster({
-          clientId,
-          alternateClientIds: [licensedClientId],
-          licenseKey,
-          email,
-          phoneNumber,
-          companyName,
-        })
-        const notes = `${country.error || ""}${companyRecord.error || ""}`
+        const country = await registerClientCountry(clientId, form.country)
+        // Their company row is already on file — that is where these details came
+        // from — and this signup asked for none of the statutory fields, so there
+        // is nothing to write. A blind write would blank the GSTIN, PAN and
+        // address support relies on.
+        const notes = country.error || ""
 
         if (notes) {
           // The products were switched on, but the country or the company details
@@ -889,7 +987,7 @@ export default function TERPLogin() {
         // itself until the company and its licenses are removed in T-ERP.
         throw new Error(
           `${error.message} — T-ERP has no client for "${email}": the license exists, but the company was not ` +
-            `registered again. Delete the company "${company.name}" and its license rows in T-ERP ` +
+            `registered again. Delete the company "${form.name}" and its license rows in T-ERP ` +
             `(there is no client-creation API), then submit again.`,
           { cause: error },
         )
@@ -903,12 +1001,11 @@ export default function TERPLogin() {
       // The country decides which financial year the client's books follow, so
       // it is registered against the same client id right after the login
       // exists — but never over an existing registration.
-      const country = await registerClientCountry(accountClientId, company.country)
+      const country = await registerClientCountry(accountClientId, form.country)
       // The company register needs the client id and the licence key, so it can
       // only be written now. This signup minted the client id minutes ago, so the
       // row is created even if the register's list 404s (see findCompanyMaster).
       const companyRecord = await registerCompanyMaster({
-        freshCompany: true,
         clientId: accountClientId,
         // T-ERP validates the id on every write: the admin account may sit under
         // the Google address while T-ERP registered the client under the id its
@@ -926,7 +1023,7 @@ export default function TERPLogin() {
         licenseKey,
         companyName,
         email,
-        phone: company.contact_no,
+        phone: form.contact_no,
         projects: selectedProjects.map((item) => item.project),
         username: account.username,
         password: account.password,
@@ -958,7 +1055,7 @@ export default function TERPLogin() {
         <span className="terp-login__eyebrow">T-ERP access</span>
         <h1>Set up your T-ERP workspace.</h1>
         <p>Sign in with Google, choose the products your business needs, and create your company license in a few steps.</p>
-        <div className="terp-login__steps"><span className={!googleUser ? "is-active" : "is-complete"}>01 <b>Google auth</b></span><span className={googleUser && setupStep === 1 ? "is-active" : setupStep === 2 ? "is-complete" : ""}>02 <b>Choose products</b></span><span className={googleUser && setupStep === 2 ? "is-active" : ""}>03 <b>Company details</b></span></div>
+        <div className="terp-login__steps"><span className={!googleUser ? "is-active" : "is-complete"}>01 <b>Google auth</b></span><span className={googleUser && setupStep === 1 ? "is-active" : setupStep === 2 ? "is-complete" : ""}>02 <b>Choose products</b></span><span className={googleUser && setupStep === 2 ? "is-active" : workspace ? "is-complete" : ""}>03 <b>Company details</b></span></div>
         <div className="terp-login__mascot" aria-hidden="true"><span className="terp-login__mascot-glow" /><img src={mascotImage} alt="" /></div>
       </section>
 
@@ -977,11 +1074,11 @@ export default function TERPLogin() {
           </div>
         ) : (
         <form className="terp-login__setup-form" onSubmit={submit}>
-          <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {setupStep + 1} of 3</span></div>
+          <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {workspace ? 2 : setupStep + 1} of {workspace ? 2 : 3}</span></div>
           {setupStep === 1 ? (
             <div className="terp-login__product-block">
               <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : workspaceError || (tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each.")}</p></div>
-              {workspace && <div className="terp-login__workspace"><b>{workspace.companyName || workspace.clientId}</b><small>{workspace.projects.length ? `${workspace.projects.join(", ")} ${workspace.projects.length > 1 ? "are" : "is"} already active and ticked below. Add another project whenever you need it.` : "This client already exists. Choose the projects to add."}</small></div>}
+              {workspace && <div className="terp-login__workspace"><b>{workspace.companyName || workspace.clientId}</b><small>{workspace.projects.length ? `${workspace.projects.join(", ")} ${workspace.projects.length > 1 ? "are" : "is"} already active and ticked below.` : "This client is already registered."} Your company details are already on file, so only the new project is added — nothing is asked again.</small></div>}
               <div className="terp-login__project-grid">
                 {loadingProjects && <div className="terp-login__loading">Loading available projects…</div>}
                 {!loadingProjects && !projects.length && <div className="terp-login__loading">No projects are available right now.</div>}
@@ -1007,7 +1104,7 @@ export default function TERPLogin() {
                   </article>
                 })}
               </div>
-              <button className="terp-login__next" type="button" onClick={continueToCompany}>Continue to company details <span>→</span></button>
+              <button className="terp-login__next" type="button" onClick={continueToCompany} disabled={submitting}>{workspace ? (submitting ? "Adding the project…" : "Add project to my account") : "Continue to company details"} <span>→</span></button>
             </div>
           ) : (
           <div className="terp-login__company-block">

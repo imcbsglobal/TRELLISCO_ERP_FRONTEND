@@ -163,6 +163,28 @@ function writeRegisterSnapshot(data) {
 }
 
 /**
+ * One client directory entry by any id the client is known under — the address
+ * they signed in with or the id T-ERP generated. A client keyed by a generated
+ * code is never found by their email, so the code their login carries is what
+ * names their company and place.
+ *
+ * An unreadable directory answers null instead of throwing: these details only
+ * prefill a form, and the caller must not be blocked by the lookup.
+ */
+export async function findClientRecord(clientId) {
+  const wanted = String(clientId || "").trim().toLowerCase()
+  if (!wanted) return null
+  const clients = await loadClientDirectory().catch(() => [])
+  const client = clients.find((item) => String(item?.client_id || "").trim().toLowerCase() === wanted)
+  if (!client) return null
+  return {
+    clientId: client.client_id,
+    companyName: client.company_name || "",
+    place: client.place || "",
+  }
+}
+
+/**
  * Forgets what was read earlier, so the next lookup sees registers that changed
  * in this tab — a licence was just created or extended.
  */
