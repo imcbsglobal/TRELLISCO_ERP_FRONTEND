@@ -415,6 +415,35 @@ $bp-xl: 1280px; // centred page, roomier gutters
     gap: 0.9rem;
   }
 
+  // ── Field groups ───────────────────────────────────────────────────────────
+  // The form is split by what the register actually stores (business, address,
+  // tax, branding). A title with a hairline gives each block an anchor without
+  // boxing every section into its own card.
+  &__group {
+    display: grid;
+    gap: 0.7rem;
+    min-width: 0;
+  }
+
+  &__group-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0;
+    color: $muted;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: $line-soft;
+    }
+  }
+
   // One label + control + message stack per field. Stacking them lets a field
   // error sit under its own input instead of inside the <label> text.
   &__field {
@@ -422,11 +451,38 @@ $bp-xl: 1280px; // centred page, roomier gutters
     gap: 0.35rem;
     min-width: 0;
 
+    // The optional chip is pushed to the right edge, so every label starts at
+    // the same place and the eye can skip what can be left empty.
     > label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
       color: $ink-soft;
       font-size: 0.78rem;
       font-weight: 700;
+      letter-spacing: 0.01em;
     }
+  }
+
+  // The street address and the logo read badly in a narrow column, so they take
+  // the whole row at every column count.
+  &__field--wide {
+    grid-column: 1 / -1;
+  }
+
+  &__optional {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding: 0.12rem 0.42rem;
+    border: 1px solid $line;
+    border-radius: 999px;
+    background: #fff;
+    color: $muted-soft;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
 
   &__field-error {
@@ -436,9 +492,100 @@ $bp-xl: 1280px; // centred page, roomier gutters
     line-height: 1.4;
   }
 
+  // ── Company logo picker ────────────────────────────────────────────────────
+  // The file input is hidden behind this row: a picked image is shown as a
+  // preview with its name and a Remove button, which is also the only way to
+  // clear an <input type=file>.
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 48px;
+    padding: 0.35rem 0.45rem;
+    border: 1.5px solid $line;
+    border-radius: 11px;
+    background: #fff;
+    transition: border-color 0.18s ease, background 0.18s ease;
+
+    &.is-invalid {
+      border-color: #df8a83;
+      background: #fffaf9;
+    }
+
+    input[type="file"] {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: $muted;
+      font-size: 0.82rem;
+      cursor: pointer;
+
+      &:focus {
+        box-shadow: none;
+      }
+
+      &::file-selector-button {
+        margin-right: 0.6rem;
+        padding: 0.45rem 0.7rem;
+        border: 1px solid $line;
+        border-radius: 8px;
+        background: $blue-soft;
+        color: $blue;
+        font-family: $font;
+        font-size: 0.76rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    }
+  }
+
+  &__logo-preview {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border: 1px solid $line-soft;
+    border-radius: 8px;
+    background: #fff;
+    object-fit: contain;
+  }
+
+  &__logo-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: $ink-soft;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__logo-remove {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid $line;
+    border-radius: 8px;
+    background: #fff;
+    color: $red;
+    font-family: $font;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover {
+        border-color: #df8a83;
+        background: $red-soft;
+      }
+    }
+  }
+
   &__hint {
     color: $muted-soft;
-    font-size: 0.67rem;
+    font-size: 0.7rem;
     font-weight: 600;
     line-height: 1.4;
   }
@@ -712,24 +859,37 @@ $bp-xl: 1280px; // centred page, roomier gutters
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  &__product-block,
-  &__company-block {
+  &__product-block {
     padding: clamp(0.9rem, 3vw, 1.25rem);
     border: 1px solid $line-soft;
     border-radius: 16px;
     background: linear-gradient(150deg, rgba(249, 251, 255, 0.96), rgba(243, 247, 255, 0.7));
   }
 
-  &__product-block &__section,
-  &__company-block &__section {
+  // The company form is a stack of field groups: the grid keeps every group and
+  // the actions row on the same rhythm.
+  &__company-block {
+    display: grid;
+    gap: 1.15rem;
+    padding: clamp(0.9rem, 3vw, 1.25rem);
+    border: 1px solid $line-soft;
+    border-radius: 16px;
+    background: linear-gradient(150deg, rgba(249, 251, 255, 0.96), rgba(243, 247, 255, 0.7));
+  }
+
+  &__product-block &__section {
     margin-top: 0;
+  }
+
+  &__company-block &__section {
+    margin: 0;
   }
 
   &__form-actions {
     display: flex;
     flex-direction: column-reverse;
     gap: 0.6rem;
-    margin-top: 1.1rem;
+    margin-top: 0.15rem;
   }
 
   &__submit,
@@ -1039,12 +1199,9 @@ $bp-xl: 1280px; // centred page, roomier gutters
   }
 }
 
-// ── Wide screens: the company form fits three fields per row ─────────────────
-@media (min-width: 1440px) {
-  .terp-login--setup .terp-login__fields {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
+// ── Wide screens: the form stays at two columns ───────────────────────────
+// Three columns left a ragged last row in every group; two columns keep the
+// label/control pairs wide enough for a street address and always end flush.
 
 // ── Short desktop windows: keep the mascot from owning the sidebar ───────────
 @media (min-width: $bp-lg) and (max-height: 760px) {

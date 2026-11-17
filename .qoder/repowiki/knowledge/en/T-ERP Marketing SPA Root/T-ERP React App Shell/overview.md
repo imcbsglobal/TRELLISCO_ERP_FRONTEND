@@ -1,0 +1,1 @@
+Vite React entrypoint that bootstraps the app, declares all routes with an inline RequireAuth guard, and centralizes CSS design tokens consumed by every child page.

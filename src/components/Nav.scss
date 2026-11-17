@@ -1396,11 +1396,7 @@ $font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Robot
     grid-column: 4;
   }
 
-  // Login lives in the mobile panel on small screens
-  .nav__login {
-    display: none;
-  }
-
+  // T-ERP login lives in the mobile panel on small screens
   .nav__terp-login { display: none; }
 
   .nav__hamburger {

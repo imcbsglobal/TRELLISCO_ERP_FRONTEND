@@ -139,10 +139,6 @@ function isUnknownClientId(status, rawBody) {
   return /unknown client_id/i.test(rawBody)
 }
 
-function digitsOnly(value) {
-  return String(value || "").replace(/\D/g, "")
-}
-
 async function fetchAllUsers() {
   const response = await fetch(USER_MASTER_ENDPOINT)
   if (!response.ok) return []
@@ -163,27 +159,29 @@ export async function findClientAdmins(clientId) {
  * truth available before a license exists, so it decides whether a license may
  * be created at all: one client id = one license = one login.
  *
- * A match is any of:
- *   - the same client_id
- *   - a login whose email is the company email (some clients are keyed by email)
- *   - the same email or the same 10-digit phone number
+ * A client is identified by its client id or by the address it signed in with:
+ * some clients are keyed by the email itself, and an older login keeps the
+ * address in its own email field.
+ *
+ * The contact number is deliberately NOT part of the identity. Two unrelated
+ * companies can share a phone number, and matching on it made a brand-new client
+ * look like an existing one: the signup then refused to create the license and
+ * the admin login even though no user and no license carried that client id.
+ * Central Master's own uniqueness lives on (client_id, email) and
+ * (client_id, phone_number), so another client's phone never collides anyway.
  */
-export async function findClientLogins({ clientId = "", email = "", phoneNumber = "" } = {}) {
-  const wantedId = String(clientId || "").trim()
+export async function findClientLogins({ clientId = "", email = "" } = {}) {
+  const wantedId = String(clientId || "").trim().toLowerCase()
   const wantedEmail = String(email || "").trim().toLowerCase()
-  const wantedPhone = digitsOnly(phoneNumber).slice(-10)
-  if (!wantedId && !wantedEmail && !wantedPhone) return []
+  if (!wantedId && !wantedEmail) return []
 
   const users = await fetchAllUsers()
   return users.filter((user) => {
-    const userId = String(user?.client_id || "").trim()
+    const userId = String(user?.client_id || "").trim().toLowerCase()
     const userEmail = String(user?.email || "").trim().toLowerCase()
-    const userPhone = digitsOnly(user?.phone_number).slice(-10)
-    return (
-      (wantedId !== "" && userId === wantedId) ||
-      (wantedEmail !== "" && (userEmail === wantedEmail || userId.toLowerCase() === wantedEmail)) ||
-      (wantedPhone !== "" && userPhone === wantedPhone)
-    )
+    if (wantedId && userId === wantedId) return true
+    if (!wantedEmail) return false
+    return userEmail === wantedEmail || userId === wantedEmail
   })
 }
 

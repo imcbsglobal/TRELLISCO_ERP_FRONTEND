@@ -16,15 +16,11 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced T-ERP login workflow with centralized license register loading for improved performance
-- Implemented prefetch optimization for client directory and license register data
-- Improved asynchronous project ownership detection with callback-based updates
-- Added advanced caching mechanisms for T-ERP registers to reduce API calls
-- Enhanced workspace recognition with parallel data loading strategies
-- Optimized credential delivery system with improved error handling and retry mechanisms
-- **NEW**: Enhanced license validation mechanism that validates cached licenses against T-ERP before reuse
-- **NEW**: Improved client ID resolution logic with better handling of email vs client ID discrepancies
-- **NEW**: Advanced session-scoped license caching with automatic invalidation when licenses are deleted from T-ERP
+- Enhanced license validation system with client ID-based validation replacing name-based matching
+- Improved error handling for deleted clients and orphaned licenses with sophisticated cleanup mechanisms
+- Refined signup flow with advanced edge case detection and recovery strategies
+- Updated license registration verification to use client ID registry instead of company name comparison
+- Enhanced session-scoped license caching with automatic invalidation when licenses become orphaned
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -46,15 +42,15 @@
 17. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows with enhanced performance optimizations:
+This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows with enhanced performance optimizations and robust license validation:
 
-1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, and automated credential delivery with optimized data loading and enhanced license validation
+1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, and automated credential delivery with optimized data loading and enhanced client ID-based license validation
 2. **Traditional Admin Authentication**: Standard email/password authentication for administrative access
 
 The system integrates with multiple external services including Google Identity Services, WhatsApp messaging, email delivery systems, and the Central Master platform for financial year and country management.
 
 ## Authentication Systems Overview
-The application implements a dual authentication architecture with enhanced performance through centralized data loading and advanced license validation:
+The application implements a dual authentication architecture with enhanced performance through centralized data loading and advanced client ID-based license validation:
 
 ```mermaid
 graph TB
@@ -65,7 +61,8 @@ PROJECTS["Project Selection<br/>(T-ERP Catalogue)"]
 COUNTRY["Country Selection<br/>(Financial Year Register)"]
 WORKSPACE["Workspace Recognition<br/>(Returning Customers)"]
 LICENSE["License Creation<br/>(T-ERP System)"]
-VALIDATION["License Validation<br/>(Cache vs T-ERP)"]
+VALIDATION["Client ID Validation<br/>(Cache vs Registry)"]
+CLEANUP["Orphaned License Cleanup<br/>(Automatic Invalidation)"]
 CREDENTIALS["Credential Delivery<br/>(WhatsApp + Email)"]
 end
 subgraph "Admin Authentication Flow"
@@ -73,7 +70,7 @@ TRADITIONAL["Email/Password Login"]
 ADMIN_TOKEN["Admin Token Storage"]
 PROTECTED["Protected Admin Routes"]
 end
-GOOGLE --> PREFETCH --> PROJECTS --> COUNTRY --> WORKSPACE --> LICENSE --> VALIDATION --> CREDENTIALS
+GOOGLE --> PREFETCH --> PROJECTS --> COUNTRY --> WORKSPACE --> LICENSE --> VALIDATION --> CLEANUP --> CREDENTIALS
 TRADITIONAL --> ADMIN_TOKEN --> PROTECTED
 ```
 
@@ -212,7 +209,7 @@ useEffect(() => {
 - [src/pages/TERPLogin.jsx:136-155](file://src/pages/TERPLogin.jsx#L136-L155)
 
 ## Enhanced T-ERP Login Flow
-The enhanced login flow now includes financial year management, improved country handling, and advanced license validation with optimized data loading:
+The enhanced login flow now includes financial year management, improved country handling, and advanced client ID-based license validation with optimized data loading:
 
 ### Step 1: Google Authentication
 - Dynamic loading of Google Identity Services
@@ -234,11 +231,12 @@ The enhanced login flow now includes financial year management, improved country
 - Country specification with financial year implications
 - Automatic country registration for new clients
 
-### Step 4: Enhanced License Validation
+### Step 4: Enhanced Client ID-Based License Validation
 - Session-scoped license caching with automatic invalidation
-- Real-time validation against T-ERP before reusing cached licenses
+- Real-time validation against T-ERP client registry before reusing cached licenses
 - Intelligent fallback mechanisms for failed validations
 - Protection against duplicate license creation
+- Sophisticated edge case detection for orphaned licenses
 
 ```mermaid
 flowchart TD
@@ -252,8 +250,11 @@ ExistingCountry --> |No| CountrySelection["Select Country"]
 LockedCountry --> Validation["Form Validation"]
 CountrySelection --> Validation
 Validation --> LicenseCreation["Create T-ERP License"]
-LicenseCreation --> CacheValidation["Validate Cached License<br/>vs T-ERP"]
-CacheValidation --> CountryRegistration["Register Country (if new)"]
+LicenseCreation --> CacheValidation["Validate Cached License<br/>vs Client Registry"]
+CacheValidation --> OrphanedCheck{"License Orphaned?"}
+OrphanedCheck --> |Yes| Cleanup["Cleanup Orphaned License<br/>(Delete Cache)"]
+OrphanedCheck --> |No| CountryRegistration["Register Country (if new)"]
+Cleanup --> Retry["Retry License Creation"]
 CountryRegistration --> AdminAccount["Create Admin Account"]
 AdminAccount --> CredentialDelivery["Send Credentials"]
 CredentialDelivery --> Success(["Setup Complete"])
@@ -621,7 +622,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Token ${token}`
   }
-  return config
+  return api
 })
 
 api.interceptors.response.use(
@@ -666,7 +667,7 @@ function RequireAuth({ children }) {
 - [src/App.jsx:35-66](file://src/App.jsx#L35-L66)
 
 ## Security Considerations
-The authentication system implements multiple security measures with enhanced financial year protection:
+The authentication system implements multiple security measures with enhanced financial year protection and client ID-based validation:
 
 ### Google Sign-In Security
 - JWT token verification on server-side recommended
@@ -683,11 +684,12 @@ The authentication system implements multiple security measures with enhanced fi
 - Improved username generation from email addresses avoiding ambiguous characters
 - Temporary credential storage in memory only
 
-### Enhanced License Security
-- **NEW**: Real-time validation of cached licenses against T-ERP before reuse
-- **NEW**: Automatic cache invalidation when licenses are deleted from T-ERP
-- **NEW**: Protection against stale license reuse through client ID verification
-- **NEW**: Session-scoped license caching with proper cleanup mechanisms
+### Enhanced Client ID-Based License Security
+- **NEW**: Real-time validation of cached licenses against T-ERP client registry before reuse
+- **NEW**: Automatic cache invalidation when licenses become orphaned due to client deletion
+- **NEW**: Protection against stale license reuse through client ID verification instead of name matching
+- **NEW**: Session-scoped license caching with proper cleanup mechanisms for orphaned licenses
+- **NEW**: Sophisticated edge case detection for various license states (deleted, orphaned, valid)
 
 ### Data Protection
 - CSRF protection through proper header configuration
@@ -705,7 +707,7 @@ Several optimizations are implemented for better performance:
 
 ### Caching Strategies
 - **Centralized Register Caching**: Module-level caching for T-ERP client directory and license register data
-- **Session-scoped License Caching**: For T-ERP licenses with automatic invalidation
+- **Session-scoped License Caching**: For T-ERP licenses with automatic invalidation when orphaned
 - **Session-scoped Token Caching**: For Gmail API tokens to avoid repeated OAuth prompts
 - **Project Catalogue Normalization**: To reduce API calls and normalize data formats
 - **Financial Year Country List Caching**: For efficient country dropdown population
@@ -760,6 +762,11 @@ Common issues and their solutions:
   - **Solution**: Check T-ERP client registry for license existence
   - **Solution**: Verify client ID resolution logic is working correctly
 
+- **Problem**: Orphaned license detected
+  - **Solution**: Delete company and license rows in T-ERP as instructed
+  - **Solution**: Clear session storage and retry the signup process
+  - **Solution**: Verify the client was properly deleted from T-ERP
+
 ### Credential Delivery Issues
 - **Problem**: WhatsApp messages not delivered
   - **Solution**: Verify VITE_WHATSAPP_SECRET and VITE_WHATSAPP_ACCOUNT
@@ -795,7 +802,8 @@ The TRELLISCO ERP frontend now implements a comprehensive authentication and aut
 - **Multi-Channel Communication**: Through WhatsApp and multiple email providers
 - **Robust Security Measures**: Including secure token handling, financial year data protection, and proper error management
 - **Performance Optimizations**: Through caching strategies, lazy loading, parallel data loading, and optimized API calls
-- **Enhanced License Validation**: Real-time validation of cached licenses against T-ERP before reuse with automatic invalidation
-- **Improved Client ID Resolution**: Better handling of email vs client ID discrepancies with intelligent fallback mechanisms
+- **Enhanced Client ID-Based License Validation**: Real-time validation of cached licenses against T-ERP client registry before reuse with automatic invalidation of orphaned licenses
+- **Sophisticated Edge Case Detection**: Advanced handling of various license states including deleted clients and orphaned licenses
+- **Improved Error Recovery**: Comprehensive cleanup mechanisms for problematic license states with clear user guidance
 
-The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The improved client ID resolution logic provides robust handling of various client identification scenarios, making the system more reliable and user-friendly.
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states.

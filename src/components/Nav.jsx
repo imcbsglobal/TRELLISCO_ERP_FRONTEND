@@ -1253,27 +1253,6 @@ function CloseIcon() {
   );
 }
 
-function LoginIcon() {
-  return (
-    <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
-      <path
-        d="M8 4h6a2 2 0 012 2v8a2 2 0 01-2 2H8"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 10h10M9 6.5L12.5 10 9 13.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export default function Nav() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [activeGroup, setActiveGroup] = useState(GROUPS[0].key);
@@ -1527,13 +1506,8 @@ export default function Nav() {
         </nav>
 
         <div className="nav__right">
-          <Link className="nav__login" to="/login">
-            <LoginIcon />
-            Login
-          </Link>
-
           <Link className="nav__terp-login" to="/t-erp-login">
-            T-ERP Login
+            Book a free demo
           </Link>
 
           <Link className="nav__contact" to="/contact">
@@ -1643,19 +1617,8 @@ export default function Nav() {
               ))}
 
               <li className="nav__mobile-item nav__mobile-item--login">
-                <Link
-                  className="nav__mobile-login"
-                  to="/login"
-                  onClick={closeMobileNav}
-                >
-                  <LoginIcon />
-                  Login
-                </Link>
-              </li>
-
-              <li className="nav__mobile-item nav__mobile-item--login">
                 <Link className="nav__mobile-login" to="/t-erp-login" onClick={closeMobileNav}>
-                  T-ERP Login
+                  Book a free demo
                 </Link>
               </li>
 

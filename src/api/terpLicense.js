@@ -134,6 +134,43 @@ async function fetchList(endpoint, fallback) {
 let clientDirectoryCache = null
 let licenseRegisterCache = null
 
+// The register is ~100 KB and the endpoint needs a couple of seconds, so the copy
+// read in this tab is kept for a short while: the projects a client already owns
+// then tick on the first paint after Google returns instead of after the
+// download, and the live fetch reconciles the ticks a moment later.
+const REGISTER_SNAPSHOT_KEY = "terp-license-register"
+const REGISTER_SNAPSHOT_TTL = 5 * 60 * 1000
+
+function readRegisterSnapshot() {
+  try {
+    const raw = window.sessionStorage.getItem(REGISTER_SNAPSHOT_KEY)
+    if (!raw) return null
+    const snapshot = JSON.parse(raw)
+    if (!Array.isArray(snapshot?.data) || !snapshot.data.length) return null
+    if (!snapshot.at || Date.now() - snapshot.at > REGISTER_SNAPSHOT_TTL) return null
+    return snapshot.data
+  } catch {
+    return null
+  }
+}
+
+function writeRegisterSnapshot(data) {
+  try {
+    window.sessionStorage.setItem(REGISTER_SNAPSHOT_KEY, JSON.stringify({ at: Date.now(), data }))
+  } catch {
+    // Private mode or a full quota: the live lookup still ticks the cards.
+  }
+}
+
+/**
+ * Forgets what was read earlier, so the next lookup sees registers that changed
+ * in this tab — a licence was just created or extended.
+ */
+export function resetTerpRegisters() {
+  clientDirectoryCache = null
+  licenseRegisterCache = null
+}
+
 function loadClientDirectory() {
   if (!clientDirectoryCache) {
     clientDirectoryCache = fetchList(TERP_CLIENT_IDS_ENDPOINT, "Unable to load the T-ERP client list")
@@ -149,6 +186,10 @@ function loadClientDirectory() {
 function loadLicenseRegister() {
   if (!licenseRegisterCache) {
     licenseRegisterCache = fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the T-ERP license register")
+      .then((data) => {
+        if (data.length) writeRegisterSnapshot(data)
+        return data
+      })
       .catch((error) => {
         licenseRegisterCache = null
         throw error
@@ -195,6 +236,14 @@ export async function findClientWorkspace(email, onProjects) {
   const wanted = String(email || "").trim().toLowerCase()
   if (!wanted) return null
 
+  // Ticks from the copy read earlier in this tab, so the owned projects are
+  // already marked on the first paint; the live register below corrects them.
+  const snapshot = readRegisterSnapshot()
+  if (snapshot && onProjects) {
+    const seen = ownedProjectsOf(snapshot, wanted)
+    if (seen.projects.length) onProjects(seen.projects, seen.corporateName)
+  }
+
   const register = loadLicenseRegister()
   register
     .then((corporates) => {
@@ -205,7 +254,15 @@ export async function findClientWorkspace(email, onProjects) {
       // Reported by the full lookup below.
     })
 
-  const [clients, corporates] = await Promise.all([loadClientDirectory(), register])
+  const [clientsResult, registerResult] = await Promise.allSettled([loadClientDirectory(), register])
+
+  // The register is the only input for the ticks, so its failure is the one that
+  // has to be reported. A directory hiccup only costs the company name and place
+  // and must not make a client look like it owns nothing.
+  if (registerResult.status === "rejected") throw registerResult.reason
+
+  const clients = clientsResult.status === "fulfilled" ? clientsResult.value : []
+  const corporates = registerResult.value
 
   const client = clients.find((item) => String(item?.client_id || "").trim().toLowerCase() === wanted)
   const { projects, corporateName } = ownedProjectsOf(corporates, wanted)
@@ -233,12 +290,17 @@ export function isLicensePayload(payload) {
 
 // Creates the license and returns the raw JSON body so the caller can pick the
 // client id / license key out of it.
+// The signup no longer asks for a corporate / group name, so the licence is
+// always registered under the company's own name and placed where the company
+// is. `corporate` is still honoured for callers that pass one explicitly.
 export async function createTerpLicense({ company, corporate, projects }) {
+  const corporateName = String(corporate?.name || company.name || "").trim()
+  const corporatePlace = String(corporate?.place || company.place || "").trim()
   const response = await fetch(TERP_LICENSE_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      corporate: { name: corporate.name.trim(), place: corporate.place?.trim() || company.place.trim() },
+      corporate: { name: corporateName, place: corporatePlace },
       company: {
         name: company.name.trim(),
         place: company.place.trim(),
@@ -323,8 +385,7 @@ export async function isLicenseRegistered({ email = "", clientId = "" } = {}) {
     .filter(Boolean)
   if (!wanted.length) return false
 
-  clientDirectoryCache = null
-  licenseRegisterCache = null
+  resetTerpRegisters()
   const [clients, corporates] = await Promise.all([loadClientDirectory(), loadLicenseRegister()])
 
   const known = new Set(clients.map((client) => String(client?.client_id || "").trim().toLowerCase()))

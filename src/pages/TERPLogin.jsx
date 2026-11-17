@@ -13,9 +13,11 @@ import {
   isLicenseRegistered,
   isLicensePayload,
   prefetchTerpRegisters,
+  resetTerpRegisters,
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
 import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
+import { ensureCompanyMaster } from "../api/companyMaster"
 import {
   buildCredentialsMessage,
   buildCredentialsSubject,
@@ -27,18 +29,54 @@ import "./TERPLogin.scss"
 
 const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client"
 const DEFAULT_PACKAGES = ["Basic", "Standard", "Platinum", "Enterprise"]
-const INITIAL_COMPANY = { corporateName: "", name: "", place: "", email: "", contact_no: "", country: "" }
+// `place` is the town the licence was taken in and doubles as the city on the
+// company record, so it is asked once. Everything Central Master's company
+// register needs and the licence API has no field for is collected here. The
+// licence's corporate / group name is never asked: it is always the company name.
+const INITIAL_COMPANY = {
+  name: "",
+  place: "",
+  email: "",
+  contact_no: "",
+  country: "",
+  addressLine1: "",
+  addressLine2: "",
+  district: "",
+  state: "",
+  gstNumber: "",
+  panNumber: "",
+  referralCode: "",
+  // Data URL of the picked image; only the base64 part is posted.
+  logo: "",
+  logoName: "",
+}
 
 // The company form is validated field by field: the order here decides which
 // input gets focus when the operator submits an incomplete form.
-const COMPANY_FIELDS = ["name", "corporateName", "place", "country", "contact_no"]
+const COMPANY_FIELDS = ["name", "place", "country", "contact_no", "addressLine1", "district", "state", "gstNumber", "panNumber"]
 const COMPANY_FIELD_IDS = {
   name: "terp-company-name",
-  corporateName: "terp-company-corporate",
   place: "terp-company-place",
   country: "terp-company-country",
   contact_no: "terp-company-contact",
+  addressLine1: "terp-company-address1",
+  district: "terp-company-district",
+  state: "terp-company-state",
+  gstNumber: "terp-company-gst",
+  panNumber: "terp-company-pan",
 }
+
+// Central Master stores the GSTIN and PAN as printed on the registration
+// certificate, so they are validated in their canonical shape.
+const GST_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/
+// The register stores the logo as base64 in the request itself, so a huge image
+// would be uploaded twice (to the SPA request and to the register). 2 MB covers a
+// normal logo export while the encoded body stays around 2.7 MB. The label is
+// derived from the limit so the two messages below cannot drift from it.
+const LOGO_MAX_MB = 2
+const LOGO_MAX_BYTES = LOGO_MAX_MB * 1024 * 1024
+const LOGO_MAX_LABEL = `${LOGO_MAX_MB} MB`
 
 // Project names arrive from two different services, so they are compared without
 // case, spacing or punctuation ("Melone Stay" vs "melone  stay").
@@ -129,6 +167,9 @@ export default function TERPLogin() {
   // True while the license register is being read, so step 1 can say why the
   // owned-project ticks are not there yet.
   const [checkingWorkspace, setCheckingWorkspace] = useState(false)
+  // Set when the register could not be read: without it nothing can be ticked,
+  // and staying silent made a failed lookup look like "you own nothing".
+  const [workspaceError, setWorkspaceError] = useState("")
   const [company, setCompany] = useState(INITIAL_COMPANY)
   // Messages keyed by the company field they belong to, so the form marks
   // exactly which input is missing instead of showing one combined error.
@@ -274,36 +315,56 @@ export default function TERPLogin() {
     // The ticks only need the license register, so the cards are marked as soon
     // as it lands; the company name and place follow with the directory.
     setCheckingWorkspace(true)
-    const tickOwnedProjects = (projects, corporateName) => {
+    setWorkspaceError("")
+    const tickOwnedProjects = (projects) => {
       if (cancelled) return
-      setCheckingWorkspace(false)
       setWorkspace((current) => ({
         clientId: current?.clientId || candidate,
         companyName: current?.companyName || "",
-        corporateName: current?.corporateName || corporateName || "",
         place: current?.place || "",
+        // Ticks always come from the register that just answered, so a project
+        // added in this tab appears and a removed one stops showing.
         projects,
       }))
     }
 
     findClientWorkspace(candidate, tickOwnedProjects)
       .then((found) => {
-        if (cancelled || !found) return
+        if (cancelled) return
+        if (!found) {
+          // The live register lists neither this client nor a licence for it, so a
+          // tick restored from the local snapshot belongs to a licence that no
+          // longer exists and has to go.
+          setWorkspace(null)
+          return
+        }
         // Upgrade the partial workspace the register produced with the company
-        // name and place the directory adds — never downgrade it.
-        setWorkspace((current) => ({ ...current, ...found }))
+        // name and place the directory adds — never downgrade those. The projects
+        // come from the live register that just answered, so a tick restored from
+        // the local snapshot is cleared when the server no longer licenses it.
+        setWorkspace((current) => ({
+          clientId: found.clientId || current?.clientId || candidate,
+          companyName: current?.companyName || found.companyName || "",
+          place: current?.place || found.place || "",
+          projects: found.projects || [],
+        }))
         setCompany((current) => {
           const filled = {
             ...current,
             name: current.name || found.companyName,
-            corporateName: current.corporateName || found.corporateName || found.companyName,
             place: current.place || found.place,
           }
           return filled.name === current.name && filled.place === current.place ? current : filled
         })
       })
-      .catch(() => {
-        // Recognition is a convenience: a brand new signup must still go through.
+      .catch((lookupError) => {
+        // Recognition is a convenience: a brand new signup must still go through,
+        // but the operator has to know the ticks are missing because the lookup
+        // failed rather than because the client owns nothing.
+        if (cancelled) return
+        setWorkspaceError(
+          `${getNetworkError(lookupError, "the T-ERP license register")} Nothing is ticked until it can be read.`,
+        )
       })
       .finally(() => {
         if (!cancelled) setCheckingWorkspace(false)
@@ -366,6 +427,53 @@ export default function TERPLogin() {
   }
 
   const formatContactNumber = (value) => value.replace(/\D/g, "").slice(0, 10)
+
+  // GSTIN and PAN are printed in capitals: folding as the operator types keeps
+  // the value valid without asking them to hold shift.
+  const updateCompanyCode = (field, maxLength) => (event) => {
+    const value = event.target.value.toUpperCase().replace(/[^0-9A-Z]/g, "").slice(0, maxLength)
+    setCompany((current) => ({ ...current, [field]: value }))
+    clearFieldError(field)
+  }
+
+  // The register wants the logo as bare base64, so the picked image is kept as a
+  // data URL (for the preview) and only the part after the comma is posted. The
+  // file is checked here, before a submit, so an oversized image never reaches
+  // Central Master.
+  const readCompanyLogo = (event) => {
+    const input = event.target
+    const file = input.files?.[0]
+    if (!file) return
+    clearFieldError("logo")
+
+    if (!String(file.type || "").startsWith("image/")) {
+      input.value = ""
+      setFieldErrors((current) => ({ ...current, logo: "Choose an image file (PNG, JPG, WebP or SVG)." }))
+      return
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      input.value = ""
+      setFieldErrors((current) => ({ ...current, logo: `The logo must be smaller than ${LOGO_MAX_LABEL}.` }))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setCompany((current) => ({ ...current, logo: String(reader.result || ""), logoName: file.name }))
+    }
+    reader.onerror = () => {
+      input.value = ""
+      setFieldErrors((current) => ({ ...current, logo: "That file could not be read." }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeCompanyLogo = (event) => {
+    // The <input type=file> keeps its selection unless the element is cleared.
+    const field = event.currentTarget.closest(".terp-login__field")?.querySelector('input[type="file"]')
+    if (field) field.value = ""
+    setCompany((current) => ({ ...current, logo: "", logoName: "" }))
+  }
 
   const continueToCompany = () => {
     setError("")
@@ -456,11 +564,47 @@ export default function TERPLogin() {
     }
   }
 
+  // Central Master's company register is written after the license exists: its
+  // client id and its license key are only known by then, and they are what ties
+  // a company row (GSTIN, PAN, address, logo) back to it. The fields the form
+  // already collects are reused here — name, email, contact number, country and
+  // the place, which the register calls the city — so nothing is asked twice.
+  const registerCompanyMaster = async ({ clientId: recordClientId, licenseKey: recordLicenseKey, email: recordEmail, phoneNumber: recordPhone, companyName: recordName }) => {
+    try {
+      return await ensureCompanyMaster({
+        clientId: recordClientId,
+        licenseKey: recordLicenseKey,
+        companyName: recordName,
+        email: recordEmail,
+        phoneNumber: recordPhone,
+        referralCode: company.referralCode,
+        gstNumber: company.gstNumber,
+        panNumber: company.panNumber,
+        addressLine1: company.addressLine1,
+        addressLine2: company.addressLine2,
+        city: company.place,
+        district: company.district,
+        state: company.state,
+        country: company.country,
+        // "data:image/png;base64,XXXX" — the register stores only XXXX.
+        logo: String(company.logo || "").split(",")[1] || "",
+      })
+    } catch (companyError) {
+      return { created: false, error: ` The company details could not be saved to Central Master: ${companyError.message}` }
+    }
+  }
+
   const submit = async (event) => {
     event.preventDefault()
     setError("")
     setSuccess("")
     if (!googleUser) return setError("Continue with Google before submitting your company details.")
+    // The ticks that say what the client already owns come from the register. A
+    // submit while it is still loading cannot see them and would post a licence
+    // for products they already have.
+    if (checkingWorkspace) {
+      return setError("Still checking which projects you already own — try again in a moment.")
+    }
     if (!selectedProjects.length) {
       return setError(workspace
         ? "Everything you already own is ticked. Add a new project to continue."
@@ -471,11 +615,23 @@ export default function TERPLogin() {
     // focused, so the operator fixes the form in place.
     const missing = {}
     if (!company.name.trim()) missing.name = "Enter the company name."
-    if (!company.corporateName.trim()) missing.corporateName = "Enter the corporate or group name."
     if (!company.place.trim()) missing.place = "Enter the place."
     if (!company.country.trim()) missing.country = "Select the country the license applies to."
     if (!company.contact_no.trim()) missing.contact_no = "Enter the contact number."
     else if (company.contact_no.length !== 10) missing.contact_no = "Enter a valid 10-digit number, for example 1234567890."
+    // Central Master's company register has a column for each of these; the
+    // statutory numbers stay optional because a client may not have them yet,
+    // but whatever is typed has to be in the shape support will see on the
+    // certificate.
+    if (!company.addressLine1.trim()) missing.addressLine1 = "Enter the street address."
+    if (!company.district.trim()) missing.district = "Enter the district."
+    if (!company.state.trim()) missing.state = "Enter the state."
+    if (company.gstNumber.trim() && !GST_PATTERN.test(company.gstNumber.trim())) {
+      missing.gstNumber = "Enter a valid 15-character GSTIN, for example 32AAACA1234A1Z5."
+    }
+    if (company.panNumber.trim() && !PAN_PATTERN.test(company.panNumber.trim())) {
+      missing.panNumber = "Enter a valid 10-character PAN, for example AAACA1234A."
+    }
 
     if (Object.keys(missing).length) {
       setFieldErrors(missing)
@@ -494,13 +650,14 @@ export default function TERPLogin() {
 
       // One client id = one login. Central Master's user list is the only place
       // that can prove the client already exists, so nothing at all is created
-      // until that lookup comes back.
+      // until that lookup comes back. Only the client id and the address count:
+      // a contact number shared with another company must never read as "this
+      // client already has a login" while no user and no license carry this id.
       let existingLogins = []
       try {
         existingLogins = await findClientLogins({
           clientId: licenseRef.current ? extractClientId(licenseRef.current) : "",
           email,
-          phoneNumber,
         })
       } catch {
         throw new Error(
@@ -508,14 +665,12 @@ export default function TERPLogin() {
         )
       }
       const hasLogin = existingLogins.length > 0
-      if (hasLogin && !workspace) {
-        // A login we cannot place in the T-ERP client list: refuse to touch
-        // anything rather than risk a second license for the same client.
-        throw new Error(
-          "This client already has a T-ERP login. No license and no user were created — " +
-            "sign in with the existing credentials, or ask Trellisco support to reset them.",
-        )
-      }
+      // Logins that really carry this client id. Only those collide with the id
+      // this signup provisions; an email match stored on a different client id is
+      // a separate account and must never block the license.
+      const ownLogins = existingLogins.filter(
+        (login) => String(login?.client_id || "").trim().toLowerCase() === email.toLowerCase(),
+      )
 
       // A license created during this page session is reused as-is, so a failed
       // account step never posts a duplicate license. One restored from an
@@ -538,7 +693,6 @@ export default function TERPLogin() {
           license = cached
         } else {
           license = await createTerpLicense({
-            corporate: { name: company.corporateName, place: company.place },
             company,
             projects: selectedProjects.map(({ project, package: packageName }) => ({ project, package: packageName })),
           })
@@ -587,13 +741,21 @@ export default function TERPLogin() {
       const companyName = company.name.trim()
       const addedProjects = selectedProjects.map((item) => item.project)
 
-      // A returning customer keeps the login they already have: adding a project
-      // must never mint a second account or resend credentials nobody asked for,
-      // but every login under this client id must see the new product.
-      if (hasLogin) {
+      // An existing login decides who gets the licence, and neither case may mint
+      // a second account or resend credentials nobody asked for:
+      //   - with a workspace the client is returning for another product;
+      //   - without one T-ERP no longer holds their client, so the licence just
+      //     rebuilt above is what makes the login they already own work again.
+      const returningClient = workspace ? hasLogin : ownLogins.length > 0
+
+      if (returningClient) {
         let updatedLogins = 0
         try {
-          updatedLogins = (await enableProjectsForClient({ logins: existingLogins, clientId, selectedProjects })).updated
+          updatedLogins = (await enableProjectsForClient({
+            logins: workspace ? existingLogins : ownLogins,
+            clientId,
+            selectedProjects,
+          })).updated
         } catch (updateError) {
           throw new Error(
             `The license was created, but the new project could not be enabled on the existing login: ${updateError.message}`,
@@ -608,11 +770,16 @@ export default function TERPLogin() {
         // is already on file it is left exactly as it is, and it is only added
         // for a legacy client that has no financial year yet.
         const country = await registerClientCountry(clientId, company.country)
+        // Same rule for the company register: it is written only when Central
+        // Master has no row for this client yet, so the GSTIN, PAN and address
+        // support already confirmed are never replaced by this form.
+        const companyRecord = await registerCompanyMaster({ clientId, licenseKey, email, phoneNumber, companyName })
+        const notes = `${country.error || ""}${companyRecord.error || ""}`
 
-        if (country.error) {
-          // The products were switched on, but the country could not be written:
-          // stay on the page so the operator reads it, and refresh the ticks for
-          // the project that was just added.
+        if (notes) {
+          // The products were switched on, but the country or the company details
+          // could not be written: stay on the page so the operator reads it, and
+          // refresh the ticks for the project that was just added.
           setSelectedProjects([])
           setSetupStep(1)
           setSuccess(
@@ -620,7 +787,28 @@ export default function TERPLogin() {
               (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
               " Your existing T-ERP login still works — no new user and no new password were created.",
           )
-          setError(country.error.trim())
+          setError(notes.trim())
+          // The registers changed with this licence: drop what was read before so
+          // the ticks show the project that was just added.
+          resetTerpRegisters()
+          findClientWorkspace(email).then((found) => { if (found) setWorkspace(found) }).catch(() => {})
+          return
+        }
+
+        if (!workspace) {
+          // The licence was rebuilt for a client id Central Master already owns:
+          // the login it carries starts working again the moment T-ERP lists the
+          // client, so the operator is told that instead of being handed a
+          // second account. Nothing is left to do on this page.
+          setSelectedProjects([])
+          setSetupStep(1)
+          setSuccess(
+            `License ready for ${companyName}.` +
+              (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
+              " Your existing T-ERP login works again — no new user and no new password were created.",
+          )
+          // Same refresh: the projects just licensed have to show as ticked.
+          resetTerpRegisters()
           findClientWorkspace(email).then((found) => { if (found) setWorkspace(found) }).catch(() => {})
           return
         }
@@ -674,7 +862,17 @@ export default function TERPLogin() {
       // it is registered against the same client id right after the login
       // exists — but never over an existing registration.
       const country = await registerClientCountry(accountClientId, company.country)
-      const countryNote = country.error || ""
+      // The company register needs the client id and the licence key, so it can
+      // only be written now. It is written once per client: a row that already
+      // exists is left exactly as it is.
+      const companyRecord = await registerCompanyMaster({
+        clientId: accountClientId,
+        licenseKey,
+        email,
+        phoneNumber,
+        companyName,
+      })
+      const notes = `${country.error || ""}${companyRecord.error || ""}`
 
       const created = {
         clientId: accountClientId,
@@ -692,7 +890,7 @@ export default function TERPLogin() {
       const autoEmail = canAutoSendEmail()
       setDelivery({ whatsapp: { state: "pending" }, email: { state: autoEmail ? "pending" : "idle" } })
       setModalOpen(true)
-      setSuccess(`T-ERP license created. The admin login is ready below.${countryNote}`)
+      setSuccess(`T-ERP license created. The admin login is ready below.${notes}`)
 
       deliverWhatsApp(created)
       if (autoEmail) deliverEmail(created)
@@ -735,7 +933,7 @@ export default function TERPLogin() {
           <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {setupStep + 1} of 3</span></div>
           {setupStep === 1 ? (
             <div className="terp-login__product-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each."}</p></div>
+              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : workspaceError || (tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each.")}</p></div>
               {workspace && <div className="terp-login__workspace"><b>{workspace.companyName || workspace.clientId}</b><small>{workspace.projects.length ? `${workspace.projects.join(", ")} ${workspace.projects.length > 1 ? "are" : "is"} already active and ticked below. Add another project whenever you need it.` : "This client already exists. Choose the projects to add."}</small></div>}
               <div className="terp-login__project-grid">
                 {loadingProjects && <div className="terp-login__loading">Loading available projects…</div>}
@@ -766,104 +964,256 @@ export default function TERPLogin() {
             </div>
           ) : (
           <div className="terp-login__company-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license and the admin login we send you.</p></div>
-              <div className="terp-login__fields">
-                <div className="terp-login__field">
-                  <label htmlFor="terp-company-name">Company name</label>
-                  <input
-                    id="terp-company-name"
-                    name="companyName"
-                    value={company.name}
-                    onChange={updateCompany("name")}
-                    placeholder="ABC Company"
-                    autoComplete="organization"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    aria-invalid={fieldErrors.name ? true : undefined}
-                    aria-describedby={fieldErrors.name ? "terp-company-name-error" : undefined}
-                  />
-                  {fieldErrors.name && <span className="terp-login__field-error" id="terp-company-name-error">{fieldErrors.name}</span>}
+              <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license, the admin login we send you and your Central Master company record.</p></div>
+              {/* The form is grouped the way the register stores it: who the
+                  company is, where it is registered, its statutory numbers and
+                  its branding. Each group is a two-column grid from 640px. */}
+              <div className="terp-login__group">
+                <h4 className="terp-login__group-title">Business details</h4>
+                <div className="terp-login__fields">
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-name">Company name</label>
+                    <input
+                      id="terp-company-name"
+                      name="companyName"
+                      value={company.name}
+                      onChange={updateCompany("name")}
+                      placeholder="Acmes Pvt Ltd"
+                      autoComplete="organization"
+                      autoCapitalize="words"
+                      enterKeyHint="next"
+                      aria-invalid={fieldErrors.name ? true : undefined}
+                      aria-describedby={fieldErrors.name ? "terp-company-name-error" : undefined}
+                    />
+                    {fieldErrors.name && <span className="terp-login__field-error" id="terp-company-name-error">{fieldErrors.name}</span>}
+                  </div>
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-place">Place / city</label>
+                    <input
+                      id="terp-company-place"
+                      name="place"
+                      value={company.place}
+                      onChange={updateCompany("place")}
+                      placeholder="Kochi"
+                      autoComplete="address-level2"
+                      autoCapitalize="words"
+                      enterKeyHint="next"
+                      aria-invalid={fieldErrors.place ? true : undefined}
+                      aria-describedby={fieldErrors.place ? "terp-company-place-error" : "terp-company-place-hint"}
+                    />
+                    {fieldErrors.place
+                      ? <span className="terp-login__field-error" id="terp-company-place-error">{fieldErrors.place}</span>
+                      : <span className="terp-login__hint" id="terp-company-place-hint">Saved as the city on your company record.</span>}
+                  </div>
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-country">Country</label>
+                    {registeredCountry ? (
+                      <input id="terp-company-country" name="country" value={registeredCountry} readOnly aria-readonly="true" title="Your financial year is already on file for this country" />
+                    ) : (
+                      <select
+                        id="terp-company-country"
+                        name="country"
+                        value={company.country}
+                        onChange={updateCompany("country")}
+                        disabled={loadingCountries}
+                        aria-invalid={fieldErrors.country ? true : undefined}
+                        aria-describedby={fieldErrors.country ? "terp-company-country-error" : "terp-login-country-hint"}
+                      >
+                        <option value="">{loadingCountries ? "Loading countries…" : "Choose country"}</option>
+                        {countries.map((item) => (
+                          <option key={item.code || item.name} value={item.name}>{item.name}{item.currency ? ` — ${item.currency}` : ""}</option>
+                        ))}
+                      </select>
+                    )}
+                    {fieldErrors.country
+                      ? <span className="terp-login__field-error" id="terp-company-country-error">{fieldErrors.country}</span>
+                      : <span className="terp-login__hint" id="terp-login-country-hint">{registeredCountry ? "Already on file — cannot be changed." : "Sets the financial year of your books."}</span>}
+                  </div>
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-contact">Contact number</label>
+                    <input
+                      id="terp-company-contact"
+                      type="tel"
+                      name="contact"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      enterKeyHint="next"
+                      value={company.contact_no}
+                      onChange={(event) => {
+                        setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))
+                        clearFieldError("contact_no")
+                      }}
+                      placeholder="9876543210"
+                      maxLength="10"
+                      aria-invalid={fieldErrors.contact_no ? true : undefined}
+                      aria-describedby={fieldErrors.contact_no ? "terp-company-contact-error" : undefined}
+                    />
+                    {fieldErrors.contact_no && <span className="terp-login__field-error" id="terp-company-contact-error">{fieldErrors.contact_no}</span>}
+                  </div>
+                  <div className="terp-login__field terp-login__field--wide">
+                    <label htmlFor="terp-company-email">Email</label>
+                    <input id="terp-company-email" type="email" name="email" value={googleUser?.email || ""} readOnly aria-readonly="true" aria-describedby="terp-company-email-hint" title="This is the address you signed in with" />
+                    <span className="terp-login__hint" id="terp-company-email-hint">The Google address you signed in with — it becomes your T-ERP client id and admin login.</span>
+                  </div>
                 </div>
-                <div className="terp-login__field">
-                  <label htmlFor="terp-company-corporate">Corporate / group name</label>
-                  <input
-                    id="terp-company-corporate"
-                    name="corporateName"
-                    value={company.corporateName}
-                    onChange={updateCompany("corporateName")}
-                    placeholder="ABC Corporate"
-                    autoComplete="organization"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    aria-invalid={fieldErrors.corporateName ? true : undefined}
-                    aria-describedby={fieldErrors.corporateName ? "terp-company-corporate-error" : undefined}
-                  />
-                  {fieldErrors.corporateName && <span className="terp-login__field-error" id="terp-company-corporate-error">{fieldErrors.corporateName}</span>}
+              </div>
+
+              {/* Street address and the statutory fields exist for Central
+                  Master's company register: the license API has no field for
+                  them. Name, contact, country and place above are reused. */}
+              <div className="terp-login__group">
+                <h4 className="terp-login__group-title">Registered address</h4>
+                <div className="terp-login__fields">
+                  <div className="terp-login__field terp-login__field--wide">
+                    <label htmlFor="terp-company-address1">Address line 1</label>
+                    <input
+                      id="terp-company-address1"
+                      name="addressLine1"
+                      value={company.addressLine1}
+                      onChange={updateCompany("addressLine1")}
+                      placeholder="1st Floor, MG Road"
+                      autoComplete="address-line1"
+                      autoCapitalize="words"
+                      enterKeyHint="next"
+                      aria-invalid={fieldErrors.addressLine1 ? true : undefined}
+                      aria-describedby={fieldErrors.addressLine1 ? "terp-company-address1-error" : undefined}
+                    />
+                    {fieldErrors.addressLine1 && <span className="terp-login__field-error" id="terp-company-address1-error">{fieldErrors.addressLine1}</span>}
+                  </div>
+                  <div className="terp-login__field terp-login__field--wide">
+                    <label htmlFor="terp-company-address2">Address line 2 <span className="terp-login__optional">Optional</span></label>
+                    <input
+                      id="terp-company-address2"
+                      name="addressLine2"
+                      value={company.addressLine2}
+                      onChange={updateCompany("addressLine2")}
+                      placeholder="Landmark, building, area"
+                      autoComplete="address-line2"
+                      autoCapitalize="words"
+                      enterKeyHint="next"
+                    />
+                  </div>
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-district">District</label>
+                    <input
+                      id="terp-company-district"
+                      name="district"
+                      value={company.district}
+                      onChange={updateCompany("district")}
+                      placeholder="Malappuram"
+                      autoComplete="address-level2"
+                      autoCapitalize="words"
+                      enterKeyHint="next"
+                      aria-invalid={fieldErrors.district ? true : undefined}
+                      aria-describedby={fieldErrors.district ? "terp-company-district-error" : undefined}
+                    />
+                    {fieldErrors.district && <span className="terp-login__field-error" id="terp-company-district-error">{fieldErrors.district}</span>}
+                  </div>
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-state">State</label>
+                    <input
+                      id="terp-company-state"
+                      name="state"
+                      value={company.state}
+                      onChange={updateCompany("state")}
+                      placeholder="Kerala"
+                      autoComplete="address-level1"
+                      autoCapitalize="words"
+                      enterKeyHint="next"
+                      aria-invalid={fieldErrors.state ? true : undefined}
+                      aria-describedby={fieldErrors.state ? "terp-company-state-error" : undefined}
+                    />
+                    {fieldErrors.state && <span className="terp-login__field-error" id="terp-company-state-error">{fieldErrors.state}</span>}
+                  </div>
                 </div>
-                <div className="terp-login__field">
-                  <label htmlFor="terp-company-place">Place</label>
-                  <input
-                    id="terp-company-place"
-                    name="place"
-                    value={company.place}
-                    onChange={updateCompany("place")}
-                    placeholder="Kochi"
-                    autoComplete="address-level2"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    aria-invalid={fieldErrors.place ? true : undefined}
-                    aria-describedby={fieldErrors.place ? "terp-company-place-error" : undefined}
-                  />
-                  {fieldErrors.place && <span className="terp-login__field-error" id="terp-company-place-error">{fieldErrors.place}</span>}
+              </div>
+
+              <div className="terp-login__group">
+                <h4 className="terp-login__group-title">Tax &amp; referral</h4>
+                <div className="terp-login__fields">
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-gst">GST number <span className="terp-login__optional">Optional</span></label>
+                    <input
+                      id="terp-company-gst"
+                      name="gstNumber"
+                      value={company.gstNumber}
+                      onChange={updateCompanyCode("gstNumber", 15)}
+                      placeholder="32AAACA1234A1Z5"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck="false"
+                      enterKeyHint="next"
+                      maxLength="15"
+                      aria-invalid={fieldErrors.gstNumber ? true : undefined}
+                      aria-describedby={fieldErrors.gstNumber ? "terp-company-gst-error" : undefined}
+                    />
+                    {fieldErrors.gstNumber && <span className="terp-login__field-error" id="terp-company-gst-error">{fieldErrors.gstNumber}</span>}
+                  </div>
+                  <div className="terp-login__field">
+                    <label htmlFor="terp-company-pan">PAN number <span className="terp-login__optional">Optional</span></label>
+                    <input
+                      id="terp-company-pan"
+                      name="panNumber"
+                      value={company.panNumber}
+                      onChange={updateCompanyCode("panNumber", 10)}
+                      placeholder="AAACA1234A"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck="false"
+                      enterKeyHint="next"
+                      maxLength="10"
+                      aria-invalid={fieldErrors.panNumber ? true : undefined}
+                      aria-describedby={fieldErrors.panNumber ? "terp-company-pan-error" : undefined}
+                    />
+                    {fieldErrors.panNumber && <span className="terp-login__field-error" id="terp-company-pan-error">{fieldErrors.panNumber}</span>}
+                  </div>
+                  <div className="terp-login__field terp-login__field--wide">
+                    <label htmlFor="terp-company-referral">Referral code <span className="terp-login__optional">Optional</span></label>
+                    <input
+                      id="terp-company-referral"
+                      name="referralCode"
+                      value={company.referralCode}
+                      onChange={updateCompany("referralCode")}
+                      placeholder="7878787"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck="false"
+                      enterKeyHint="done"
+                      maxLength="32"
+                    />
+                    <span className="terp-login__hint">If a partner or reseller referred you, enter their code.</span>
+                  </div>
                 </div>
-                <div className="terp-login__field">
-                  <label htmlFor="terp-company-country">Country</label>
-                  {registeredCountry ? (
-                    <input id="terp-company-country" name="country" value={registeredCountry} readOnly aria-readonly="true" title="Your financial year is already on file for this country" />
-                  ) : (
-                    <select
-                      id="terp-company-country"
-                      name="country"
-                      value={company.country}
-                      onChange={updateCompany("country")}
-                      disabled={loadingCountries}
-                      aria-invalid={fieldErrors.country ? true : undefined}
-                      aria-describedby={fieldErrors.country ? "terp-company-country-error" : "terp-login-country-hint"}
-                    >
-                      <option value="">{loadingCountries ? "Loading countries…" : "Choose country"}</option>
-                      {countries.map((item) => (
-                        <option key={item.code || item.name} value={item.name}>{item.name}{item.currency ? ` — ${item.currency}` : ""}</option>
-                      ))}
-                    </select>
-                  )}
-                  {fieldErrors.country
-                    ? <span className="terp-login__field-error" id="terp-company-country-error">{fieldErrors.country}</span>
-                    : <span className="terp-login__hint" id="terp-login-country-hint">{registeredCountry ? "Already on file — cannot be changed." : "Sets the financial year of your books."}</span>}
-                </div>
-                <div className="terp-login__field">
-                  <label htmlFor="terp-company-email">Email</label>
-                  <input id="terp-company-email" type="email" name="email" value={googleUser?.email || ""} readOnly aria-readonly="true" title="This is the address you signed in with" />
-                </div>
-                <div className="terp-login__field">
-                  <label htmlFor="terp-company-contact">Contact number</label>
-                  <input
-                    id="terp-company-contact"
-                    type="tel"
-                    name="contact"
-                    inputMode="numeric"
-                    autoComplete="tel-national"
-                    enterKeyHint="done"
-                    value={company.contact_no}
-                    onChange={(event) => {
-                      setCompany((current) => ({ ...current, contact_no: formatContactNumber(event.target.value) }))
-                      clearFieldError("contact_no")
-                    }}
-                    placeholder="1234567890"
-                    maxLength="10"
-                    aria-invalid={fieldErrors.contact_no ? true : undefined}
-                    aria-describedby={fieldErrors.contact_no ? "terp-company-contact-error" : undefined}
-                  />
-                  {fieldErrors.contact_no && <span className="terp-login__field-error" id="terp-company-contact-error">{fieldErrors.contact_no}</span>}
+              </div>
+
+              <div className="terp-login__group">
+                <h4 className="terp-login__group-title">Branding</h4>
+                <div className="terp-login__fields">
+                  <div className="terp-login__field terp-login__field--wide">
+                    <label htmlFor="terp-company-logo">Company logo <span className="terp-login__optional">Optional</span></label>
+                    <div className={`terp-login__logo${fieldErrors.logo ? " is-invalid" : ""}`}>
+                      {company.logo ? (
+                        <>
+                          <img className="terp-login__logo-preview" src={company.logo} alt="Selected company logo" />
+                          <span className="terp-login__logo-name" title={company.logoName}>{company.logoName || "logo"}</span>
+                          <button className="terp-login__logo-remove" type="button" onClick={removeCompanyLogo}>Remove</button>
+                        </>
+                      ) : (
+                        <input
+                          id="terp-company-logo"
+                          name="logo"
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          onChange={readCompanyLogo}
+                          aria-invalid={fieldErrors.logo ? true : undefined}
+                          aria-describedby={fieldErrors.logo ? "terp-company-logo-error" : "terp-company-logo-hint"}
+                        />
+                      )}
+                    </div>
+                    {fieldErrors.logo
+                      ? <span className="terp-login__field-error" id="terp-company-logo-error">{fieldErrors.logo}</span>
+                      : <span className="terp-login__hint" id="terp-company-logo-hint">{`PNG, JPG, WebP or SVG up to ${LOGO_MAX_LABEL} — printed on your invoices.`}</span>}
+                  </div>
                 </div>
               </div>
               <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setFieldErrors({}); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create T-ERP license"}</button></div>
