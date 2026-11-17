@@ -17,7 +17,7 @@ import {
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
 import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
-import { ensureCompanyMaster } from "../api/companyMaster"
+import { ensureCompanyMaster, pushCompanyMaster } from "../api/companyMaster"
 import {
   buildCredentialsMessage,
   buildCredentialsSubject,
@@ -77,6 +77,8 @@ const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/
 const LOGO_MAX_MB = 2
 const LOGO_MAX_BYTES = LOGO_MAX_MB * 1024 * 1024
 const LOGO_MAX_LABEL = `${LOGO_MAX_MB} MB`
+// The register decodes the image itself and accepts only these three types.
+const LOGO_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 // Project names arrive from two different services, so they are compared without
 // case, spacing or punctuation ("Melone Stay" vs "melone  stay").
@@ -440,15 +442,18 @@ export default function TERPLogin() {
   // data URL (for the preview) and only the part after the comma is posted. The
   // file is checked here, before a submit, so an oversized image never reaches
   // Central Master.
+  // Central Master decodes the logo itself and answers "Logo must be one of:
+  // image/jpeg, image/png, image/webp." for anything else, so an SVG picked
+  // here would have blocked the whole company record.
   const readCompanyLogo = (event) => {
     const input = event.target
     const file = input.files?.[0]
     if (!file) return
     clearFieldError("logo")
 
-    if (!String(file.type || "").startsWith("image/")) {
+    if (!LOGO_TYPES.includes(String(file.type || "").toLowerCase())) {
       input.value = ""
-      setFieldErrors((current) => ({ ...current, logo: "Choose an image file (PNG, JPG, WebP or SVG)." }))
+      setFieldErrors((current) => ({ ...current, logo: "Choose a PNG, JPG or WebP image — the company register cannot read other formats." }))
       return
     }
     if (file.size > LOGO_MAX_BYTES) {
@@ -569,26 +574,52 @@ export default function TERPLogin() {
   // a company row (GSTIN, PAN, address, logo) back to it. The fields the form
   // already collects are reused here — name, email, contact number, country and
   // the place, which the register calls the city — so nothing is asked twice.
-  const registerCompanyMaster = async ({ clientId: recordClientId, licenseKey: recordLicenseKey, email: recordEmail, phoneNumber: recordPhone, companyName: recordName }) => {
+  //
+  // `freshCompany` marks the signup path, where the client id was minted seconds
+  // ago: there the write runs even when the register's list cannot be read, since
+  // that read 404s on part of Central Master's fleet. A returning client keeps
+  // the strict read-then-write, because their row may already be on file.
+  const registerCompanyMaster = async ({
+    freshCompany = false,
+    clientId: recordClientId,
+    alternateClientIds = [],
+    licenseKey: recordLicenseKey,
+    email: recordEmail,
+    phoneNumber: recordPhone,
+    companyName: recordName,
+  }) => {
+    const details = {
+      clientId: recordClientId,
+      // The register only accepts a client id T-ERP has on file, and the id the
+      // admin login was created under is not always the one T-ERP registered
+      // (the Google address versus the id its license API generated). Every id
+      // is handed over and the register decides; see writeCompany.
+      alternateClientIds,
+      licenseKey: recordLicenseKey,
+      companyName: recordName,
+      email: recordEmail,
+      phoneNumber: recordPhone,
+      referralCode: company.referralCode,
+      gstNumber: company.gstNumber,
+      panNumber: company.panNumber,
+      addressLine1: company.addressLine1,
+      addressLine2: company.addressLine2,
+      city: company.place,
+      district: company.district,
+      state: company.state,
+      country: company.country,
+      // "data:image/png;base64,XXXX" — the register stores only XXXX.
+      logo: String(company.logo || "").split(",")[1] || "",
+    }
+
     try {
-      return await ensureCompanyMaster({
-        clientId: recordClientId,
-        licenseKey: recordLicenseKey,
-        companyName: recordName,
-        email: recordEmail,
-        phoneNumber: recordPhone,
-        referralCode: company.referralCode,
-        gstNumber: company.gstNumber,
-        panNumber: company.panNumber,
-        addressLine1: company.addressLine1,
-        addressLine2: company.addressLine2,
-        city: company.place,
-        district: company.district,
-        state: company.state,
-        country: company.country,
-        // "data:image/png;base64,XXXX" — the register stores only XXXX.
-        logo: String(company.logo || "").split(",")[1] || "",
-      })
+      const saved = freshCompany ? await pushCompanyMaster(details) : await ensureCompanyMaster(details)
+      // The register decodes the image itself: when it refused the logo the row
+      // was written again without it, and that is what the operator is told.
+      if (saved?.logoDropped) {
+        return { ...saved, error: " The company logo was not accepted by the register, so the company details were saved without it." }
+      }
+      return saved
     } catch (companyError) {
       return { created: false, error: ` The company details could not be saved to Central Master: ${companyError.message}` }
     }
@@ -619,17 +650,21 @@ export default function TERPLogin() {
     if (!company.country.trim()) missing.country = "Select the country the license applies to."
     if (!company.contact_no.trim()) missing.contact_no = "Enter the contact number."
     else if (company.contact_no.length !== 10) missing.contact_no = "Enter a valid 10-digit number, for example 1234567890."
-    // Central Master's company register has a column for each of these; the
-    // statutory numbers stay optional because a client may not have them yet,
-    // but whatever is typed has to be in the shape support will see on the
-    // certificate.
+    // Central Master's company register has a column for each of the address
+    // fields, so they are asked for up front rather than patched in later.
     if (!company.addressLine1.trim()) missing.addressLine1 = "Enter the street address."
     if (!company.district.trim()) missing.district = "Enter the district."
     if (!company.state.trim()) missing.state = "Enter the state."
-    if (company.gstNumber.trim() && !GST_PATTERN.test(company.gstNumber.trim())) {
+    // The register refuses a blank GSTIN or PAN ("This field may not be blank"),
+    // so leaving them out only made the company record silently fail. They are
+    // required here and whatever is typed has to be the shape support will see
+    // on the certificate.
+    if (!company.gstNumber.trim()) missing.gstNumber = "Enter the GSTIN."
+    else if (!GST_PATTERN.test(company.gstNumber.trim())) {
       missing.gstNumber = "Enter a valid 15-character GSTIN, for example 32AAACA1234A1Z5."
     }
-    if (company.panNumber.trim() && !PAN_PATTERN.test(company.panNumber.trim())) {
+    if (!company.panNumber.trim()) missing.panNumber = "Enter the PAN."
+    else if (!PAN_PATTERN.test(company.panNumber.trim())) {
       missing.panNumber = "Enter a valid 10-character PAN, for example AAACA1234A."
     }
 
@@ -773,7 +808,14 @@ export default function TERPLogin() {
         // Same rule for the company register: it is written only when Central
         // Master has no row for this client yet, so the GSTIN, PAN and address
         // support already confirmed are never replaced by this form.
-        const companyRecord = await registerCompanyMaster({ clientId, licenseKey, email, phoneNumber, companyName })
+        const companyRecord = await registerCompanyMaster({
+          clientId,
+          alternateClientIds: [licensedClientId],
+          licenseKey,
+          email,
+          phoneNumber,
+          companyName,
+        })
         const notes = `${country.error || ""}${companyRecord.error || ""}`
 
         if (notes) {
@@ -863,10 +905,15 @@ export default function TERPLogin() {
       // exists — but never over an existing registration.
       const country = await registerClientCountry(accountClientId, company.country)
       // The company register needs the client id and the licence key, so it can
-      // only be written now. It is written once per client: a row that already
-      // exists is left exactly as it is.
+      // only be written now. This signup minted the client id minutes ago, so the
+      // row is created even if the register's list 404s (see findCompanyMaster).
       const companyRecord = await registerCompanyMaster({
+        freshCompany: true,
         clientId: accountClientId,
+        // T-ERP validates the id on every write: the admin account may sit under
+        // the Google address while T-ERP registered the client under the id its
+        // license API generated.
+        alternateClientIds: [licensedClientId],
         licenseKey,
         email,
         phoneNumber,
@@ -1132,7 +1179,7 @@ export default function TERPLogin() {
                 <h4 className="terp-login__group-title">Tax &amp; referral</h4>
                 <div className="terp-login__fields">
                   <div className="terp-login__field">
-                    <label htmlFor="terp-company-gst">GST number <span className="terp-login__optional">Optional</span></label>
+                    <label htmlFor="terp-company-gst">GST number</label>
                     <input
                       id="terp-company-gst"
                       name="gstNumber"
@@ -1150,7 +1197,7 @@ export default function TERPLogin() {
                     {fieldErrors.gstNumber && <span className="terp-login__field-error" id="terp-company-gst-error">{fieldErrors.gstNumber}</span>}
                   </div>
                   <div className="terp-login__field">
-                    <label htmlFor="terp-company-pan">PAN number <span className="terp-login__optional">Optional</span></label>
+                    <label htmlFor="terp-company-pan">PAN number</label>
                     <input
                       id="terp-company-pan"
                       name="panNumber"
@@ -1203,7 +1250,7 @@ export default function TERPLogin() {
                           id="terp-company-logo"
                           name="logo"
                           type="file"
-                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          accept="image/png,image/jpeg,image/webp"
                           onChange={readCompanyLogo}
                           aria-invalid={fieldErrors.logo ? true : undefined}
                           aria-describedby={fieldErrors.logo ? "terp-company-logo-error" : "terp-company-logo-hint"}
@@ -1212,7 +1259,7 @@ export default function TERPLogin() {
                     </div>
                     {fieldErrors.logo
                       ? <span className="terp-login__field-error" id="terp-company-logo-error">{fieldErrors.logo}</span>
-                      : <span className="terp-login__hint" id="terp-company-logo-hint">{`PNG, JPG, WebP or SVG up to ${LOGO_MAX_LABEL} — printed on your invoices.`}</span>}
+                      : <span className="terp-login__hint" id="terp-company-logo-hint">{`PNG, JPG or WebP up to ${LOGO_MAX_LABEL} — printed on your invoices.`}</span>}
                   </div>
                 </div>
               </div>

@@ -1,0 +1,1 @@
+Vite React entrypoint that mounts the root component, wires declarative routes with an inline RequireAuth guard, and exposes shared CSS design tokens to every child page.

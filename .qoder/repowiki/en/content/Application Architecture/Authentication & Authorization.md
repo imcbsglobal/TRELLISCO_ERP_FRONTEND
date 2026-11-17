@@ -10,17 +10,18 @@
 - [src/components/CredentialsModal.jsx](file://src/components/CredentialsModal.jsx)
 - [src/api/terpLicense.js](file://src/api/terpLicense.js)
 - [src/api/userMaster.js](file://src/api/userMaster.js)
+- [src/api/companyMaster.js](file://src/api/companyMaster.js)
 - [src/api/notifications.js](file://src/api/notifications.js)
 - [src/api/financialYear.js](file://src/api/financialYear.js)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced license validation system with client ID-based validation replacing name-based matching
-- Improved error handling for deleted clients and orphaned licenses with sophisticated cleanup mechanisms
-- Refined signup flow with advanced edge case detection and recovery strategies
-- Updated license registration verification to use client ID registry instead of company name comparison
-- Enhanced session-scoped license caching with automatic invalidation when licenses become orphaned
+- Enhanced T-ERP login system with integrated company registration through Central Master API
+- Improved workspace detection with enhanced client ID-based validation and session-scoped caching
+- Removed phone number-based client identification functionality; user login now only matches by client ID and email
+- Enhanced license management with session-based caching for improved performance and background refresh capabilities
+- Integrated comprehensive company master API calls for complete business entity registration
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -32,25 +33,26 @@
 7. [Prefetch Optimization Strategy](#prefetch-optimization-strategy)
 8. [Asynchronous Project Ownership Detection](#asynchronous-project-ownership-detection)
 9. [Project Selection and Workspace Recognition](#project-selection-and-workspace-recognition)
-10. [Credential Delivery System](#credential-delivery-system)
-11. [Traditional Admin Authentication](#traditional-admin-authentication)
-12. [Token Management Strategy](#token-management-strategy)
-13. [Protected Routes and Authorization](#protected-routes-and-authorization)
-14. [Security Considerations](#security-considerations)
-15. [Performance Considerations](#performance-considerations)
-16. [Troubleshooting Guide](#troubleshooting-guide)
-17. [Conclusion](#conclusion)
+10. [Company Registration and Master Data Management](#company-registration-and-master-data-management)
+11. [Credential Delivery System](#credential-delivery-system)
+12. [Traditional Admin Authentication](#traditional-admin-authentication)
+13. [Token Management Strategy](#token-management-strategy)
+14. [Protected Routes and Authorization](#protected-routes-and-authorization)
+15. [Security Considerations](#security-considerations)
+16. [Performance Considerations](#performance-considerations)
+17. [Troubleshooting Guide](#troubleshooting-guide)
+18. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows with enhanced performance optimizations and robust license validation:
+This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows with enhanced performance optimizations, robust license validation, and integrated company registration:
 
-1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, and automated credential delivery with optimized data loading and enhanced client ID-based license validation
+1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, automated credential delivery, and integrated company registration with optimized data loading and enhanced client ID-based license validation
 2. **Traditional Admin Authentication**: Standard email/password authentication for administrative access
 
-The system integrates with multiple external services including Google Identity Services, WhatsApp messaging, email delivery systems, and the Central Master platform for financial year and country management.
+The system integrates with multiple external services including Google Identity Services, WhatsApp messaging, email delivery systems, Central Master platform for financial year and country management, and the Central Master company register for comprehensive business entity management.
 
 ## Authentication Systems Overview
-The application implements a dual authentication architecture with enhanced performance through centralized data loading and advanced client ID-based license validation:
+The application implements a dual authentication architecture with enhanced performance through centralized data loading, advanced client ID-based license validation, and integrated company registration:
 
 ```mermaid
 graph TB
@@ -62,6 +64,7 @@ COUNTRY["Country Selection<br/>(Financial Year Register)"]
 WORKSPACE["Workspace Recognition<br/>(Returning Customers)"]
 LICENSE["License Creation<br/>(T-ERP System)"]
 VALIDATION["Client ID Validation<br/>(Cache vs Registry)"]
+COMPANY["Company Registration<br/>(Central Master)"]
 CLEANUP["Orphaned License Cleanup<br/>(Automatic Invalidation)"]
 CREDENTIALS["Credential Delivery<br/>(WhatsApp + Email)"]
 end
@@ -70,7 +73,7 @@ TRADITIONAL["Email/Password Login"]
 ADMIN_TOKEN["Admin Token Storage"]
 PROTECTED["Protected Admin Routes"]
 end
-GOOGLE --> PREFETCH --> PROJECTS --> COUNTRY --> WORKSPACE --> LICENSE --> VALIDATION --> CLEANUP --> CREDENTIALS
+GOOGLE --> PREFETCH --> PROJECTS --> COUNTRY --> WORKSPACE --> LICENSE --> VALIDATION --> COMPANY --> CLEANUP --> CREDENTIALS
 TRADITIONAL --> ADMIN_TOKEN --> PROTECTED
 ```
 
@@ -101,7 +104,7 @@ function loadGoogleScript() {
       return
     }
 
-    const script = document.createElement("script")
+    const script = document.createElement('script')
     script.src = GOOGLE_SCRIPT
     script.async = true
     script.defer = true
@@ -145,6 +148,7 @@ participant TERPLogin as "TERPLogin Component"
 participant FinancialYearAPI as "Central Master Financial Year API"
 participant LicenseAPI as "T-ERP License API"
 participant UserMaster as "Central Master User API"
+participant CompanyMaster as "Central Master Company API"
 participant Notifications as "Notification System"
 Client->>TERPLogin : Select country during signup
 TERPLogin->>FinancialYearAPI : Check existing country registration
@@ -153,6 +157,8 @@ TERPLogin->>FinancialYearAPI : Save client country mapping
 FinancialYearAPI-->>TERPLogin : Confirm country registration
 TERPLogin->>LicenseAPI : Create license with country context
 LicenseAPI-->>TERPLogin : Return license details
+TERPLogin->>CompanyMaster : Register company details
+CompanyMaster-->>TERPLogin : Confirm company registration
 TERPLogin->>UserMaster : Create admin account with country context
 UserMaster-->>TERPLogin : Return credentials
 TERPLogin->>Notifications : Send credentials via WhatsApp & Email
@@ -162,6 +168,7 @@ TERPLogin->>Notifications : Send credentials via WhatsApp & Email
 - [src/pages/TERPLogin.jsx:383-510](file://src/pages/TERPLogin.jsx#L383-L510)
 - [src/api/financialYear.js:59-115](file://src/api/financialYear.js#L59-L115)
 - [src/api/userMaster.js:241-312](file://src/api/userMaster.js#L241-L312)
+- [src/api/companyMaster.js:156-162](file://src/api/companyMaster.js#L156-L162)
 
 ### Country Registration and Validation
 The system manages country-specific financial years through Central Master's financial year register:
@@ -209,7 +216,7 @@ useEffect(() => {
 - [src/pages/TERPLogin.jsx:136-155](file://src/pages/TERPLogin.jsx#L136-L155)
 
 ## Enhanced T-ERP Login Flow
-The enhanced login flow now includes financial year management, improved country handling, and advanced client ID-based license validation with optimized data loading:
+The enhanced login flow now includes financial year management, improved country handling, advanced client ID-based license validation with optimized data loading, and integrated company registration:
 
 ### Step 1: Google Authentication
 - Dynamic loading of Google Identity Services
@@ -238,6 +245,13 @@ The enhanced login flow now includes financial year management, improved country
 - Protection against duplicate license creation
 - Sophisticated edge case detection for orphaned licenses
 
+### Step 5: Integrated Company Registration
+- Comprehensive company details submission to Central Master
+- GSTIN and PAN validation and storage
+- Complete address and contact information management
+- Logo upload and processing
+- Referral code tracking
+
 ```mermaid
 flowchart TD
 Start(["TERP Login Page"]) --> GoogleAuth["Google Sign-In"]
@@ -255,7 +269,8 @@ CacheValidation --> OrphanedCheck{"License Orphaned?"}
 OrphanedCheck --> |Yes| Cleanup["Cleanup Orphaned License<br/>(Delete Cache)"]
 OrphanedCheck --> |No| CountryRegistration["Register Country (if new)"]
 Cleanup --> Retry["Retry License Creation"]
-CountryRegistration --> AdminAccount["Create Admin Account"]
+CountryRegistration --> CompanyRegistration["Register Company Details<br/>(Central Master)"]
+CompanyRegistration --> AdminAccount["Create Admin Account"]
 AdminAccount --> CredentialDelivery["Send Credentials"]
 CredentialDelivery --> Success(["Setup Complete"])
 ```
@@ -276,6 +291,7 @@ subgraph "Register Cache Layer"
 CLIENT_DIR["Client Directory Cache<br/>(TERP_CLIENT_IDS_ENDPOINT)"]
 LICENSE_REG["License Register Cache<br/>(TERP_CORPORATE_CLIENT_ENDPOINT)"]
 CACHE_STORE["In-Memory Cache<br/>(Module Level Variables)"]
+SNAPSHOT["Session Snapshot<br/>(5-minute TTL)"]
 end
 subgraph "Data Sources"
 CLIENT_API["Client IDs API"]
@@ -283,6 +299,7 @@ LICENSE_API["Corporate Client API"]
 end
 CLIENT_DIR --> CACHE_STORE
 LICENSE_REG --> CACHE_STORE
+CACHE_STORE --> SNAPSHOT
 CACHE_STORE --> CLIENT_API
 CACHE_STORE --> LICENSE_API
 ```
@@ -316,6 +333,10 @@ function loadClientDirectory() {
 function loadLicenseRegister() {
   if (!licenseRegisterCache) {
     licenseRegisterCache = fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the T-ERP license register")
+      .then((data) => {
+        if (data.length) writeRegisterSnapshot(data)
+        return data
+      })
       .catch((error) => {
         licenseRegisterCache = null
         throw error
@@ -502,6 +523,81 @@ const tickedOwned = projects.filter((item) => ownedProjects.has(normaliseName(it
 - [src/pages/TERPLogin.jsx:213-257](file://src/pages/TERPLogin.jsx#L213-L257)
 - [src/pages/TERPLogin.jsx:259-261](file://src/pages/TERPLogin.jsx#L259-L261)
 
+## Company Registration and Master Data Management
+The system now includes comprehensive company registration through Central Master's company register API:
+
+### Central Master Company Registration Architecture
+```mermaid
+sequenceDiagram
+participant TERPLogin as "TERPLogin Component"
+participant CompanyMaster as "Central Master Company API"
+participant LicenseAPI as "T-ERP License API"
+participant UserMaster as "Central Master User API"
+TERPLogin->>LicenseAPI : Create T-ERP License
+LicenseAPI-->>TERPLogin : Return license details (client_id, license_key)
+TERPLogin->>CompanyMaster : Register company details
+CompanyMaster->>CompanyMaster : Validate GSTIN/PAN formats
+CompanyMaster->>CompanyMaster : Check existing company records
+CompanyMaster-->>TERPLogin : Confirm company registration
+TERPLogin->>UserMaster : Create admin account
+UserMaster-->>TERPLogin : Return admin credentials
+```
+
+**Diagram sources**
+- [src/pages/TERPLogin.jsx:572-595](file://src/pages/TERPLogin.jsx#L572-L595)
+- [src/api/companyMaster.js:156-162](file://src/api/companyMaster.js#L156-L162)
+
+### Company Registration Implementation
+The system collects comprehensive company information and submits it to Central Master after license creation:
+
+```javascript
+const registerCompanyMaster = async ({ clientId: recordClientId, licenseKey: recordLicenseKey, email: recordEmail, phoneNumber: recordPhone, companyName: recordName }) => {
+  try {
+    return await ensureCompanyMaster({
+      clientId: recordClientId,
+      licenseKey: recordLicenseKey,
+      companyName: recordName,
+      email: recordEmail,
+      phoneNumber: recordPhone,
+      referralCode: company.referralCode,
+      gstNumber: company.gstNumber,
+      panNumber: company.panNumber,
+      addressLine1: company.addressLine1,
+      addressLine2: company.addressLine2,
+      city: company.place,
+      district: company.district,
+      state: company.state,
+      country: company.country,
+      logo: String(company.logo || "").split(",")[1] || "",
+    })
+  } catch (companyError) {
+    return { created: false, error: ` The company details could not be saved to Central Master: ${companyError.message}` }
+  }
+}
+```
+
+### Enhanced Username Generation from Email Addresses
+The system now generates usernames directly from email addresses with improved handling:
+
+```javascript
+export function usernameFromEmail(email) {
+  const local = String(email || "").split("@")[0]
+  // A typed company address may carry capitals, and usernames are matched
+  // case-sensitively, so everything is folded to lower case first.
+  const cleaned = local.toLowerCase().replace(/[^a-z0-9._-]+/g, "").replace(USERNAME_EDGE_CHARS, "")
+  if (!cleaned) return ""
+  // A leading digit is legal for some validators and rejected by stricter ones,
+  // so the handle is anchored with a letter rather than refused.
+  const anchored = /^[a-z]/test(cleaned) ? cleaned : `u${cleaned}`
+  return anchored.slice(0, USERNAME_MAX_LENGTH)
+}
+```
+
+**Section sources**
+- [src/pages/TERPLogin.jsx:572-595](file://src/pages/TERPLogin.jsx#L572-L595)
+- [src/api/companyMaster.js:156-162](file://src/api/companyMaster.js#L156-L162)
+- [src/api/userMaster.js:42-52](file://src/api/userMaster.js#L42-L52)
+
 ## Credential Delivery System
 The system provides multiple channels for delivering credentials securely with country-specific formatting:
 
@@ -542,25 +638,8 @@ COUNTRY --> COPY
 - [src/components/CredentialsModal.jsx:85-117](file://src/components/CredentialsModal.jsx#L85-L117)
 - [src/api/notifications.js:63-79](file://src/api/notifications.js#L63-L79)
 
-### Enhanced Username Generation from Email Addresses
-The system now generates usernames directly from email addresses with improved handling:
-
-```javascript
-export function usernameFromEmail(email) {
-  const local = String(email || "").split("@")[0]
-  // A typed company address may carry capitals, and usernames are matched
-  // case-sensitively, so everything is folded to lower case first.
-  const cleaned = local.toLowerCase().replace(/[^a-z0-9._-]+/g, "").replace(USERNAME_EDGE_CHARS, "")
-  if (!cleaned) return ""
-  // A leading digit is legal for some validators and rejected by stricter ones,
-  // so the handle is anchored with a letter rather than refused.
-  const anchored = /^[a-z]/test(cleaned) ? cleaned : `u${cleaned}`
-  return anchored.slice(0, USERNAME_MAX_LENGTH)
-}
-```
-
 **Section sources**
-- [src/api/userMaster.js:42-52](file://src/api/userMaster.js#L42-L52)
+- [src/components/CredentialsModal.jsx:85-117](file://src/components/CredentialsModal.jsx#L85-L117)
 - [src/api/notifications.js:84-112](file://src/api/notifications.js#L84-L112)
 
 ## Traditional Admin Authentication
@@ -632,7 +711,7 @@ api.interceptors.response.use(
       clearToken()
     }
     return Promise.reject(error)
-  }
+  )
 )
 ```
 
@@ -667,7 +746,7 @@ function RequireAuth({ children }) {
 - [src/App.jsx:35-66](file://src/App.jsx#L35-L66)
 
 ## Security Considerations
-The authentication system implements multiple security measures with enhanced financial year protection and client ID-based validation:
+The authentication system implements multiple security measures with enhanced financial year protection, client ID-based validation, and comprehensive company data security:
 
 ### Google Sign-In Security
 - JWT token verification on server-side recommended
@@ -679,10 +758,11 @@ The authentication system implements multiple security measures with enhanced fi
 - Secure transmission of financial year mappings
 - Protection against country manipulation attacks
 
-### Credential Security
-- Random password generation with complexity requirements
-- Improved username generation from email addresses avoiding ambiguous characters
-- Temporary credential storage in memory only
+### Company Data Security
+- GSTIN and PAN format validation before submission
+- Secure transmission of sensitive business information
+- Logo file size and type validation
+- Referral code sanitization and validation
 
 ### Enhanced Client ID-Based License Security
 - **NEW**: Real-time validation of cached licenses against T-ERP client registry before reuse
@@ -691,11 +771,17 @@ The authentication system implements multiple security measures with enhanced fi
 - **NEW**: Session-scoped license caching with proper cleanup mechanisms for orphaned licenses
 - **NEW**: Sophisticated edge case detection for various license states (deleted, orphaned, valid)
 
+### Credential Security
+- Random password generation with complexity requirements
+- Improved username generation from email addresses avoiding ambiguous characters
+- Temporary credential storage in memory only
+
 ### Data Protection
 - CSRF protection through proper header configuration
 - XSS prevention through React's default escaping
 - Secure token handling with appropriate storage mechanisms
 - Financial year data integrity validation
+- Company data validation and sanitization
 
 ### Communication Security
 - HTTPS enforcement for all API calls
@@ -711,6 +797,7 @@ Several optimizations are implemented for better performance:
 - **Session-scoped Token Caching**: For Gmail API tokens to avoid repeated OAuth prompts
 - **Project Catalogue Normalization**: To reduce API calls and normalize data formats
 - **Financial Year Country List Caching**: For efficient country dropdown population
+- **Company Data Caching**: For reduced API calls during company registration workflow
 
 ### Lazy Loading
 - Dynamic loading of Google Identity Services
@@ -724,6 +811,7 @@ Several optimizations are implemented for better performance:
 - **Error Handling**: To prevent unnecessary retries and provide meaningful feedback
 - **Proper Cleanup**: Of event listeners and timers
 - **Optimized API Calls**: With proxy support for development environments
+- **Retry Logic**: For Central Master company API calls to handle transient failures
 
 ### Memory Management
 - **Module-Level Caches**: For expensive API responses that don't change frequently
@@ -767,6 +855,16 @@ Common issues and their solutions:
   - **Solution**: Clear session storage and retry the signup process
   - **Solution**: Verify the client was properly deleted from T-ERP
 
+### Company Registration Issues
+- **Problem**: Company registration fails
+  - **Solution**: Check Central Master API connectivity and CORS configuration
+  - **Solution**: Verify GSTIN and PAN format validation
+  - **Solution**: Ensure logo file meets size and format requirements
+
+- **Problem**: Company data not persisting
+  - **Solution**: Check Central Master database connectivity
+  - **Solution**: Verify company registration endpoint availability
+
 ### Credential Delivery Issues
 - **Problem**: WhatsApp messages not delivered
   - **Solution**: Verify VITE_WHATSAPP_SECRET and VITE_WHATSAPP_ACCOUNT
@@ -793,17 +891,19 @@ Common issues and their solutions:
 The TRELLISCO ERP frontend now implements a comprehensive authentication and authorization system that supports both traditional admin access and modern customer onboarding through Google Sign-In. The system provides:
 
 - **Dual Authentication Flows**: Supporting both T-ERP customers and administrators
-- **Advanced Customer Onboarding**: With Google Sign-In, project selection, financial year management, and automated credential delivery
+- **Advanced Customer Onboarding**: With Google Sign-In, project selection, financial year management, automated credential delivery, and integrated company registration
 - **Centralized License Register Loading**: Optimized data loading with module-level caching for improved performance
 - **Prefetch Optimization**: Intelligent preloading of critical data before user interaction
 - **Asynchronous Project Ownership Detection**: Callback-based updates for immediate UI responsiveness
 - **Intelligent Workspace Recognition**: Automatically identifying returning customers with optimized data fetching
 - **Enhanced Username Generation**: From email addresses with improved character handling
+- **Comprehensive Company Registration**: Through Central Master's company register with complete business entity management
 - **Multi-Channel Communication**: Through WhatsApp and multiple email providers
-- **Robust Security Measures**: Including secure token handling, financial year data protection, and proper error management
+- **Robust Security Measures**: Including secure token handling, financial year data protection, company data validation, and proper error management
 - **Performance Optimizations**: Through caching strategies, lazy loading, parallel data loading, and optimized API calls
 - **Enhanced Client ID-Based License Validation**: Real-time validation of cached licenses against T-ERP client registry before reuse with automatic invalidation of orphaned licenses
 - **Sophisticated Edge Case Detection**: Advanced handling of various license states including deleted clients and orphaned licenses
 - **Improved Error Recovery**: Comprehensive cleanup mechanisms for problematic license states with clear user guidance
+- **Integrated Company Master API**: Complete business entity registration with GSTIN, PAN, and comprehensive address management
 
-The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states.
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements.

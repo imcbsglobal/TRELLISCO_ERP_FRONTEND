@@ -1,0 +1,299 @@
+
+
+
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+
+      
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta name="robots" content="NONE,NOARCHIVE" />
+      
+
+      <title>Company Master List – Django REST framework</title>
+
+      
+        
+          <link rel="stylesheet" type="text/css" href="/static/rest_framework/css/bootstrap.min.css"/>
+          <link rel="stylesheet" type="text/css" href="/static/rest_framework/css/bootstrap-tweaks.css"/>
+        
+
+        <link rel="stylesheet" type="text/css" href="/static/rest_framework/css/prettify.css"/>
+        <link rel="stylesheet" type="text/css" href="/static/rest_framework/css/default.css"/>
+        
+      
+
+    
+  </head>
+
+  
+  <body class="">
+
+    <div class="wrapper">
+      
+        <div class="navbar navbar-static-top navbar-inverse"
+             role="navigation" aria-label="navbar">
+          <div class="container">
+            <span>
+              
+                <a class='navbar-brand' rel="nofollow" href='https://www.django-rest-framework.org/'>
+                    Django REST framework
+                </a>
+              
+            </span>
+            <ul class="nav navbar-nav pull-right">
+              
+                
+                  
+                
+              
+            </ul>
+          </div>
+        </div>
+      
+
+      <div class="container">
+        
+          <ul class="breadcrumb">
+            
+              
+                <li class="active"><a href="/api/company-master/">Company Master List</a></li>
+              
+            
+          </ul>
+        
+
+        <!-- Content -->
+        <div id="content" role="main" aria-label="content">
+          
+
+          <div class="region"  aria-label="request form">
+          
+
+          
+            <form id="get-form" class="pull-right">
+              <fieldset>
+                
+                  <div class="btn-group format-selection">
+                    <a class="btn btn-primary js-tooltip" href="/api/company-master/" rel="nofollow" title="Make a GET request on the Company Master List resource">GET</a>
+
+                    <button class="btn btn-primary dropdown-toggle js-tooltip" data-toggle="dropdown" title="Specify a format for the GET request">
+                      <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                      
+                        <li>
+                          <a class="js-tooltip format-option" href="/api/company-master/?format=json" rel="nofollow" title="Make a GET request on the Company Master List resource with the format set to `json`">json</a>
+                        </li>
+                      
+                        <li>
+                          <a class="js-tooltip format-option" href="/api/company-master/?format=api" rel="nofollow" title="Make a GET request on the Company Master List resource with the format set to `api`">api</a>
+                        </li>
+                      
+                    </ul>
+                  </div>
+                
+              </fieldset>
+            </form>
+          
+
+          
+            <form class="button-form" action="/api/company-master/" data-method="OPTIONS">
+              <button class="btn btn-primary js-tooltip" title="Make an OPTIONS request on the Company Master List resource">OPTIONS</button>
+            </form>
+          
+
+          
+
+          
+
+          
+
+          
+          </div>
+
+            <div class="content-main" role="main"  aria-label="main content">
+              <div class="page-header">
+                <h1>Company Master List</h1>
+              </div>
+              <div class="pull-left">
+                
+                  <p></p>
+                
+              </div>
+
+              
+
+              <div class="request-info" aria-label="request info">
+                <pre class="prettyprint"><b>GET</b> /api/company-master/</pre>
+              </div>
+
+              <div class="response-info" aria-label="response info">
+                <pre class="prettyprint"><span class="meta nocode"><b>HTTP 200 OK</b>
+<b>Allow:</b> <span class="lit">GET, OPTIONS, POST</span>
+<b>Content-Type:</b> <span class="lit">application/json</span>
+<b>Vary:</b> <span class="lit">Accept</span>
+
+</span>[
+    {
+        &quot;id&quot;: 27,
+        &quot;client_id&quot;: &quot;OCUWOT7VR8YJU&quot;,
+        &quot;referral_code&quot;: &quot;7878787&quot;,
+        &quot;company_name&quot;: &quot;Acmes Pvt Ltd&quot;,
+        &quot;license_key&quot;: &quot;LIC-ACME-0001&quot;,
+        &quot;gst_number&quot;: &quot;32AAACA1234A1Z5&quot;,
+        &quot;pan_number&quot;: &quot;AAACA1234A&quot;,
+        &quot;email&quot;: &quot;<a href="/cdn-cgi/l/email-protection#c4adaaa2ab84a5a7a9a1eaa7aba9"><span class="__cf_email__" data-cfemail="8ee7e0e8e1ceefede3eba0ede1e3">[email&#160;protected]</span></a>&quot;,
+        &quot;phone_number&quot;: &quot;9876543210&quot;,
+        &quot;address_line_1&quot;: &quot;1st Floor, MG Road&quot;,
+        &quot;address_line_2&quot;: &quot;&quot;,
+        &quot;city&quot;: &quot;Malappuram&quot;,
+        &quot;district&quot;: &quot;Malappuram&quot;,
+        &quot;state&quot;: &quot;Kerala&quot;,
+        &quot;country&quot;: &quot;INDIA&quot;,
+        &quot;logo_url&quot;: &quot;<a href="https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/OCUWOT7VR8YJU/6b413c9610d64d0d8d8c9243e4d5af2a.png" rel="nofollow">https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/OCUWOT7VR8YJU/6b413c9610d64d0d8d8c9243e4d5af2a.png</a>&quot;,
+        &quot;status&quot;: &quot;ACTIVE&quot;
+    },
+    {
+        &quot;id&quot;: 24,
+        &quot;client_id&quot;: &quot;OCUWOT7VR8YJU&quot;,
+        &quot;referral_code&quot;: &quot;4567890&quot;,
+        &quot;company_name&quot;: &quot;TASK MOBILE APPLICATION&quot;,
+        &quot;license_key&quot;: &quot;7KIS-DUDT-ZQMK-5ZPV&quot;,
+        &quot;gst_number&quot;: &quot;2344&quot;,
+        &quot;pan_number&quot;: &quot;EXFGGGGGGG&quot;,
+        &quot;email&quot;: &quot;<a href="/cdn-cgi/l/email-protection#5e3d31302a3f3d2a702e2c3f2a362731312d36351e39333f3732703d3133"><span class="__cf_email__" data-cfemail="31525e5f455052451f4143504559485e5e42595a71565c50585d1f525e5c">[email&#160;protected]</span></a>&quot;,
+        &quot;phone_number&quot;: &quot;98356708&quot;,
+        &quot;address_line_1&quot;: &quot;test&quot;,
+        &quot;address_line_2&quot;: &quot;&quot;,
+        &quot;city&quot;: &quot;tyest&quot;,
+        &quot;district&quot;: &quot;test&quot;,
+        &quot;state&quot;: &quot;vv&quot;,
+        &quot;country&quot;: &quot;INDIA&quot;,
+        &quot;logo_url&quot;: &quot;<a href="https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/OCUWOT7VR8YJU/47649da44b68448bafae1c77228fb156.png" rel="nofollow">https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/OCUWOT7VR8YJU/47649da44b68448bafae1c77228fb156.png</a>&quot;,
+        &quot;status&quot;: &quot;ACTIVE&quot;
+    },
+    {
+        &quot;id&quot;: 28,
+        &quot;client_id&quot;: &quot;<a href="/cdn-cgi/l/email-protection#91f0fff0ebf8fde5f9fee5e5e4fff6f9f0fdd1f6fcf0f8fdbff2fefc"><span class="__cf_email__" data-cfemail="6e0f000f1407021a06011a1a1b0009060f022e09030f0702400d0103">[email&#160;protected]</span></a>&quot;,
+        &quot;referral_code&quot;: &quot;234567&quot;,
+        &quot;company_name&quot;: &quot;ANAZIL&quot;,
+        &quot;license_key&quot;: &quot;TRHF-QSSS-INO0-8IAU&quot;,
+        &quot;gst_number&quot;: &quot;32AAACA1234A1Z5&quot;,
+        &quot;pan_number&quot;: &quot;AAACA1234A&quot;,
+        &quot;email&quot;: &quot;<a href="/cdn-cgi/l/email-protection#9efff0ffe4f7f2eaf6f1eaeaebf0f9f6fff2def9f3fff7f2b0fdf1f3"><span class="__cf_email__" data-cfemail="f3929d92899a9f879b9c8787869d949b929fb3949e929a9fdd909c9e">[email&#160;protected]</span></a>&quot;,
+        &quot;phone_number&quot;: &quot;7306969819&quot;,
+        &quot;address_line_1&quot;: &quot;Thottunghal House&quot;,
+        &quot;address_line_2&quot;: &quot;Randenal&quot;,
+        &quot;city&quot;: &quot;Mananthavady&quot;,
+        &quot;district&quot;: &quot;Mananthavady&quot;,
+        &quot;state&quot;: &quot;Kerala&quot;,
+        &quot;country&quot;: &quot;INDIA&quot;,
+        &quot;logo_url&quot;: &quot;<a href="https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/anazilthottunghal-gmail.com/f04ff363807944929b8bf4424819543d.jpg" rel="nofollow">https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/anazilthottunghal-gmail.com/f04ff363807944929b8bf4424819543d.jpg</a>&quot;,
+        &quot;status&quot;: &quot;ACTIVE&quot;
+    },
+    {
+        &quot;id&quot;: 26,
+        &quot;client_id&quot;: &quot;<a href="/cdn-cgi/l/email-protection#f487959e9d809c809c9b999587c6c7c7b49399959d98da979b99"><span class="__cf_email__" data-cfemail="aad9cbc0c3dec2dec2c5c7cbd9989999eacdc7cbc3c684c9c5c7">[email&#160;protected]</span></a>&quot;,
+        &quot;referral_code&quot;: &quot;RF19387&quot;,
+        &quot;company_name&quot;: &quot;SJT&quot;,
+        &quot;license_key&quot;: &quot;C8AM-BC1I-P7SM-JUS2&quot;,
+        &quot;gst_number&quot;: &quot;32AAACA1234A1Z5&quot;,
+        &quot;pan_number&quot;: &quot;CQUPT4636T&quot;,
+        &quot;email&quot;: &quot;<a href="/cdn-cgi/l/email-protection#f182909b98859985999e9c9082c3c2c2b1969c90989ddf929e9c"><span class="__cf_email__" data-cfemail="e99a8883809d819d818684889adbdadaa98e84888085c78a8684">[email&#160;protected]</span></a>&quot;,
+        &quot;phone_number&quot;: &quot;9061947005&quot;,
+        &quot;address_line_1&quot;: &quot;IMCB SOLUTIONS LLP&quot;,
+        &quot;address_line_2&quot;: &quot;HYY&quot;,
+        &quot;city&quot;: &quot;SAJT&quot;,
+        &quot;district&quot;: &quot;WAYANAD&quot;,
+        &quot;state&quot;: &quot;Kerala&quot;,
+        &quot;country&quot;: &quot;INDIA&quot;,
+        &quot;logo_url&quot;: &quot;<a href="https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/sajiththomas233-gmail.com/c46baa73b2d1474897cab1f0e70b268e.png" rel="nofollow">https://pub-27e31b973104438483df59767c9a28d8.r2.dev/company-logos/sajiththomas233-gmail.com/c46baa73b2d1474897cab1f0e70b268e.png</a>&quot;,
+        &quot;status&quot;: &quot;ACTIVE&quot;
+    }
+]</pre>
+              </div>
+            </div>
+
+            
+              
+                <div >
+                  
+
+                  <div class="well tab-content">
+                    
+
+                    <div  id="post-generic-content-form">
+                      
+                        <form action="/api/company-master/" method="POST" class="form-horizontal">
+                          <fieldset>
+                            
+
+
+  <div class="form-group">
+    <label for="id__content_type" class="col-sm-2 control-label">Media type:</label>
+    <div class="col-sm-10">
+      <select name="_content_type" data-override="content-type" id="id__content_type" class="form-control">
+  <option value="application/json" selected>application/json</option>
+
+  <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+
+  <option value="multipart/form-data">multipart/form-data</option>
+
+</select>
+      <span class="help-block"></span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="id__content" class="col-sm-2 control-label">Content:</label>
+    <div class="col-sm-10">
+      <textarea name="_content" cols="40" rows="10" data-override="content" id="id__content" class="form-control">
+</textarea>
+      <span class="help-block"></span>
+    </div>
+  </div>
+
+
+                            <div class="form-actions">
+                              <button class="btn btn-primary js-tooltip" title="Make a POST request on the Company Master List resource">POST</button>
+                            </div>
+                          </fieldset>
+                        </form>
+                      
+                    </div>
+                  </div>
+                </div>
+              
+
+              
+            
+          
+        </div><!-- /.content -->
+      </div><!-- /.container -->
+    </div><!-- ./wrapper -->
+
+    
+
+    
+      <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="application/json" id="drf_csrf">
+        {
+          "csrfHeaderName": "X-CSRFTOKEN",
+          "csrfToken": "7NZLPZxuLHJrwIdSjuGZP4ZgT2fXQhaF3rEg1Hisovh54rbDnIYnkYnsE3mKBKlF"
+        }
+      </script>
+      <script src="/static/rest_framework/js/jquery-3.7.1.min.js"></script>
+      <script src="/static/rest_framework/js/ajax-form.js"></script>
+      <script src="/static/rest_framework/js/csrf.js"></script>
+      <script src="/static/rest_framework/js/bootstrap.min.js"></script>
+      <script src="/static/rest_framework/js/prettify-min.js"></script>
+      <script src="/static/rest_framework/js/default.js"></script>
+      <script src="/static/rest_framework/js/load-ajax-form.js"></script>
+    
+
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"1dd75727716c430d9ff8d40b901d7c9b","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+  
+</html>

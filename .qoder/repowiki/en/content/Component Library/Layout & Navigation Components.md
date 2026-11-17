@@ -10,6 +10,13 @@
 - [sidebar.scss](file://src/components/sidebar.scss)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated Main Navigation section to reflect removal of generic 'Login' link and LoginIcon component
+- Simplified navigation structure documentation to show only 'Book a free demo' and 'Contact Us' links
+- Updated responsive navigation menu documentation to reflect current implementation
+- Revised architecture diagrams to match current component structure
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -70,10 +77,10 @@ Sidebar --> SidebarSCSS
 ## Core Components
 - **Main Navigation (`Nav.jsx`, `Nav.scss`)**
   - Top announcement banner fetched from an API.
-  - Desktop navigation bar with logo, primary links, login, T-ERP login, and contact link.
+  - Desktop navigation bar with logo, primary links, "Book a free demo" link, and contact link.
   - Hamburger button that opens a mobile drawer with accessible dialog semantics.
   - Mega menu for Products grouping products by brand groups and showing feature panels.
-  - Active route highlighting through React Router’s active classes.
+  - Active route highlighting through React Router's active classes.
 
 - **Footer (`Footer.jsx`, `Footer.scss`)**
   - Brand section with logo, tagline, and social icons.
@@ -88,7 +95,7 @@ Sidebar --> SidebarSCSS
   - Back to site link and logout action.
 
 **Section sources**
-- [Nav.jsx:1277-1558](file://src/components/Nav.jsx#L1277-L1558)
+- [Nav.jsx:1256-2017](file://src/components/Nav.jsx#L1256-L2017)
 - [Nav.scss:27-313](file://src/components/Nav.scss#L27-L313)
 - [Footer.jsx:124-295](file://src/components/Footer.jsx#L124-L295)
 - [Footer.scss:11-390](file://src/components/Footer.scss#L11-L390)
@@ -119,7 +126,7 @@ Header --> API
 
 **Diagram sources**
 - [Nav.jsx:17-18](file://src/components/Nav.jsx#L17-L18)
-- [Nav.jsx:1277-1558](file://src/components/Nav.jsx#L1277-L1558)
+- [Nav.jsx:1256-2017](file://src/components/Nav.jsx#L1256-L2017)
 - [Sidebar.jsx:4-5](file://src/components/Sidebar.jsx#L4-L5)
 - [Sidebar.jsx:167-239](file://src/components/Sidebar.jsx#L167-L239)
 
@@ -130,8 +137,9 @@ The main navigation component implements:
 - Announcement banner with optional scrolling marquee behavior.
 - Desktop navigation links including a Products mega menu.
 - Mobile drawer with accessible dialog attributes.
-- Active route highlighting using React Router’s active class.
+- Active route highlighting using React Router's active class.
 - Product group selection and dynamic panel rendering.
+- Simplified call-to-action with "Book a free demo" and "Contact Us" buttons.
 
 #### Key Behaviors
 - Announcement banner fetches data and persists dismissal in session storage.
@@ -156,16 +164,16 @@ Nav->>Router : Navigate or open external link
 ```
 
 **Diagram sources**
-- [Nav.jsx:1289-1315](file://src/components/Nav.jsx#L1289-L1315)
-- [Nav.jsx:1320-1349](file://src/components/Nav.jsx#L1320-L1349)
-- [Nav.jsx:1378-1400](file://src/components/Nav.jsx#L1378-L1400)
-- [Nav.jsx:1479-1527](file://src/components/Nav.jsx#L1479-L1527)
-- [Nav.jsx:1676-2043](file://src/components/Nav.jsx#L1676-L2043)
+- [Nav.jsx:1268-1294](file://src/components/Nav.jsx#L1268-L1294)
+- [Nav.jsx:1381-1386](file://src/components/Nav.jsx#L1381-L1386)
+- [Nav.jsx:1458-1506](file://src/components/Nav.jsx#L1458-L1506)
+- [Nav.jsx:1639-2006](file://src/components/Nav.jsx#L1639-L2006)
 
 #### Responsive Navigation Menu
 - Hamburger button appears below desktop breakpoint and toggles a mobile drawer.
 - Drawer uses `role="dialog"` and `aria-modal="true"` for accessibility.
 - Links inside the drawer close the drawer after navigation.
+- Mobile navigation includes "Book a free demo" and "Contact Us" action buttons.
 
 ```mermaid
 flowchart TD
@@ -179,9 +187,8 @@ Open --> |No| UnlockScroll["Restore body scroll"]
 ```
 
 **Diagram sources**
-- [Nav.jsx:1369-1400](file://src/components/Nav.jsx#L1369-L1400)
-- [Nav.jsx:1461-1469](file://src/components/Nav.jsx#L1461-L1469)
-- [Nav.jsx:1560-1674](file://src/components/Nav.jsx#L1560-L1674)
+- [Nav.jsx:1348-1379](file://src/components/Nav.jsx#L1348-L1379)
+- [Nav.jsx:1534-1637](file://src/components/Nav.jsx#L1534-L1637)
 
 #### Dropdown Functionality
 - Products menu renders a mega menu with three columns:
@@ -202,12 +209,12 @@ Features --> |No| ShowCTA["Show CTA only"]
 ```
 
 **Diagram sources**
-- [Nav.jsx:1402-1413](file://src/components/Nav.jsx#L1402-L1413)
-- [Nav.jsx:1676-2043](file://src/components/Nav.jsx#L1676-L2043)
+- [Nav.jsx:1381-1386](file://src/components/Nav.jsx#L1381-L1386)
+- [Nav.jsx:1639-2006](file://src/components/Nav.jsx#L1639-L2006)
 
 #### Active Route Highlighting
-- Desktop links use React Router’s active class to highlight the current route.
-- Sidebar uses NavLink’s active class to highlight the current admin route.
+- Desktop links use React Router's active class to highlight the current route.
+- Sidebar uses NavLink's active class to highlight the current admin route.
 
 ```mermaid
 classDiagram
@@ -228,11 +235,11 @@ Sidebar --> "uses" Router : "NavLink active"
 ```
 
 **Diagram sources**
-- [Nav.jsx:1277-1558](file://src/components/Nav.jsx#L1277-L1558)
+- [Nav.jsx:1256-2017](file://src/components/Nav.jsx#L1256-L2017)
 - [Sidebar.jsx:191-211](file://src/components/Sidebar.jsx#L191-L211)
 
 **Section sources**
-- [Nav.jsx:1277-2054](file://src/components/Nav.jsx#L1277-L2054)
+- [Nav.jsx:1256-2017](file://src/components/Nav.jsx#L1256-L2017)
 - [Nav.scss:27-313](file://src/components/Nav.scss#L27-L313)
 - [Nav.scss:504-800](file://src/components/Nav.scss#L504-L800)
 
@@ -377,8 +384,8 @@ NavJSX --> AnnouncementsAPI
   - Confirm matchMedia listener closes the drawer when screen width exceeds breakpoint.
 
 - **Active route not highlighted**
-  - For desktop links, verify React Router’s active class is applied.
-  - For sidebar items, ensure NavLink’s `end` prop is correctly set for exact matches.
+  - For desktop links, verify React Router's active class is applied.
+  - For sidebar items, ensure NavLink's `end` prop is correctly set for exact matches.
 
 - **Footer layout issues**
   - Check media queries for column wrapping at smaller breakpoints.
@@ -389,13 +396,13 @@ NavJSX --> AnnouncementsAPI
   - Verify overlay styles are not nested under `.sidebar` due to portal usage.
 
 **Section sources**
-- [Nav.jsx:1378-1400](file://src/components/Nav.jsx#L1378-L1400)
-- [Nav.jsx:1676-2043](file://src/components/Nav.jsx#L1676-L2043)
+- [Nav.jsx:1381-1386](file://src/components/Nav.jsx#L1381-L1386)
+- [Nav.jsx:1639-2006](file://src/components/Nav.jsx#L1639-L2006)
 - [Sidebar.jsx:121-163](file://src/components/Sidebar.jsx#L121-L163)
 - [sidebar.scss:199-293](file://src/components/sidebar.scss#L199-L293)
 
 ## Conclusion
-The layout and navigation components provide a robust foundation for public-facing navigation, consistent footer information, and authenticated admin navigation. The main navigation supports responsive design, mega menu interactions, and active route highlighting. The footer offers structured company information and legal content. The sidebar delivers clear admin navigation with safe logout flows. Styling is implemented with SCSS modules, and accessibility considerations are present throughout. For large navigation structures, consider lazy loading, minimal state updates, and careful cleanup of event listeners to maintain performance.
+The layout and navigation components provide a robust foundation for public-facing navigation, consistent footer information, and authenticated admin navigation. The main navigation supports responsive design, mega menu interactions, and active route highlighting with a simplified call-to-action structure featuring only "Book a free demo" and "Contact Us" buttons. The footer offers structured company information and legal content. The sidebar delivers clear admin navigation with safe logout flows. Styling is implemented with SCSS modules, and accessibility considerations are present throughout. For large navigation structures, consider lazy loading, minimal state updates, and careful cleanup of event listeners to maintain performance.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
