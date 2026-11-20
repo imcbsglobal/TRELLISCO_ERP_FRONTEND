@@ -22,6 +22,7 @@ export const PROJECT_FLAG_BY_ENDPOINT = {
   melone: "melone",
   melonestay: "melone_stay",
   tixelise: "tixelise",
+  trelliscocrm: "trellisco_crm",
   feeflow: "fee_flow",
 }
 
@@ -32,11 +33,14 @@ export const PROJECT_FLAG_BY_NAME = {
   melone: "melone",
   "melone stay": "melone_stay",
   tixelise: "tixelise",
+  "trellisco crm": "trellisco_crm",
   "fee flow": "fee_flow",
 }
 
 // Trellisco IMS and VenueKart have no user-master flag yet: their license is
-// still created, but no flag is switched on for them.
+// still created, but no flag is switched on for them. Central Master refuses a
+// user whose every flag is false, so a project that is the only pick cannot be
+// an unmapped one.
 
 export function flagsForProjects(selectedProjects = []) {
   const flags = Object.fromEntries(USER_MASTER_FLAGS.map((flag) => [flag, false]))

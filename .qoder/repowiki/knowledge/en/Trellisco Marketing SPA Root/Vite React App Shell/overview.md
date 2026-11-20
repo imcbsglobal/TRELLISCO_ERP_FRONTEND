@@ -1,1 +1,1 @@
-Vite entrypoint that mounts the root component and centralizes routing, auth guarding, chatbot visibility, and global CSS design tokens consumed by every child page.
+Vite bootstrap and root React shell that mounts the app, wires declarative routes with auth guards, and exposes global CSS design tokens to every child page.

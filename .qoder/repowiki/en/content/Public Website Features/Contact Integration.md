@@ -14,12 +14,12 @@
 
 ## Update Summary
 **Changes Made**
-- Updated TERPLogin component documentation to reflect enhanced Google Sign-In integration and improved form validation
-- Completely redesigned CredentialsModal section to document the new mobile-first bottom sheet design
-- Added comprehensive coverage of the dual-channel credentials delivery system (WhatsApp + Email)
-- Documented the new CSS custom properties and responsive design patterns
-- Enhanced accessibility compliance documentation for both components
-- Updated architecture diagrams to reflect the improved user experience flows
+- Updated all references from 'T-ERP' to 'Trellisco' throughout login flow, credentials modal, email subjects, and messaging systems
+- Enhanced Google Sign-In integration with improved dynamic loading and responsive button sizing
+- Improved project selection workflows with better validation and visual feedback
+- Updated visual design with new color schemes, animations, and mobile-first bottom sheet design for credentials modal
+- Enhanced accessibility compliance across all components with proper ARIA attributes and keyboard navigation
+- Updated CSS custom properties and responsive design patterns for better mobile optimization
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -34,22 +34,22 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the contact integration features in the frontend application, focusing on:
+This document explains the contact integration features in the Trellisco frontend application, focusing on:
 - WhatsApp direct messaging links for customer support routing
-- Enhanced TERP login and license creation flow with secure credential delivery via dual channels
+- Enhanced Trellisco login and license creation flow with secure credential delivery via dual channels
 - Advanced contact form handling, comprehensive validation patterns, and sophisticated user experience flows
 - External service integrations, security considerations, and robust fallback mechanisms
 - Full accessibility compliance for all contact forms and interactive elements
 - Mobile-first optimization for WhatsApp integration and credential delivery
 - Analytics tracking recommendations for contact conversions and setup completion
 
-The implementation spans a public contact page, a floating chat assistant, and an enhanced multi-step T-ERP setup flow that integrates Google authentication, external APIs, dual-channel messaging (WhatsApp and email), and a redesigned credentials modal with mobile-first bottom sheet design.
+The implementation spans a public contact page, a floating chat assistant, and an enhanced multi-step Trellisco setup flow that integrates Google authentication, external APIs, dual-channel messaging (WhatsApp and email), and a redesigned credentials modal with mobile-first bottom sheet design.
 
 ## Project Structure
 The contact-related functionality is primarily implemented across these files:
 - Public contact page with office details, phone-to-WhatsApp links, and a message form
 - Floating chatbot providing product information and support routing
-- Enhanced T-ERP login and license creation flow with advanced Google Sign-In integration and improved form validation
+- Enhanced Trellisco login and license creation flow with advanced Google Sign-In integration and improved form validation
 - Dual-channel notification API layer for WhatsApp and Gmail-based email sending
 - Redesigned credentials modal with mobile-first bottom sheet design and comprehensive delivery status tracking
 
@@ -57,11 +57,11 @@ The contact-related functionality is primarily implemented across these files:
 graph TB
 ContactPage["Contact Page<br/>Office info + WhatsApp links + Form"]
 Chatbot["Floating Chatbot<br/>Product Q&A + Support routing"]
-TERPLogin["Enhanced TERP Login Flow<br/>Google auth + License + Admin account"]
+TERPLogin["Enhanced Trellisco Login Flow<br/>Google auth + License + Admin account"]
 Notifications["Dual-Channel Notifications<br/>WhatsApp + Email Delivery"]
 CredentialsModal["Redesigned Credentials Modal<br/>Mobile-first bottom sheet + Status tracking"]
 ContactPage --> |"wa.me links"| WhatsAppGateway["WhatsApp Gateway"]
-TERPLogin --> |"License + Admin account"| ExternalAPIs["External T-ERP APIs"]
+TERPLogin --> |"License + Admin account"| ExternalAPIs["External Trellisco APIs"]
 TERPLogin --> Notifications
 Notifications --> |"WhatsApp"| WhatsAppGateway
 Notifications --> |"Email"| GmailAPI["Gmail API / Mail API"]
@@ -86,7 +86,7 @@ TERPLogin --> CredentialsModal
 ## Core Components
 - **Contact page**: Displays office locations, phone numbers linked to WhatsApp, and a simple contact form with basic browser validation.
 - **Floating chatbot**: Provides quick answers about products and routes users to support channels (email and phone).
-- **Enhanced TERP login flow**: Multi-step process integrating Google Sign-In with dynamic button rendering, project selection, company details validation, license creation, admin account creation, and dual-channel credential delivery via WhatsApp and email.
+- **Enhanced Trellisco login flow**: Multi-step process integrating Google Sign-In with dynamic button rendering, project selection, company details validation, license creation, admin account creation, and dual-channel credential delivery via WhatsApp and email.
 - **Dual-channel notifications API**: Handles WhatsApp gateway calls and email delivery through either a custom mail API or Gmail OAuth, with comprehensive error handling and retry mechanisms.
 - **Redesigned credentials modal**: Mobile-first bottom sheet presentation showing created credentials with real-time delivery status tracking, copy-to-clipboard functionality, and retry options for failed deliveries.
 
@@ -105,11 +105,11 @@ sequenceDiagram
 participant User as "User"
 participant Contact as "Contact Page"
 participant Chatbot as "Floating Chatbot"
-participant TERP as "Enhanced TERP Login Flow"
+participant TERP as "Enhanced Trellisco Login Flow"
 participant Notif as "Dual-Channel Notifications"
 participant WA as "WhatsApp Gateway"
 participant Mail as "Gmail API / Mail API"
-participant ERP as "T-ERP External APIs"
+participant ERP as "Trellisco External APIs"
 participant Modal as "Redesigned Credentials Modal"
 User->>Contact : Open contact page
 Contact-->>User : Office info + wa.me links
@@ -117,7 +117,7 @@ User->>Contact : Submit contact form
 Contact-->>User : Success state (no backend yet)
 User->>Chatbot : Ask product/support question
 Chatbot-->>User : Answer + support link
-User->>TERP : Start enhanced T-ERP setup
+User->>TERP : Start enhanced Trellisco setup
 TERP->>TERP : Dynamic Google Sign-In loading
 TERP->>ERP : Create license + admin account
 TERP->>Modal : Show credentials immediately
@@ -236,10 +236,10 @@ Analytics tracking recommendation:
 - [FloatingChatbot.jsx:178-246](file://src/components/FloatingChatbot.jsx#L178-L246)
 - [FloatingChatbot.jsx:253-367](file://src/components/FloatingChatbot.jsx#L253-L367)
 
-### Enhanced TERP Login Flow: Authentication, License Creation, and Dual-Channel Credential Delivery
-The enhanced TERP login flow guides users through Google authentication, project selection, company details, license creation, and admin account setup. After successful setup, credentials are delivered via both WhatsApp and email simultaneously.
+### Enhanced Trellisco Login Flow: Authentication, License Creation, and Dual-Channel Credential Delivery
+The enhanced Trellisco login flow guides users through Google authentication, project selection, company details, license creation, and admin account setup. After successful setup, credentials are delivered via both WhatsApp and email simultaneously.
 
-**Updated** Major enhancements include dynamic Google Sign-In script loading, improved form validation with field-specific error handling, and sophisticated dual-channel delivery system.
+**Updated** Major enhancements include dynamic Google Sign-In script loading, improved form validation with field-specific error handling, sophisticated dual-channel delivery system, and complete rebranding from 'T-ERP' to 'Trellisco'.
 
 Key behaviors:
 - **Dynamic Google Sign-In**: Google Identity Services script is loaded dynamically with proper error handling and responsive button sizing.
@@ -247,13 +247,14 @@ Key behaviors:
 - **Advanced Company Validation**: Company details are validated field-by-field with specific error messages and automatic focus management.
 - **Dual-Channel Delivery**: Credentials are sent asynchronously via both WhatsApp and email; the modal appears immediately with real-time status updates.
 - **Retry Mechanisms**: Failed deliveries can be retried independently for each channel.
+- **Rebranded Messaging**: All user-facing text now uses 'Trellisco' instead of 'T-ERP'.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant TERP as "Enhanced TERP Login"
+participant TERP as "Enhanced Trellisco Login"
 participant Google as "Google Identity"
-participant ERP as "T-ERP APIs"
+participant ERP as "Trellisco APIs"
 participant Notif as "Dual-Channel Notifications"
 participant WA as "WhatsApp Gateway"
 participant Mail as "Gmail API / Mail API"
@@ -331,7 +332,7 @@ Analytics tracking recommendation:
 ### Redesigned Credentials Modal: Mobile-First Bottom Sheet Design
 The credentials modal presents a completely redesigned interface with mobile-first bottom sheet design, comprehensive delivery status tracking, and enhanced accessibility features.
 
-**Updated** Complete redesign featuring mobile-first bottom sheet pattern, CSS custom properties, and comprehensive accessibility compliance.
+**Updated** Complete redesign featuring mobile-first bottom sheet pattern, CSS custom properties, comprehensive accessibility compliance, and updated Trellisco branding throughout.
 
 Key behaviors:
 - **Mobile-First Design**: Full-width bottom sheet on mobile devices that transforms into centered dialog on desktop (640px+).
@@ -339,6 +340,7 @@ Key behaviors:
 - **Interactive Retry System**: Independent retry mechanisms for each delivery channel with loading states.
 - **Copy-to-Clipboard**: One-click copying of all credentials with visual feedback.
 - **Enhanced Accessibility**: Full ARIA compliance, keyboard navigation, and screen reader support.
+- **Updated Branding**: All user-facing text now uses 'Trellisco' terminology.
 
 ```mermaid
 classDiagram
@@ -381,6 +383,7 @@ Design features:
 - **CSS Custom Properties**: Comprehensive design tokens for colors, typography, and spacing.
 - **Touch-Optimized**: 40px minimum touch targets, momentum scrolling, and safe area handling.
 - **Visual Feedback**: Color-coded delivery statuses (sent/failed/pending/idle) with clear messaging.
+- **Updated Visual Design**: New color schemes with Trellisco brand colors and enhanced animations.
 
 Accessibility and UX notes:
 - Modal has `role="dialog"`, `aria-modal="true"`, and accessible title/description.
@@ -403,7 +406,7 @@ Mobile optimization:
 ### Dual-Channel Notifications API: WhatsApp and Email Delivery
 The enhanced notifications module centralizes delivery logic for both WhatsApp and email with comprehensive error handling and retry capabilities.
 
-**Updated** Enhanced with improved error handling, dual-channel support, and comprehensive configuration management.
+**Updated** Enhanced with improved error handling, dual-channel support, comprehensive configuration management, and complete rebranding to 'Trellisco' in all user-facing messages.
 
 Key behaviors:
 - **WhatsApp Delivery**: Normalizes recipient numbers, constructs query parameters, calls configured gateway, and checks both HTTP status and payload status.
@@ -412,6 +415,7 @@ Key behaviors:
   - Gmail API via OAuth using Google Identity Services
 - **Configuration Management**: Environment variables provide flexible configuration for different deployment environments.
 - **Error Recovery**: Detailed error messages and retry mechanisms for failed deliveries.
+- **Updated Branding**: All email subjects and messages now use 'Trellisco' instead of 'T-ERP'.
 
 ```mermaid
 flowchart TD
@@ -555,7 +559,7 @@ Common issues and resolutions:
 - [Contact.jsx:103-111](file://src/pages/Contact.jsx#L103-L111)
 
 ## Conclusion
-The enhanced contact integration combines straightforward public contact methods with a sophisticated T-ERP setup flow featuring mobile-first design principles. WhatsApp direct links provide immediate support access, while the enhanced TERP login flow securely creates licenses and admin accounts with dual-channel credential delivery. The redesigned credentials modal offers an intuitive bottom sheet interface with real-time delivery status tracking and comprehensive accessibility support. The notifications module abstracts external service complexity with improved error handling, and the entire system is built with mobile-first responsive design patterns and CSS custom properties for maintainability.
+The enhanced contact integration combines straightforward public contact methods with a sophisticated Trellisco setup flow featuring mobile-first design principles. WhatsApp direct links provide immediate support access, while the enhanced Trellisco login flow securely creates licenses and admin accounts with dual-channel credential delivery. The redesigned credentials modal offers an intuitive bottom sheet interface with real-time delivery status tracking and comprehensive accessibility support. The notifications module abstracts external service complexity with improved error handling, and the entire system is built with mobile-first responsive design patterns and CSS custom properties for maintainability. The complete rebranding from 'T-ERP' to 'Trellisco' ensures consistent messaging across all user touchpoints.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
