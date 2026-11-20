@@ -316,7 +316,7 @@ export async function createClientAdmin({
         // A 200 that is not JSON is the site's own HTML fallback, never Central
         // Master: reporting it as a created account would hand out a login that
         // does not exist.
-        assertJson(response, "Could not create the T-ERP admin account")
+        assertJson(response, "Could not create the admin account")
         const rawBody = await response.text()
         let user
         try {
@@ -337,7 +337,7 @@ export async function createClientAdmin({
         }
       }
 
-      const failure = await readFailure(response, "Could not create the T-ERP admin account")
+      const failure = await readFailure(response, "Could not create the admin account")
       lastFailure = failure
 
       if (isUsernameConflict(response.status, failure.rawBody)) {
@@ -359,7 +359,7 @@ export async function createClientAdmin({
     if (!rejectedClientId) break
   }
 
-  throw new Error(lastFailure?.message || "Could not create the T-ERP admin account.")
+  throw new Error(lastFailure?.message || "Could not create the admin account.")
 }
 
 export { USER_MASTER_FLAGS, USER_MASTER_ENDPOINT, flagsForProjects }

@@ -114,8 +114,8 @@ export function normaliseProjects(payload) {
 
 export async function fetchTerpProjects() {
   const response = await fetch(TERP_PROJECTS_ENDPOINT)
-  if (!response.ok) await throwApiError(response, "Unable to load T-ERP projects")
-  assertJson(response, "Unable to load T-ERP projects")
+  if (!response.ok) await throwApiError(response, "Unable to load projects")
+  assertJson(response, "Unable to load projects")
   return normaliseProjects(await response.json())
 }
 
@@ -195,7 +195,7 @@ export function resetTerpRegisters() {
 
 function loadClientDirectory() {
   if (!clientDirectoryCache) {
-    clientDirectoryCache = fetchList(TERP_CLIENT_IDS_ENDPOINT, "Unable to load the T-ERP client list")
+    clientDirectoryCache = fetchList(TERP_CLIENT_IDS_ENDPOINT, "Unable to load the client list")
       .catch((error) => {
         // Drop the failed promise so the next lookup can retry.
         clientDirectoryCache = null
@@ -207,7 +207,7 @@ function loadClientDirectory() {
 
 function loadLicenseRegister() {
   if (!licenseRegisterCache) {
-    licenseRegisterCache = fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the T-ERP license register")
+    licenseRegisterCache = fetchList(TERP_CORPORATE_CLIENT_ENDPOINT, "Unable to load the license register")
       .then((data) => {
         if (data.length) writeRegisterSnapshot(data)
         return data
@@ -350,14 +350,14 @@ export async function createTerpLicense({ company, corporate, projects }) {
 
   // The endpoint also reports refusals inside a 2xx body.
   if (payload && typeof payload === "object" && payload.success === false) {
-    const reason = payload.error || payload.message || payload.detail || "T-ERP rejected the license request."
+    const reason = payload.error || payload.message || payload.detail || "The license request was rejected."
     throw new Error(`License creation failed — ${reason}`)
   }
 
   if (!isLicensePayload(payload)) {
     const detail = rawBody.trim() ? rawBody.trim().slice(0, 300) : "the response body was empty"
     throw new Error(
-      `License creation failed: T-ERP answered HTTP ${response.status} but returned no license key and no client id, ` +
+      `License creation failed: the license server answered HTTP ${response.status} but returned no license key and no client id, ` +
         `so no license was recorded — ${detail}`,
     )
   }

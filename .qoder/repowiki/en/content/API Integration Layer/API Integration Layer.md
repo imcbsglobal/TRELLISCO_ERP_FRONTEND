@@ -8,16 +8,17 @@
 - [announcements.js](file://src/api/announcements.js)
 - [promoVideoApi.js](file://src/api/promoVideoApi.js)
 - [userMaster.js](file://src/api/userMaster.js)
+- [terpLicense.js](file://src/api/terpLicense.js)
 - [TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
 - [config.js](file://src/config/config.js)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for the enhanced `createClientAdmin()` function with alternate client ID support
-- Updated client provisioning workflow to include automatic retry logic for Unknown client_id errors
-- Added new section covering Central Master integration and client registration processes
-- Enhanced authentication flow documentation to include client ID resolution mechanisms
+- Added comprehensive documentation for the new `findClientRecord` utility function in terpLicense.js
+- Updated T-ERP license management section with safe client lookup capabilities
+- Enhanced client provisioning workflow documentation to include the new safe lookup mechanism
+- Added examples of null-safe client record retrieval patterns
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -38,7 +39,7 @@ This document describes the TRELLISCO_ERP_FRONTEND integration layer that centra
 - Blog API endpoints for CRUD operations, file uploads, and scheduling.
 - Announcements API for company-wide messages and visibility controls.
 - Promotional video API for media upload, metadata management, and active video selection.
-- **Enhanced client provisioning system with automatic retry logic and alternate client ID support.**
+- **Enhanced client provisioning system with automatic retry logic, alternate client ID support, and safe client record lookup.**
 - Request/response schemas, error handling patterns, authentication methods, and rate limiting considerations.
 - Usage examples and best practices for extending the integration layer.
 
@@ -50,7 +51,8 @@ The integration layer lives under `src/api` and is consumed by admin pages and p
 - `announcements.js`: Announcement listing, creation, update, deletion, and active announcement retrieval.
 - `promoVideoApi.js`: Promo video listing, creation, update, deletion, and active promo retrieval.
 - `userMaster.js`: **Enhanced client provisioning with alternate client ID support and automatic retry logic.**
-- `TERPLogin.jsx`: **Updated T-ERP login flow with improved client ID resolution.**
+- `terpLicense.js`: **T-ERP license management with new safe client record lookup functionality.**
+- `TERPLogin.jsx`: **Updated T-ERP login flow with improved client ID resolution and safe client lookups.**
 - `config.js`: A small config export (not used by the main Axios clients).
 
 ```mermaid
@@ -62,6 +64,7 @@ Blog["blogApi.js<br/>Blog CRUD + Upload + Scheduling"]
 Ann["announcements.js<br/>Announcement CRUD + Active"]
 Promo["promoVideoApi.js<br/>Promo Video CRUD + Active"]
 UserMaster["userMaster.js<br/>Enhanced Client Provisioning"]
+TerpLicense["terpLicense.js<br/>T-ERP License Management"]
 TERPLogin["TERPLogin.jsx<br/>T-ERP Login Flow"]
 Config["config.js<br/>API base URL export"]
 end
@@ -70,7 +73,9 @@ Client --> Blog
 Client --> Ann
 Client -.-> Promo
 Client -.-> UserMaster
+Client -.-> TerpLicense
 TERPLogin --> UserMaster
+TERPLogin --> TerpLicense
 Config -.-> Client
 ```
 
@@ -81,6 +86,7 @@ Config -.-> Client
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
 - [userMaster.js:1-368](file://src/api/userMaster.js#L1-L368)
+- [terpLicense.js:1-420](file://src/api/terpLicense.js#L1-L420)
 - [TERPLogin.jsx:1-849](file://src/pages/TERPLogin.jsx#L1-L849)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
@@ -91,6 +97,7 @@ Config -.-> Client
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
 - [userMaster.js:1-368](file://src/api/userMaster.js#L1-L368)
+- [terpLicense.js:1-420](file://src/api/terpLicense.js#L1-L420)
 - [TERPLogin.jsx:1-849](file://src/pages/TERPLogin.jsx#L1-L849)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
@@ -107,6 +114,10 @@ Config -.-> Client
   - `createClientAdmin()`: Advanced client account creation with alternate client ID support and automatic retry logic.
   - Automatic fallback to alternate client IDs when primary ID is rejected as "Unknown client_id".
   - Improved client ID resolution for country registration and credential handout processes.
+- **Safe client record lookup:**
+  - `findClientRecord()`: New utility function for safe client lookup by email or client ID.
+  - Returns null instead of throwing errors for non-existent records.
+  - Provides null-safe access to client information including company name and location.
 
 Key responsibilities:
 - `client.js`: Base URL resolution, token persistence, Axios instance setup, request/response interceptors.
@@ -115,6 +126,7 @@ Key responsibilities:
 - `announcements.js`: Announcement CRUD and active announcement retrieval.
 - `promoVideoApi.js`: Promo video CRUD and active promo retrieval.
 - **`userMaster.js`: Enhanced client provisioning with intelligent client ID resolution and retry mechanisms.**
+- **`terpLicense.js`: T-ERP license management with safe client record lookup and workspace discovery.**
 
 **Section sources**
 - [client.js:21-88](file://src/api/client.js#L21-L88)
@@ -123,6 +135,7 @@ Key responsibilities:
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
 - [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
 
 ## Architecture Overview
 The integration layer uses two HTTP clients:
@@ -143,15 +156,23 @@ Public vs admin visibility:
 - Primary client ID is attempted first, followed by alternate client IDs when "Unknown client_id" errors occur.
 - The function returns the actual client ID that was accepted by Central Master for subsequent operations.
 
+**Safe Client Record Lookup Flow:**
+- The new `findClientRecord()` function provides null-safe client lookup by client ID.
+- Returns null for non-existent records instead of throwing errors.
+- Used in conjunction with other client lookup functions for robust client identification.
+
 ```mermaid
 sequenceDiagram
 participant UI as "Admin UI"
 participant TERPLogin as "TERPLogin.jsx"
 participant UserMaster as "userMaster.js"
+participant TerpLicense as "terpLicense.js"
 participant CentralMaster as "Central Master API"
 participant Backend as "Backend API"
 UI->>TERPLogin : Submit company details
 TERPLogin->>UserMaster : createClientAdmin({clientId, alternateClientIds})
+TERPLogin->>TerpLicense : findClientRecord(clientId)
+TerpLicense-->>TERPLogin : {clientId, companyName, place} or null
 UserMaster->>CentralMaster : POST with primary clientId
 CentralMaster-->>UserMaster : Unknown client_id error
 UserMaster->>CentralMaster : POST with alternateClientId
@@ -165,6 +186,7 @@ TERPLogin-->>UI : Display credentials
 **Diagram sources**
 - [TERPLogin.jsx:612-624](file://src/pages/TERPLogin.jsx#L612-L624)
 - [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
 - [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
 
 **Section sources**
@@ -172,6 +194,7 @@ TERPLogin-->>UI : Display credentials
 - [client.js:47-75](file://src/api/client.js#L47-L75)
 - [TERPLogin.jsx:612-624](file://src/pages/TERPLogin.jsx#L612-L624)
 - [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
 
 ## Detailed Component Analysis
 
@@ -322,6 +345,55 @@ NextCandidate --> ProcessCandidate
 - [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
 - [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
 - [userMaster.js:121-131](file://src/api/userMaster.js#L121-L131)
+
+### Safe Client Record Lookup
+**New Section** - Safe client record lookup utility for T-ERP client management.
+
+The `findClientRecord()` function provides a null-safe way to look up client records by client ID. Unlike other lookup functions that throw errors for non-existent records, this function returns null, making it ideal for prefilling forms and handling edge cases gracefully.
+
+Capabilities:
+- **Null-safe lookup**: Returns null instead of throwing errors for non-existent client IDs.
+- **Flexible client ID matching**: Accepts any valid client ID format (email, generated ID, etc.).
+- **Normalized response**: Returns consistent object structure with company name and location data.
+- **Error resilience**: Handles network failures and malformed data gracefully.
+
+Key features:
+- Case-insensitive client ID comparison.
+- Automatic trimming and validation of input values.
+- Graceful handling of missing or malformed client directory data.
+- Integration with cached client directory for performance.
+
+Request/response schemas:
+- Input parameter:
+  - `clientId`: Client identifier (email, generated ID, or any valid client ID)
+- Response object:
+  - `clientId`: Normalized client ID
+  - `companyName`: Company name from client directory
+  - `place`: Location/place associated with the client
+  - Returns `null` if client not found or lookup fails
+
+```mermaid
+flowchart TD
+Start(["findClientRecord called"]) --> ValidateInput["Validate and normalize clientId"]
+ValidateInput --> HasInput{"Valid clientId?"}
+HasInput --> |No| ReturnNull["Return null"]
+HasInput --> |Yes| LoadDirectory["Load client directory"]
+LoadDirectory --> DirectoryOK{"Directory loaded?"}
+DirectoryOK --> |No| ReturnNull
+DirectoryOK --> |Yes| FindClient["Find client by ID"]
+FindClient --> Found{"Client found?"}
+Found --> |No| ReturnNull
+Found --> |Yes| BuildResponse["Build normalized response"]
+BuildResponse --> ReturnResponse["Return client record"]
+```
+
+**Diagram sources**
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
+- [terpLicense.js:196-206](file://src/api/terpLicense.js#L196-L206)
+
+**Section sources**
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
+- [terpLicense.js:196-206](file://src/api/terpLicense.js#L196-L206)
 
 ### Blog API
 Capabilities:
@@ -500,8 +572,10 @@ Client["client.js"] --> Auth["auth.js"]
 Client --> Blog["blogApi.js"]
 Client --> Ann["announcements.js"]
 Client -.-> UserMaster["userMaster.js"]
+Client -.-> TerpLicense["terpLicense.js"]
 Promo["promoVideoApi.js"] -.-> Client
 TERPLogin["TERPLogin.jsx"] --> UserMaster
+TERPLogin --> TerpLicense
 Config["config.js"] -.-> Client
 ```
 
@@ -509,13 +583,15 @@ Observations:
 - `auth.js`, `blogApi.js`, and `announcements.js` depend on `client.js` for Axios instances and token helpers.
 - `promoVideoApi.js` uses native fetch and reads token from `client.js` helpers but does not import Axios.
 - **`userMaster.js` integrates with Central Master API and provides enhanced client provisioning capabilities.**
-- **`TERPLogin.jsx` orchestrates the complete T-ERP setup flow including client provisioning.**
+- **`terpLicense.js` provides T-ERP license management with safe client record lookup functionality.**
+- **`TERPLogin.jsx` orchestrates the complete T-ERP setup flow including client provisioning and safe client lookups.**
 - `config.js` exports a base URL constant but is not used by the primary Axios clients.
 
 Potential coupling:
 - All modules assume DRF-style error shapes for normalization.
 - Token scheme must remain `Token <key>` across the stack.
 - **Client provisioning relies on Central Master's user management system with robust error handling.**
+- **Safe client record lookup provides resilient client identification for form prefilling and validation.**
 
 **Section sources**
 - [client.js:1-88](file://src/api/client.js#L1-L88)
@@ -524,6 +600,7 @@ Potential coupling:
 - [announcements.js:1-61](file://src/api/announcements.js#L1-L61)
 - [promoVideoApi.js:1-85](file://src/api/promoVideoApi.js#L1-L85)
 - [userMaster.js:1-368](file://src/api/userMaster.js#L1-L368)
+- [terpLicense.js:1-420](file://src/api/terpLicense.js#L1-L420)
 - [TERPLogin.jsx:1-849](file://src/pages/TERPLogin.jsx#L1-L849)
 - [config.js:1-3](file://src/config/config.js#L1-L3)
 
@@ -534,6 +611,7 @@ Potential coupling:
 - For large file uploads, consider progress indicators and chunking strategies at the UI layer.
 - **Client provisioning includes built-in retry logic to minimize network failures and improve reliability.**
 - **Alternate client ID resolution reduces failed provisioning attempts through intelligent fallback mechanisms.**
+- **Safe client record lookup uses cached client directories to minimize network requests and improve response times.**
 
 [No sources needed since this section provides general guidance]
 
@@ -554,10 +632,15 @@ Common issues and resolutions:
   - Verify that alternate client IDs are properly configured when expected.
   - Monitor for "Unknown client_id" errors which trigger automatic retry logic.
   - Ensure proper error handling for username and contact conflicts.
+- **Safe client record lookup issues:**
+  - The `findClientRecord()` function returns null for non-existent records instead of throwing errors.
+  - Use null checks when consuming the returned client records.
+  - Network failures during client directory loading are handled gracefully.
 - **T-ERP login flow issues:**
   - Verify Google authentication is working correctly before attempting client provisioning.
   - Check that the client ID resolution process completes successfully.
   - Monitor the retry mechanism for unknown client ID scenarios.
+  - Use `findClientRecord()` for safe client lookups that won't block the UI flow.
 
 **Section sources**
 - [client.js:10-16](file://src/api/client.js#L10-L16)
@@ -567,9 +650,10 @@ Common issues and resolutions:
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
 - [userMaster.js:137-140](file://src/api/userMaster.js#L137-L140)
 - [userMaster.js:345-364](file://src/api/userMaster.js#L345-L364)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
 
 ## Conclusion
-The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized approach to HTTP communication with clear separation between admin and public contexts. It standardizes authentication, error handling, and request construction while offering well-defined APIs for blogs, announcements, promotional videos, and **enhanced client provisioning**. The new client provisioning system with automatic retry logic and alternate client ID support significantly improves reliability and user experience during the T-ERP setup process. Following the documented patterns ensures consistent behavior, easier maintenance, and safe extension points for new features.
+The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized approach to HTTP communication with clear separation between admin and public contexts. It standardizes authentication, error handling, and request construction while offering well-defined APIs for blogs, announcements, promotional videos, **enhanced client provisioning, and safe client record lookup**. The new client provisioning system with automatic retry logic and alternate client ID support significantly improves reliability and user experience during the T-ERP setup process. The addition of the `findClientRecord()` utility function provides null-safe client lookup capabilities that enhance form prefilling and error handling throughout the application. Following the documented patterns ensures consistent behavior, easier maintenance, and safe extension points for new features.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
@@ -603,6 +687,10 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
   - `POST /central-api/user-master/` (via proxy)
   - `GET /central-api/user-master/` (for user lookup)
   - `PATCH /central-api/user-master/{id}/` (for enabling projects)
+- **T-ERP License Management**
+  - `GET /client-id-list/get-client-ids/` (client directory)
+  - `GET /corporate-clientid/list/` (license register)
+  - `POST /t-erp/mobileapp/api/license/create/` (license creation)
 
 **Section sources**
 - [auth.js:4-29](file://src/api/auth.js#L4-L29)
@@ -611,6 +699,8 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - [promoVideoApi.js:49-85](file://src/api/promoVideoApi.js#L49-L85)
 - [userMaster.js:12-16](file://src/api/userMaster.js#L12-L16)
 - [userMaster.js:218-222](file://src/api/userMaster.js#L218-L222)
+- [terpLicense.js:23-35](file://src/api/terpLicense.js#L23-L35)
+- [terpLicense.js:15-19](file://src/api/terpLicense.js#L15-L19)
 
 ### Request/Response Schemas
 - Authentication
@@ -632,6 +722,9 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
     - Fields: `clientId`, `alternateClientIds[]`, `firstName`, `lastName`, `email`, `phoneNumber`, `selectedProjects[]`, `attempts`, `usernameEmail`
   - Create client admin response:
     - Fields: `username`, `password`, `flags`, `user`, `reused`, `endpoint`, `clientId`
+- **Safe Client Record Lookup**
+  - Input: `clientId` (string)
+  - Response: `{ clientId, companyName, place }` or `null`
 
 **Section sources**
 - [auth.js:4-19](file://src/api/auth.js#L4-L19)
@@ -640,6 +733,7 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - [blogApi.js:117-135](file://src/api/blogApi.js#L117-L135)
 - [promoVideoApi.js:36-47](file://src/api/promoVideoApi.js#L36-L47)
 - [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
 
 ### Error Handling Patterns
 - Axios-based modules normalize errors using backend-provided details or first field error messages.
@@ -649,6 +743,10 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
   - Contact conflict prevention to avoid duplicate accounts
   - Unknown client ID handling with automatic fallback to alternate IDs
   - Network error wrapping with contextual information
+- **Safe client record lookup provides null-safe error handling:**
+  - Returns null for non-existent client records instead of throwing errors
+  - Gracefully handles network failures and malformed data
+  - Caches client directory to minimize repeated network requests
 
 **Section sources**
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
@@ -656,12 +754,14 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - [blogApi.js:63-74](file://src/api/blogApi.js#L63-L74)
 - [userMaster.js:121-140](file://src/api/userMaster.js#L121-L140)
 - [userMaster.js:234-246](file://src/api/userMaster.js#L234-L246)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)
 
 ### Rate Limiting Considerations
 - No explicit client-side rate limiting is implemented.
 - Consider implementing exponential backoff or retry logic for transient failures.
 - Respect backend rate limits and implement UI feedback for throttling scenarios.
 - **Enhanced client provisioning includes built-in retry logic with configurable attempt limits to handle transient failures gracefully.**
+- **Safe client record lookup uses caching mechanisms to reduce redundant network requests.**
 
 [No sources needed since this section provides general guidance]
 
@@ -676,6 +776,11 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
   - Implement proper error handling for "Unknown client_id" scenarios.
   - Use the returned `clientId` from successful provisioning for subsequent operations.
   - Leverage the built-in retry mechanisms rather than implementing custom retry logic.
+- **For client record lookups:**
+  - Use `findClientRecord()` for null-safe client lookups that won't block UI flow.
+  - Always check for null returns when using safe lookup functions.
+  - Combine with other lookup functions for comprehensive client identification.
+  - Leverage cached client directories for better performance.
 
 **Section sources**
 - [client.js:47-88](file://src/api/client.js#L47-L88)
@@ -683,3 +788,4 @@ The TRELLISCO_ERP_FRONTEND integration layer provides a robust, centralized appr
 - [announcements.js:6-17](file://src/api/announcements.js#L6-L17)
 - [promoVideoApi.js:14-34](file://src/api/promoVideoApi.js#L14-L34)
 - [userMaster.js:264-365](file://src/api/userMaster.js#L264-L365)
+- [terpLicense.js:174-185](file://src/api/terpLicense.js#L174-L185)

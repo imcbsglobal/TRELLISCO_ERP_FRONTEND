@@ -57,14 +57,14 @@ export function normaliseWhatsAppNumber(value) {
 }
 
 export function buildCredentialsSubject(companyName) {
-  return `Your Trellisco T-ERP login details${companyName ? ` for ${companyName}` : ""}`
+  return `Your Trellisco login details${companyName ? ` for ${companyName}` : ""}`
 }
 
 export function buildCredentialsMessage({ companyName, projects = [], clientId, username, password, email, licenseKey }) {
   const lines = [
     `Hello ${companyName || "there"},`,
     "",
-    "Your Trellisco T-ERP account is ready.",
+    "Your Trellisco account is ready.",
     "",
     `Projects: ${projects.join(", ") || "-"}`,
     `Client ID: ${clientId || "-"}`,

@@ -193,7 +193,7 @@ export default function TERPLogin() {
         if (!cancelled) setProjects(items)
       })
       .catch((fetchError) => {
-        if (!cancelled) setError(getNetworkError(fetchError, "the T-ERP projects API"))
+        if (!cancelled) setError(getNetworkError(fetchError, "the projects API"))
       })
       .finally(() => {
         if (!cancelled) setLoadingProjects(false)
@@ -366,7 +366,7 @@ export default function TERPLogin() {
         // failed rather than because the client owns nothing.
         if (cancelled) return
         setWorkspaceError(
-          `${getNetworkError(lookupError, "the T-ERP license register")} Nothing is ticked until it can be read.`,
+          `${getNetworkError(lookupError, "the license register")} Nothing is ticked until it can be read.`,
         )
       })
       .finally(() => {
@@ -493,7 +493,7 @@ export default function TERPLogin() {
       return setError(
         workspace
           ? "Everything you already own is ticked. Add a new project to continue."
-          : "Select at least one T-ERP project to continue.",
+          : "Select at least one project to continue.",
       )
     }
     if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
@@ -741,7 +741,7 @@ export default function TERPLogin() {
     if (!selectedProjects.length) {
       return setError(workspace
         ? "Everything you already own is ticked. Add a new project to continue."
-        : "Select at least one T-ERP project to continue.")
+        : "Select at least one project to continue.")
     }
     if (selectedProjects.some((item) => !item.package)) return flagMissingPackages(findMissingPackages())
     // Missing fields are marked under their own input and the first one is
@@ -801,7 +801,7 @@ export default function TERPLogin() {
         })
       } catch {
         throw new Error(
-          `Could not check existing T-ERP logins, so nothing was created. ${USER_MASTER_ENDPOINT} did not respond.`,
+          `Could not check existing logins, so nothing was created. ${USER_MASTER_ENDPOINT} did not respond.`,
         )
       }
       const hasLogin = existingLogins.length > 0
@@ -859,10 +859,10 @@ export default function TERPLogin() {
           createdHereRef.current = false
           dropCachedLicense(email)
           throw new Error(
-            `The license was not created. T-ERP answered: "${license.message || `${skippedCount} licence(s) skipped`}" — ` +
+            `The license was not created. The license server answered: "${license.message || `${skippedCount} licence(s) skipped`}" — ` +
               `it still holds a license/company for "${email}" from the deleted signup, so it creates nothing and ` +
               `registers no client (that is why Central Master answers "Unknown client_id"). Delete that company and ` +
-              `its license rows in T-ERP, then submit again — a company T-ERP no longer knows is licensed and ` +
+              `its license rows in Trellisco, then submit again — a company the license server no longer knows is licensed and ` +
               `registered exactly like a first-time signup.`,
           )
         }
@@ -925,7 +925,7 @@ export default function TERPLogin() {
           setSuccess(
             `Added ${addedProjects.join(", ")} to ${companyName}.` +
               (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
-              " Your existing T-ERP login still works — no new user and no new password were created.",
+              " Your existing Trellisco login still works — no new user and no new password were created.",
           )
           setError(notes.trim())
           // The registers changed with this licence: drop what was read before so
@@ -945,7 +945,7 @@ export default function TERPLogin() {
           setSuccess(
             `License ready for ${companyName}.` +
               (updatedLogins ? ` Switched on for ${updatedLogins} existing login${updatedLogins > 1 ? "s" : ""}.` : "") +
-              " Your existing T-ERP login works again — no new user and no new password were created.",
+              " Your existing Trellisco login works again — no new user and no new password were created.",
           )
           // Same refresh: the projects just licensed have to show as ticked.
           resetTerpRegisters()
@@ -986,8 +986,8 @@ export default function TERPLogin() {
         // license/create skip every further attempt: the signup can never repair
         // itself until the company and its licenses are removed in T-ERP.
         throw new Error(
-          `${error.message} — T-ERP has no client for "${email}": the license exists, but the company was not ` +
-            `registered again. Delete the company "${form.name}" and its license rows in T-ERP ` +
+          `${error.message} — Trellisco has no client for "${email}": the license exists, but the company was not ` +
+            `registered again. Delete the company "${form.name}" and its license rows in Trellisco ` +
             `(there is no client-creation API), then submit again.`,
           { cause: error },
         )
@@ -1034,7 +1034,7 @@ export default function TERPLogin() {
       const autoEmail = canAutoSendEmail()
       setDelivery({ whatsapp: { state: "pending" }, email: { state: autoEmail ? "pending" : "idle" } })
       setModalOpen(true)
-      setSuccess(`T-ERP license created. The admin login is ready below.${notes}`)
+      setSuccess(`License created. The admin login is ready below.${notes}`)
 
       deliverWhatsApp(created)
       if (autoEmail) deliverEmail(created)
@@ -1042,7 +1042,7 @@ export default function TERPLogin() {
       const licensed = Boolean(licenseRef.current)
       // Errors that already explain the half-finished state must not be prefixed twice.
       const explained = /^The license was created/i.test(submitError.message || "")
-      const prefix = licensed && !explained ? "The license was created, but the T-ERP admin account could not be set up: " : ""
+      const prefix = licensed && !explained ? "The license was created, but the admin account could not be set up: " : ""
       setError(`${prefix}${getNetworkError(submitError, licensed ? USER_MASTER_ENDPOINT : TERP_LICENSE_ENDPOINT)}`)
     } finally {
       setSubmitting(false)
@@ -1052,32 +1052,32 @@ export default function TERPLogin() {
   return (
     <main className={`terp-login${googleUser ? " terp-login--setup" : ""}`}>
       <section className="terp-login__intro">
-        <span className="terp-login__eyebrow">T-ERP access</span>
-        <h1>Set up your T-ERP workspace.</h1>
+        <span className="terp-login__eyebrow">Trellisco access</span>
+        <h1>Set up your Trellisco workspace.</h1>
         <p>Sign in with Google, choose the products your business needs, and create your company license in a few steps.</p>
         <div className="terp-login__steps"><span className={!googleUser ? "is-active" : "is-complete"}>01 <b>Google auth</b></span><span className={googleUser && setupStep === 1 ? "is-active" : setupStep === 2 ? "is-complete" : ""}>02 <b>Choose products</b></span><span className={googleUser && setupStep === 2 ? "is-active" : workspace ? "is-complete" : ""}>03 <b>Company details</b></span></div>
         <div className="terp-login__mascot" aria-hidden="true"><span className="terp-login__mascot-glow" /><img src={mascotImage} alt="" /></div>
       </section>
 
       <section className="terp-login__card">
-        <div className="terp-login__card-head"><span className="terp-login__mark">T</span><div><p>Trellisco ERP</p><h2>{!googleUser ? "T-ERP Login" : setupStep === 1 ? "Build your T-ERP suite" : "Company details"}</h2></div></div>
+        <div className="terp-login__card-head"><span className="terp-login__mark">T</span><div><p>Trellisco ERP</p><h2>{!googleUser ? "Trellisco Login" : setupStep === 1 ? "Build your Trellisco suite" : "Company details"}</h2></div></div>
         {error && <div className="terp-login__message terp-login__message--error" role="alert">{error}</div>}
         {success && <div className="terp-login__message terp-login__message--success" role="status">{success}</div>}
 
         {!googleUser ? (
           <div className="terp-login__auth-screen">
             <div className="terp-login__auth-badge"><span>1</span><b>Secure Google authentication</b></div>
-            <h3>Welcome to T-ERP</h3>
+            <h3>Welcome to Trellisco</h3>
             <p>Use your Google account to securely continue. Your workspace setup form will appear after you sign in.</p>
             <div className="terp-login__google"><p>Continue with your Google account</p><div ref={googleButtonRef} /></div>
-            <small className="terp-login__privacy">Your Google identity is used only to start your T-ERP setup.</small>
+            <small className="terp-login__privacy">Your Google identity is used only to start your Trellisco setup.</small>
           </div>
         ) : (
         <form className="terp-login__setup-form" onSubmit={submit}>
           <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {workspace ? 2 : setupStep + 1} of {workspace ? 2 : 3}</span></div>
           {setupStep === 1 ? (
             <div className="terp-login__product-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your T-ERP suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : workspaceError || (tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each.")}</p></div>
+              <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your Trellisco suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : workspaceError || (tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each.")}</p></div>
               {workspace && <div className="terp-login__workspace"><b>{workspace.companyName || workspace.clientId}</b><small>{workspace.projects.length ? `${workspace.projects.join(", ")} ${workspace.projects.length > 1 ? "are" : "is"} already active and ticked below.` : "This client is already registered."} Your company details are already on file, so only the new project is added — nothing is asked again.</small></div>}
               <div className="terp-login__project-grid">
                 {loadingProjects && <div className="terp-login__loading">Loading available projects…</div>}
@@ -1108,7 +1108,7 @@ export default function TERPLogin() {
             </div>
           ) : (
           <div className="terp-login__company-block">
-              <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your T-ERP license, the admin login we send you and your Central Master company record.</p></div>
+              <div className="terp-login__section"><div><span className="terp-login__number">2</span><h3>Company details</h3></div><p>Used for your Trellisco license, the admin login we send you and your Central Master company record.</p></div>
               {/* The form is grouped the way the register stores it: who the
                   company is, where it is registered, its statutory numbers and
                   its branding. Each group is a two-column grid from 640px. */}
@@ -1197,7 +1197,7 @@ export default function TERPLogin() {
                   <div className="terp-login__field terp-login__field--wide">
                     <label htmlFor="terp-company-email">Email</label>
                     <input id="terp-company-email" type="email" name="email" value={googleUser?.email || ""} readOnly aria-readonly="true" aria-describedby="terp-company-email-hint" title="This is the address you signed in with" />
-                    <span className="terp-login__hint" id="terp-company-email-hint">The Google address you signed in with — it becomes your T-ERP client id and admin login.</span>
+                    <span className="terp-login__hint" id="terp-company-email-hint">The Google address you signed in with — it becomes your Trellisco client id and admin login.</span>
                   </div>
                 </div>
               </div>
@@ -1360,7 +1360,7 @@ export default function TERPLogin() {
                   </div>
                 </div>
               </div>
-              <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setFieldErrors({}); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create T-ERP license"}</button></div>
+              <div className="terp-login__form-actions"><button className="terp-login__back" type="button" onClick={() => { setError(""); setFieldErrors({}); setSetupStep(1) }}>← Back</button><button className="terp-login__submit" type="submit" disabled={submitting}>{submitting ? "Creating license…" : "Create license"}</button></div>
             </div>
           )}
         </form>

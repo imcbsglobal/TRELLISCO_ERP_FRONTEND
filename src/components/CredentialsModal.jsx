@@ -97,11 +97,11 @@ export default function CredentialsModal({
 
   const mailtoHref = useMemo(() => {
     if (!credentials?.email) return ""
-    const subject = `Your Trellisco T-ERP login details${credentials.companyName ? ` for ${credentials.companyName}` : ""}`
+    const subject = `Your Trellisco login details${credentials.companyName ? ` for ${credentials.companyName}` : ""}`
     const body = [
       `Hello ${credentials.companyName || "there"},`,
       "",
-      "Your Trellisco T-ERP account is ready.",
+      "Your Trellisco account is ready.",
       "",
       `Projects: ${(credentials.projects || []).join(", ") || "-"}`,
       `Client ID: ${credentials.clientId || "-"}`,
@@ -134,7 +134,7 @@ export default function CredentialsModal({
         <header className="terp-credentials__head">
           <span className="terp-credentials__badge" aria-hidden="true">✓</span>
           <div>
-            <p className="terp-credentials__eyebrow">T-ERP license created</p>
+            <p className="terp-credentials__eyebrow">License created</p>
             <h2 id="terp-credentials-title">{credentials.companyName || "Client"} login details</h2>
           </div>
           <button type="button" className="terp-credentials__close" onClick={handleClose} aria-label="Close">×</button>

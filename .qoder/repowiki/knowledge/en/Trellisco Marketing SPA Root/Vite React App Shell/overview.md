@@ -1,0 +1,1 @@
+Vite entrypoint that mounts the root component and centralizes routing, auth guarding, chatbot visibility, and global CSS design tokens consumed by every child page.
