@@ -19,12 +19,10 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive nginx proxy configuration documentation for Central Master API endpoints
-- Updated development server setup to include Central Master API proxy configuration
-- Enhanced API client documentation with new proxy utilities for Central Master integration
-- Added company registration functionality documentation
-- Updated environment variable configuration to support Central Master API endpoints
-- Expanded deployment configuration section with nginx proxy setup instructions
+- Updated project flags configuration documentation to reflect Trellisco CRM project flag mapping (trelliscocrm -> trellisco_crm)
+- Enhanced project flags section with detailed explanation of the new Trellisco CRM integration
+- Updated troubleshooting guide to include Trellisco CRM-specific configuration issues
+- Maintained comprehensive coverage of all existing configuration components
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -44,13 +42,13 @@ This document explains how the application is configured and how to set up envir
 - Production build behavior and optimizations
 - Nginx proxy configuration for Central Master API endpoints
 - ESLint configuration for code quality
-- Project flags configuration for T-ERP product mapping
+- Project flags configuration for T-ERP product mapping including Trellisco CRM support
 - Backend mailer integration for SMTP relay functionality
 - Company registration functionality via Central Master API
 - Environment-specific settings and API endpoints
 - Deployment considerations and common troubleshooting steps
 
-The project uses Vite with React, Axios-based API clients, and a flat ESLint configuration. Environment variables are injected at build time via Vite's import.meta.env system. The application now includes comprehensive proxy support for both T-ERP and Central Master APIs through both development and production environments.
+The project uses Vite with React, Axios-based API clients, and a flat ESLint configuration. Environment variables are injected at build time via Vite's import.meta.env system. The application now includes comprehensive proxy support for both T-ERP and Central Master APIs through both development and production environments, with enhanced project flag mapping for Trellisco CRM integration.
 
 ## Project Structure
 Configuration-related files are centralized:
@@ -85,6 +83,7 @@ M --> R["Mailer Config<br/>src/api/notifications.js"]
 M --> S["Proxy Utilities<br/>src/api/proxy.js"]
 S --> T["Company Registration<br/>src/api/companyMaster.js"]
 R --> U["PHP Mailer<br/>mailer/send.php"]
+Q --> V["Trellisco CRM Flag Mapping<br/>trelliscocrm -> trellisco_crm"]
 ```
 
 **Diagram sources**
@@ -92,7 +91,7 @@ R --> U["PHP Mailer<br/>mailer/send.php"]
 - [package.json:6-10](file://package.json#L6-L10)
 - [eslint.config.js:7-21](file://eslint.config.js#L7-L21)
 - [src/config/config.js:1-3](file://src/config/config.js#L1-L3)
-- [src/config/projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
+- [src/config/projectFlags.js:1-57](file://src/config/projectFlags.js#L1-L57)
 - [src/api/client.js:8-19](file://src/api/client.js#L8-L19)
 - [src/api/notifications.js:22-26](file://src/api/notifications.js#L22-L26)
 - [src/api/proxy.js:11-15](file://src/api/proxy.js#L11-L15)
@@ -104,7 +103,7 @@ R --> U["PHP Mailer<br/>mailer/send.php"]
 **Section sources**
 - [vite.config.js:1-36](file://vite.config.js#L1-L36)
 - [eslint.config.js:1-22](file://eslint.config.js#L1-L22)
-- [package.json:1-33](file://package.json#L1-L33)
+- [package.json:1-34](file://package.json#L1-L34)
 
 ## Core Components
 - Vite configuration defines plugins, dev server, and API proxies including Central Master API.
@@ -114,7 +113,7 @@ R --> U["PHP Mailer<br/>mailer/send.php"]
 - API client centralizes base URLs, token handling, and interceptors.
 - Proxy utilities provide unified access to both T-ERP and Central Master APIs.
 - Company registration functionality enables statutory company details management.
-- Project flags configuration maps T-ERP projects to product flags.
+- Project flags configuration maps T-ERP projects to product flags including Trellisco CRM support.
 - Mailer integration provides SMTP relay functionality via PHP script.
 - TERP login page uses environment variables for Google Sign-In and remote endpoints.
 
@@ -123,7 +122,7 @@ Key responsibilities:
 - deploy/nginx-cors-proxy.conf: Production proxy configuration for Central Master API
 - eslint.config.js: Linting rules and globals
 - src/config/config.js: Centralized API base URL
-- src/config/projectFlags.js: T-ERP project to product flag mapping
+- src/config/projectFlags.js: T-ERP project to product flag mapping with Trellisco CRM integration
 - src/api/client.js: Authenticated and public Axios instances
 - src/api/proxy.js: Unified proxy utilities for Central Master and T-ERP APIs
 - src/api/companyMaster.js: Company registration and management
@@ -136,7 +135,7 @@ Key responsibilities:
 - [deploy/nginx-cors-proxy.conf:25-51](file://deploy/nginx-cors-proxy.conf#L25-L51)
 - [eslint.config.js:7-21](file://eslint.config.js#L7-L21)
 - [src/config/config.js:1-3](file://src/config/config.js#L1-L3)
-- [src/config/projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
+- [src/config/projectFlags.js:1-57](file://src/config/projectFlags.js#L1-L57)
 - [src/api/client.js:8-19](file://src/api/client.js#L8-L19)
 - [src/api/proxy.js:1-56](file://src/api/proxy.js#L1-L56)
 - [src/api/companyMaster.js:1-165](file://src/api/companyMaster.js#L1-L165)
@@ -145,7 +144,7 @@ Key responsibilities:
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 
 ## Architecture Overview
-The runtime configuration flow relies on Vite injecting environment variables into the bundle. The API layer reads these variables to determine endpoints and authentication behavior. The enhanced proxy system now supports both T-ERP and Central Master APIs through unified proxy utilities. The Central Master API provides company registration functionality for statutory compliance, while the project flags system maps selected T-ERP projects to product flags for user-master API calls. The mailer integration provides secure email delivery through an SMTP relay.
+The runtime configuration flow relies on Vite injecting environment variables into the bundle. The API layer reads these variables to determine endpoints and authentication behavior. The enhanced proxy system now supports both T-ERP and Central Master APIs through unified proxy utilities. The Central Master API provides company registration functionality for statutory compliance, while the project flags system maps selected T-ERP projects to product flags for user-master API calls, including proper Trellisco CRM flag mapping. The mailer integration provides secure email delivery through an SMTP relay.
 
 ```mermaid
 sequenceDiagram
@@ -324,7 +323,7 @@ Key features:
 - [src/api/companyMaster.js:1-165](file://src/api/companyMaster.js#L1-L165)
 
 ### Project Flags Configuration System
-The project flags system maps T-ERP projects to product flags expected by the Central Master's user-master API. This enables automatic feature activation based on purchased projects.
+The project flags system maps T-ERP projects to product flags expected by the Central Master's user-master API. This enables automatic feature activation based on purchased projects, including proper Trellisco CRM integration.
 
 ```mermaid
 flowchart TD
@@ -337,17 +336,16 @@ Initialize --> SetTrue["Set matching flags to true"]
 SetTrue --> Return["Return flags object"]
 ```
 
-**Diagram sources**
-- [src/config/projectFlags.js:41-52](file://src/config/projectFlags.js#L41-L52)
+**Updated** Enhanced with Trellisco CRM project flag mapping (trelliscocrm -> trellisco_crm)
 
 Key components:
-- USER_MASTER_FLAGS: Array of all supported product flags
-- PROJECT_FLAG_BY_ENDPOINT: Mapping from API endpoints to flags
-- PROJECT_FLAG_BY_NAME: Fallback mapping from project names to flags
+- USER_MASTER_FLAGS: Array of all supported product flags including trellisco_crm
+- PROJECT_FLAG_BY_ENDPOINT: Mapping from API endpoints to flags including trelliscocrm -> trellisco_crm
+- PROJECT_FLAG_BY_NAME: Fallback mapping from project names to flags including "trellisco crm" -> trellisco_crm
 - flagsForProjects(): Function that generates flags object from selected projects
 
 **Section sources**
-- [src/config/projectFlags.js:1-53](file://src/config/projectFlags.js#L1-L53)
+- [src/config/projectFlags.js:1-57](file://src/config/projectFlags.js#L1-L57)
 
 ### Backend Mailer Integration
 The mailer integration provides secure email delivery through a PHP script that handles SMTP communication with Hostinger's mail service.
@@ -568,7 +566,7 @@ App --> React["react, react-dom"]
 - [package.json:12-30](file://package.json#L12-L30)
 
 **Section sources**
-- [package.json:12-30](file://package.json#L12-L30)
+- [package.json:12-34](file://package.json#L12-L34)
 - [vite.config.js:1-2](file://vite.config.js#L1-L2)
 - [eslint.config.js:1-5](file://eslint.config.js#L1-L5)
 
@@ -596,6 +594,7 @@ App --> React["react, react-dom"]
 - Project flags:
   - Cache project flag mappings to avoid repeated calculations.
   - Use efficient flag comparison algorithms for large project lists.
+  - Ensure Trellisco CRM flag mapping is properly configured for optimal performance.
 
 ## Troubleshooting Guide
 Common environment-related issues and resolutions:
@@ -634,6 +633,7 @@ Common environment-related issues and resolutions:
   - Verify that selected projects have valid api_endpoint or project name fields.
   - Check that the project flag mappings in projectFlags.js match your T-ERP project structure.
   - Ensure the user-master API accepts the generated flag combinations.
+  - **Updated**: Verify that Trellisco CRM project mapping (trelliscocrm -> trellisco_crm) is properly configured in both PROJECT_FLAG_BY_ENDPOINT and PROJECT_FLAG_BY_NAME objects.
 
 - Mail delivery fails:
   - Verify that VITE_MAIL_API_URL points to the correct mailer endpoint.
@@ -662,10 +662,10 @@ Common environment-related issues and resolutions:
 - [src/api/client.js:10-19](file://src/api/client.js#L10-L19)
 - [src/pages/TERPLogin.jsx:118-120](file://src/pages/TERPLogin.jsx#L118-L120)
 - [.gitignore:9-13](file://.gitignore#L9-L13)
-- [src/config/projectFlags.js:41-52](file://src/config/projectFlags.js#L41-L52)
+- [src/config/projectFlags.js:19-38](file://src/config/projectFlags.js#L19-L38)
 - [src/api/notifications.js:363-399](file://src/api/notifications.js#L363-L399)
 - [src/api/companyMaster.js:11-15](file://src/api/companyMaster.js#L11-L15)
 - [mailer/send.php:28-37](file://mailer/send.php#L28-L37)
 
 ## Conclusion
-This application uses Vite's environment variable injection to configure API endpoints and third-party integrations across environments. The enhanced proxy system now provides comprehensive support for both T-ERP and Central Master APIs through unified proxy utilities. The development server proxies API calls to simplify local development, while production builds leverage nginx proxy configuration to handle Central Master API endpoints without CORS issues. The company registration functionality enables statutory compliance management through the Central Master API. ESLint provides consistent code quality checks. The project flags system enables automatic feature activation based on purchased T-ERP projects, and the mailer integration provides secure email delivery through an SMTP relay. By following the environment setup guidelines and troubleshooting steps, you can reliably configure development, staging, and production environments and maintain a smooth developer experience across all integrated services.
+This application uses Vite's environment variable injection to configure API endpoints and third-party integrations across environments. The enhanced proxy system now provides comprehensive support for both T-ERP and Central Master APIs through unified proxy utilities. The development server proxies API calls to simplify local development, while production builds leverage nginx proxy configuration to handle Central Master API endpoints without CORS issues. The company registration functionality enables statutory compliance management through the Central Master API. ESLint provides consistent code quality checks. The project flags system enables automatic feature activation based on purchased T-ERP projects, including proper Trellisco CRM integration with the trelliscocrm -> trellisco_crm mapping. The mailer integration provides secure email delivery through an SMTP relay. By following the environment setup guidelines and troubleshooting steps, you can reliably configure development, staging, and production environments and maintain a smooth developer experience across all integrated services.

@@ -17,6 +17,7 @@ import {
   resetTerpRegisters,
 } from "../api/terpLicense"
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
+import { normaliseReferralCode, submitAgentReferral } from "../api/agentReferral"
 import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
 import { findCompanyMaster, pushCompanyMaster } from "../api/companyMaster"
 import {
@@ -65,6 +66,7 @@ const COMPANY_FIELD_IDS = {
   state: "terp-company-state",
   gstNumber: "terp-company-gst",
   panNumber: "terp-company-pan",
+  referralCode: "terp-company-referral",
 }
 
 // Central Master stores the GSTIN and PAN as printed on the registration
@@ -437,6 +439,14 @@ export default function TERPLogin() {
     const value = event.target.value.toUpperCase().replace(/[^0-9A-Z]/g, "").slice(0, maxLength)
     setCompany((current) => ({ ...current, [field]: value }))
     clearFieldError(field)
+  }
+
+  // Referral codes look like "AG-UFC9RR": capitals, digits and dashes, so the
+  // hyphens that separate the partner prefix are kept while the code is folded.
+  const updateReferralCode = (event) => {
+    const value = event.target.value.toUpperCase().replace(/[^0-9A-Z-]/g, "").slice(0, 32)
+    setCompany((current) => ({ ...current, referralCode: value }))
+    clearFieldError("referralCode")
   }
 
   // The register wants the logo as bare base64, so the picked image is kept as a
@@ -812,6 +822,34 @@ export default function TERPLogin() {
         (login) => String(login?.client_id || "").trim().toLowerCase() === email.toLowerCase(),
       )
 
+      // An existing login decides who gets the licence, and neither case may mint
+      // a second account or resend credentials nobody asked for:
+      //   - with a workspace the client is returning for another product;
+      //   - without one T-ERP no longer holds their client, so the licence just
+      //     rebuilt below is what makes the login they already own work again.
+      const returningClient = workspace ? hasLogin : ownLogins.length > 0
+
+      // A partner's referral code is credited on the agent portal for the address
+      // the customer signed in with — the same address the licence and the admin
+      // login below carry. The credit is confirmed first: a code the portal does
+      // not accept stops the signup here, so no licence and no login are created
+      // for a referral that was never recorded. A returning client typed no code
+      // here (their row carries the one they were credited with the first time),
+      // and a pair that already confirmed is never posted twice on a retry.
+      const referralCode = normaliseReferralCode(form.referralCode)
+      if (!returningClient && referralCode) {
+        try {
+          await submitAgentReferral({ email, referralCode })
+        } catch (referralError) {
+          const message =
+            `The referral code "${referralCode}" could not be confirmed, so no license and no login were created. ` +
+            `${getNetworkError(referralError, "the agent referral API")}`
+          setFieldErrors((current) => ({ ...current, referralCode: message }))
+          requestAnimationFrame(() => document.getElementById(COMPANY_FIELD_IDS.referralCode)?.focus())
+          throw new Error(message, { cause: referralError })
+        }
+      }
+
       // A license created during this page session is reused as-is, so a failed
       // account step never posts a duplicate license. One restored from an
       // earlier attempt is reused only while T-ERP still lists its client: when
@@ -881,13 +919,8 @@ export default function TERPLogin() {
       const companyName = form.name.trim()
       const addedProjects = selectedProjects.map((item) => item.project)
 
-      // An existing login decides who gets the licence, and neither case may mint
-      // a second account or resend credentials nobody asked for:
-      //   - with a workspace the client is returning for another product;
-      //   - without one T-ERP no longer holds their client, so the licence just
-      //     rebuilt above is what makes the login they already own work again.
-      const returningClient = workspace ? hasLogin : ownLogins.length > 0
-
+      // A returning client keeps the account they already own: the project just
+      // added is switched on for it, and no second login is created.
       if (returningClient) {
         let updatedLogins = 0
         try {
@@ -1317,15 +1350,19 @@ export default function TERPLogin() {
                       id="terp-company-referral"
                       name="referralCode"
                       value={company.referralCode}
-                      onChange={updateCompany("referralCode")}
-                      placeholder="7878787"
+                      onChange={updateReferralCode}
+                      placeholder="AG-UFC9RR"
                       autoComplete="off"
                       autoCapitalize="characters"
                       spellCheck="false"
                       enterKeyHint="done"
                       maxLength="32"
+                      aria-invalid={fieldErrors.referralCode ? true : undefined}
+                      aria-describedby={fieldErrors.referralCode ? "terp-company-referral-error" : "terp-company-referral-hint"}
                     />
-                    <span className="terp-login__hint">If a partner or reseller referred you, enter their code.</span>
+                    {fieldErrors.referralCode
+                      ? <span className="terp-login__field-error" id="terp-company-referral-error">{fieldErrors.referralCode}</span>
+                      : <span className="terp-login__hint" id="terp-company-referral-hint">If a partner or reseller referred you, enter their code. It is credited to {googleUser?.email || "your sign-in address"} and verified before your license is created.</span>}
                   </div>
                 </div>
               </div>
