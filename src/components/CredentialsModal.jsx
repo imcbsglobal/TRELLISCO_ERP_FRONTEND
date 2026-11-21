@@ -7,7 +7,6 @@ const STATUS_COPY = {
   sent: "Delivered",
   failed: "Failed",
   skipped: "Not sent",
-  idle: "Not sent yet",
 }
 
 function statusClass(status) {
@@ -17,20 +16,21 @@ function statusClass(status) {
   return "is-idle"
 }
 
-function DeliveryRow({ label, status, message, onRetry, retrying, extra, idleLabel = "Try again" }) {
-  const actionLabel = status === "idle" ? idleLabel : "Try again"
+// Both channels are sent on their own when the dialog opens, so the only action
+// a delivery row ever offers is another attempt after a failure.
+function DeliveryRow({ label, status, message, onRetry, retrying, extra }) {
   return (
     <div className={`terp-credentials__delivery ${statusClass(status)}`}>
       <div className="terp-credentials__delivery-main">
         <span className="terp-credentials__delivery-label">{label}</span>
-        <span className="terp-credentials__delivery-status">{STATUS_COPY[status] || STATUS_COPY.idle}</span>
+        <span className="terp-credentials__delivery-status">{STATUS_COPY[status] || "Not sent"}</span>
       </div>
       {message && status !== "sent" && <p className="terp-credentials__delivery-message">{message}</p>}
       {(onRetry || extra) && status !== "sent" && status !== "pending" && (
         <div className="terp-credentials__delivery-actions">
           {onRetry && (
             <button type="button" className="terp-credentials__retry" onClick={onRetry} disabled={retrying}>
-              {retrying ? "Sending…" : actionLabel}
+              {retrying ? "Sending…" : "Try again"}
             </button>
           )}
           {extra}
@@ -202,7 +202,6 @@ export default function CredentialsModal({
             message={email?.message}
             onRetry={onRetryEmail}
             retrying={retryingEmail}
-            idleLabel="Send email"
             extra={mailtoHref ? (
               <a className="terp-credentials__fallback" href={mailtoHref}>
                 Open in mail app

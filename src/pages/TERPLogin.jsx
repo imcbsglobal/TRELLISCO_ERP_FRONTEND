@@ -23,7 +23,6 @@ import { findCompanyMaster, pushCompanyMaster } from "../api/companyMaster"
 import {
   buildCredentialsMessage,
   buildCredentialsSubject,
-  canAutoSendEmail,
   sendCredentialsEmail,
   sendWhatsApp,
 } from "../api/notifications"
@@ -1063,14 +1062,14 @@ export default function TERPLogin() {
       }
 
       setCredentials(created)
-      // Only auto-send when the transport cannot hit a consent popup.
-      const autoEmail = canAutoSendEmail()
-      setDelivery({ whatsapp: { state: "pending" }, email: { state: autoEmail ? "pending" : "idle" } })
+      // Both channels go out on their own: the credentials are never left behind
+      // a button. A channel that fails says why and offers a retry.
+      setDelivery({ whatsapp: { state: "pending" }, email: { state: "pending" } })
       setModalOpen(true)
       setSuccess(`License created. The admin login is ready below.${notes}`)
 
       deliverWhatsApp(created)
-      if (autoEmail) deliverEmail(created)
+      deliverEmail(created)
     } catch (submitError) {
       const licensed = Boolean(licenseRef.current)
       // Errors that already explain the half-finished state must not be prefixed twice.

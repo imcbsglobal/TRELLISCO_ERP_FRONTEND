@@ -1,12 +1,13 @@
 // src/api/notifications.js
 // Delivers the new credentials to the customer: a WhatsApp message through the
-// Dxing gateway, and an email.
+// Dxing gateway, and an email. Both go out together right after the account
+// exists — the mail is never left waiting for a click.
 //
 // A browser cannot open an SMTP connection, so an app password is never used
 // here — it belongs inside an HTTP mail relay such as EmailJS, which is where
 // the Hostinger mailbox (info@imcbs.com, smtp.hostinger.com:465) is configured.
 // Send order:
-//   1. VITE_MAIL_API_URL      generic HTTP endpoint
+//   1. VITE_MAIL_API_URL      generic HTTP endpoint (mailer/send.php)
 //   2. EmailJS                Hostinger/Gmail SMTP handled server-side
 //   3. Gmail REST API         direct, needs a one-time OAuth consent
 //
@@ -19,8 +20,12 @@ const WHATSAPP_ACCOUNT = import.meta.env.VITE_WHATSAPP_ACCOUNT || ""
 
 const GMAIL_CLIENT_ID = import.meta.env.VITE_GMAIL_CLIENT_ID || import.meta.env.VITE_GOOGLE_CLIENT_ID || ""
 const GMAIL_SENDER = import.meta.env.VITE_GMAIL_SENDER || ""
+// The relay lives next to the SPA on the same origin, so a production build
+// always has an address to try: upload mailer/send.php to <web root>/mailer/ and
+// enable PHP for it. In development `npm run mailer` serves it on 127.0.0.1.
+const MAIL_RELAY_PATH = import.meta.env.VITE_MAIL_RELAY_PATH || "/mailer/send.php"
 const MAIL_API_URL =
-  import.meta.env.VITE_MAIL_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8081/send.php" : "")
+  import.meta.env.VITE_MAIL_API_URL || (import.meta.env.DEV ? "http://127.0.0.1:8081/send.php" : MAIL_RELAY_PATH)
 // Shared secret with mailer/send.php so the relay cannot be used by strangers.
 const MAIL_API_TOKEN = import.meta.env.VITE_MAIL_API_TOKEN || ""
 const TERP_APP_LOGIN_URL = import.meta.env.VITE_TERP_APP_LOGIN_URL || ""
@@ -36,8 +41,6 @@ const EMAILJS_ENDPOINT = "https://api.emailjs.com/api/v1.0/email/send"
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || ""
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || ""
 const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || ""
-
-const GMAIL_AUTO_SEND = String(import.meta.env.VITE_GMAIL_AUTO_SEND || "").toLowerCase() === "true"
 
 const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
 const GMAIL_SEND_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
@@ -309,22 +312,13 @@ export function isEmailjsConfigured() {
   return Boolean(EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID)
 }
 
+/**
+ * Whether an email transport exists at all. Delivery itself is never gated on
+ * this: every signup tries the mail, and a channel that cannot send reports the
+ * reason next to the credentials instead of hiding behind a button.
+ */
 export function isEmailConfigured() {
   return Boolean(MAIL_API_URL || isEmailjsConfigured() || GMAIL_CLIENT_ID)
-}
-
-/**
- * Whether the email can be sent without the operator clicking anything.
- *
- * EmailJS and a mail API are plain HTTPS calls, so they always qualify. Gmail
- * needs a consent popup the first time, and a popup opened after several awaits
- * is blocked — so Gmail only runs unattended when a token is already cached
- * (or VITE_GMAIL_AUTO_SEND forces it). Otherwise the popup offers the button.
- */
-export function canAutoSendEmail() {
-  if (MAIL_API_URL || isEmailjsConfigured()) return true
-  if (!GMAIL_CLIENT_ID) return false
-  return GMAIL_AUTO_SEND || Boolean(readStoredToken())
 }
 
 // EmailJS holds the SMTP credentials (Gmail address + app password) on its own
@@ -391,8 +385,20 @@ export async function sendCredentialsEmail({ to, cc = MAIL_CC, subject, body }) 
       )
     }
 
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase()
+    // The SPA's own fallback answers 200 with index.html when the relay file is
+    // not deployed (or PHP is not enabled for it). That must never read as
+    // "delivered" — the customer would get nothing and nobody would notice.
+    if (contentType.includes("text/html")) {
+      throw new Error(
+        `The mail relay at ${MAIL_API_URL} answered with the site's HTML page instead of JSON — ` +
+          "mailer/send.php is not deployed there, or PHP is not enabled for it.",
+      )
+    }
+
     const result = await response.json().catch(() => null)
-    if (!response.ok || result?.ok === false) {
+    // Only the relay's own {"ok":true} proves the mail left.
+    if (!response.ok || result?.ok !== true) {
       throw new Error(result?.error || `Mail relay rejected the message (HTTP ${response.status}).`)
     }
     return { transport: "mail-api", messageId: result?.messageId }
