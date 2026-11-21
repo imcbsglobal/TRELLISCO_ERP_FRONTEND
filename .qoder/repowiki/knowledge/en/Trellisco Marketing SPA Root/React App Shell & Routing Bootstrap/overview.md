@@ -1,1 +1,0 @@
-Vite entrypoint and root React shell that mounts the app, wires declarative routes with auth guards, and exposes global CSS design tokens to every child page.

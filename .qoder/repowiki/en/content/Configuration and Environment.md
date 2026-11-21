@@ -19,10 +19,11 @@
 
 ## Update Summary
 **Changes Made**
-- Updated project flags configuration documentation to reflect Trellisco CRM project flag mapping (trelliscocrm -> trellisco_crm)
-- Enhanced project flags section with detailed explanation of the new Trellisco CRM integration
-- Updated troubleshooting guide to include Trellisco CRM-specific configuration issues
-- Maintained comprehensive coverage of all existing configuration components
+- Enhanced email notification system documentation with improved mail relay configuration
+- Added detailed coverage of multiple email delivery methods (PHP mailer, EmailJS, Gmail API)
+- Updated troubleshooting guide for mail relay configuration issues
+- Enhanced mailer integration section with comprehensive fallback support details
+- Updated environment variable documentation for new mail relay configuration options
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -43,12 +44,12 @@ This document explains how the application is configured and how to set up envir
 - Nginx proxy configuration for Central Master API endpoints
 - ESLint configuration for code quality
 - Project flags configuration for T-ERP product mapping including Trellisco CRM support
-- Backend mailer integration for SMTP relay functionality
+- **Enhanced backend mailer integration with multiple delivery methods and improved fallback support**
 - Company registration functionality via Central Master API
 - Environment-specific settings and API endpoints
 - Deployment considerations and common troubleshooting steps
 
-The project uses Vite with React, Axios-based API clients, and a flat ESLint configuration. Environment variables are injected at build time via Vite's import.meta.env system. The application now includes comprehensive proxy support for both T-ERP and Central Master APIs through both development and production environments, with enhanced project flag mapping for Trellisco CRM integration.
+The project uses Vite with React, Axios-based API clients, and a flat ESLint configuration. Environment variables are injected at build time via Vite's import.meta.env system. The application now includes comprehensive proxy support for both T-ERP and Central Master APIs through both development and production environments, with enhanced project flag mapping for Trellisco CRM integration. **The email notification system has been significantly enhanced with improved mail relay configuration and robust fallback support across multiple delivery methods.**
 
 ## Project Structure
 Configuration-related files are centralized:
@@ -59,8 +60,9 @@ Configuration-related files are centralized:
 - API client configuration: src/api/client.js
 - Proxy utilities: src/api/proxy.js
 - Company registration: src/api/companyMaster.js
+- **Enhanced email notifications: src/api/notifications.js**
 - Nginx deployment: deploy/nginx-cors-proxy.conf
-- Mailer integration: mailer/send.php, src/api/notifications.js
+- **PHP mailer relay: mailer/send.php**
 - Feature-specific environment usage: src/pages/TERPLogin.jsx
 - Environment file handling: .gitignore
 
@@ -79,21 +81,23 @@ M --> N["API Base URL<br/>src/config/config.js"]
 M --> O["Axios Client<br/>src/api/client.js"]
 M --> P["TERP Endpoints<br/>src/pages/TERPLogin.jsx"]
 M --> Q["Project Flags<br/>src/config/projectFlags.js"]
-M --> R["Mailer Config<br/>src/api/notifications.js"]
+M --> R["Enhanced Mail Notifications<br/>src/api/notifications.js"]
 M --> S["Proxy Utilities<br/>src/api/proxy.js"]
 S --> T["Company Registration<br/>src/api/companyMaster.js"]
-R --> U["PHP Mailer<br/>mailer/send.php"]
-Q --> V["Trellisco CRM Flag Mapping<br/>trelliscocrm -> trellisco_crm"]
+R --> U["PHP Mailer Relay<br/>mailer/send.php"]
+R --> V["EmailJS Service"]
+R --> W["Gmail API"]
+Q --> X["Trellisco CRM Flag Mapping<br/>trelliscocrm -> trellisco_crm"]
 ```
 
 **Diagram sources**
 - [vite.config.js:5-33](file://vite.config.js#L5-L33)
-- [package.json:6-10](file://package.json#L6-L10)
+- [package.json:6-11](file://package.json#L6-L11)
 - [eslint.config.js:7-21](file://eslint.config.js#L7-L21)
 - [src/config/config.js:1-3](file://src/config/config.js#L1-L3)
 - [src/config/projectFlags.js:1-57](file://src/config/projectFlags.js#L1-L57)
 - [src/api/client.js:8-19](file://src/api/client.js#L8-L19)
-- [src/api/notifications.js:22-26](file://src/api/notifications.js#L22-L26)
+- [src/api/notifications.js:17-47](file://src/api/notifications.js#L17-L47)
 - [src/api/proxy.js:11-15](file://src/api/proxy.js#L11-L15)
 - [src/api/companyMaster.js:11-15](file://src/api/companyMaster.js#L11-L15)
 - [deploy/nginx-cors-proxy.conf:25-51](file://deploy/nginx-cors-proxy.conf#L25-L51)
@@ -114,7 +118,7 @@ Q --> V["Trellisco CRM Flag Mapping<br/>trelliscocrm -> trellisco_crm"]
 - Proxy utilities provide unified access to both T-ERP and Central Master APIs.
 - Company registration functionality enables statutory company details management.
 - Project flags configuration maps T-ERP projects to product flags including Trellisco CRM support.
-- Mailer integration provides SMTP relay functionality via PHP script.
+- **Enhanced mailer integration provides multiple email delivery methods with robust fallback support**.
 - TERP login page uses environment variables for Google Sign-In and remote endpoints.
 
 Key responsibilities:
@@ -126,8 +130,8 @@ Key responsibilities:
 - src/api/client.js: Authenticated and public Axios instances
 - src/api/proxy.js: Unified proxy utilities for Central Master and T-ERP APIs
 - src/api/companyMaster.js: Company registration and management
-- src/api/notifications.js: Email delivery orchestration
-- mailer/send.php: PHP SMTP relay implementation
+- **src/api/notifications.js: Enhanced email delivery orchestration with multiple transport methods**
+- **mailer/send.php: PHP SMTP relay implementation with improved security and error handling**
 - src/pages/TERPLogin.jsx: Environment-driven endpoints and Google client ID
 
 **Section sources**
@@ -139,12 +143,12 @@ Key responsibilities:
 - [src/api/client.js:8-19](file://src/api/client.js#L8-L19)
 - [src/api/proxy.js:1-56](file://src/api/proxy.js#L1-L56)
 - [src/api/companyMaster.js:1-165](file://src/api/companyMaster.js#L1-L165)
-- [src/api/notifications.js:1-415](file://src/api/notifications.js#L1-L415)
+- [src/api/notifications.js:1-421](file://src/api/notifications.js#L1-L421)
 - [mailer/send.php:1-257](file://mailer/send.php#L1-L257)
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 
 ## Architecture Overview
-The runtime configuration flow relies on Vite injecting environment variables into the bundle. The API layer reads these variables to determine endpoints and authentication behavior. The enhanced proxy system now supports both T-ERP and Central Master APIs through unified proxy utilities. The Central Master API provides company registration functionality for statutory compliance, while the project flags system maps selected T-ERP projects to product flags for user-master API calls, including proper Trellisco CRM flag mapping. The mailer integration provides secure email delivery through an SMTP relay.
+The runtime configuration flow relies on Vite injecting environment variables into the bundle. The API layer reads these variables to determine endpoints and authentication behavior. The enhanced proxy system now supports both T-ERP and Central Master APIs through unified proxy utilities. The Central Master API provides company registration functionality for statutory compliance, while the project flags system maps selected T-ERP projects to product flags for user-master API calls, including proper Trellisco CRM flag mapping. **The enhanced mailer integration provides secure email delivery through multiple transport methods with intelligent fallback mechanisms.**
 
 ```mermaid
 sequenceDiagram
@@ -155,7 +159,10 @@ participant App as "React App"
 participant Proxy as "Dev Proxy"
 participant API as "Backend API"
 participant Central as "Central Master API"
-participant Mailer as "PHP Mailer"
+participant Mailer as "Enhanced Mail System"
+participant PHPMailer as "PHP Mailer"
+participant EmailJS as "EmailJS Service"
+participant Gmail as "Gmail API"
 Dev->>Vite : npm run dev
 Vite->>Proxy : Start dev server with proxy rules
 App->>Proxy : Request "/api/..." or "/central-api/..."
@@ -170,8 +177,16 @@ Nginx->>Central : Forward to https : //centralmastermanagement.imcbs.com
 Central-->>Nginx : Response
 Nginx-->>App : Response
 App->>Mailer : POST credentials email
-Mailer->>SMTP : Send via Hostinger SMTP
-SMTP-->>Mailer : Delivery confirmation
+alt PHP Mailer Available
+Mailer->>PHPMailer : Send via Hostinger SMTP
+PHPMailer-->>Mailer : Delivery confirmation
+else EmailJS Configured
+Mailer->>EmailJS : Send via EmailJS service
+EmailJS-->>Mailer : Delivery confirmation
+else Gmail API Available
+Mailer->>Gmail : OAuth authentication and send
+Gmail-->>Mailer : Message sent
+end
 Mailer-->>App : Email sent successfully
 ```
 
@@ -179,8 +194,8 @@ Mailer-->>App : Email sent successfully
 - [vite.config.js:7-32](file://vite.config.js#L7-L32)
 - [deploy/nginx-cors-proxy.conf:25-51](file://deploy/nginx-cors-proxy.conf#L25-L51)
 - [src/api/proxy.js:11-15](file://src/api/proxy.js#L11-L15)
-- [src/api/notifications.js:363-399](file://src/api/notifications.js#L363-L399)
-- [mailer/send.php:204-243](file://mailer/send.php#L204-L243)
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
+- [mailer/send.php:202-243](file://mailer/send.php#L202-L243)
 
 ## Detailed Component Analysis
 
@@ -195,7 +210,10 @@ Mailer-->>App : Email sent successfully
   - VITE_API_BASE_URL used by src/api/client.js.
   - VITE_TERP_PROJECTS_API_URL and VITE_TERP_LICENSE_CREATE_API_URL used by src/pages/TERPLogin.jsx.
   - VITE_GOOGLE_CLIENT_ID used by src/pages/TERPLogin.jsx.
-  - VITE_MAIL_API_URL and VITE_MAIL_API_TOKEN used by src/api/notifications.js for mailer integration.
+  - **VITE_MAIL_API_URL and VITE_MAIL_API_TOKEN used by src/api/notifications.js for enhanced mailer integration**.
+  - **VITE_MAIL_RELAY_PATH for custom mail relay endpoint configuration**.
+  - **VITE_EMAILJS_* variables for EmailJS service configuration**.
+  - **VITE_GMAIL_CLIENT_ID and VITE_GMAIL_SENDER for Gmail API integration**.
   - VITE_COMPANY_MASTER_API_URL used by src/api/companyMaster.js for Central Master API access.
 
 ```mermaid
@@ -220,6 +238,7 @@ Operational notes:
 - In production builds, missing VITE_API_BASE_URL throws an error to prevent accidental calls to localhost.
 - During development, the fallback ensures the app works out-of-the-box with a local backend.
 - Central Master API calls automatically route through the /central-api proxy prefix.
+- **Mail relay configuration supports multiple transport methods with automatic fallback**.
 
 **Section sources**
 - [vite.config.js:5-33](file://vite.config.js#L5-L33)
@@ -227,6 +246,44 @@ Operational notes:
 - [src/api/client.js:8-19](file://src/api/client.js#L8-L19)
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 - [src/pages/TERPLogin.jsx:118-120](file://src/pages/TERPLogin.jsx#L118-L120)
+
+### Enhanced Email Notification System
+**Updated** The email notification system has been significantly enhanced with improved mail relay configuration and robust fallback support across multiple delivery methods.
+
+```mermaid
+flowchart TD
+Request["sendCredentialsEmail()"] --> CheckRelay{"MAIL_API_URL configured?"}
+CheckRelay --> |Yes| TryRelay["Try PHP Mailer Relay"]
+CheckRelay --> |No| CheckEmailJS{"EmailJS configured?"}
+TryRelay --> RelaySuccess{"Relay successful?"}
+RelaySuccess --> |Yes| Success["Return success"]
+RelaySuccess --> |No| CheckEmailJS
+CheckEmailJS --> |Yes| TryEmailJS["Send via EmailJS"]
+CheckEmailJS --> |No| CheckGmail{"Gmail API configured?"}
+TryEmailJS --> EmailJSSuccess{"EmailJS successful?"}
+EmailJSSuccess --> |Yes| Success
+EmailJSSuccess --> |No| CheckGmail
+CheckGmail --> |Yes| TryGmail["Authenticate and send via Gmail API"]
+CheckGmail --> |No| Error["Throw configuration error"]
+TryGmail --> GmailSuccess{"Gmail successful?"}
+GmailSuccess --> |Yes| Success
+GmailSuccess --> |No| Error
+```
+
+**Diagram sources**
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
+
+Key features:
+- **Multi-transport architecture**: Supports PHP mailer relay, EmailJS, and Gmail API
+- **Intelligent fallback**: Automatically tries each method in order of preference
+- **Enhanced error handling**: Comprehensive error messages and debugging information
+- **Security improvements**: Improved token validation and CORS handling
+- **Development support**: Built-in development server for PHP mailer testing
+- **Configuration flexibility**: Multiple environment variables for different transport methods
+
+**Section sources**
+- [src/api/notifications.js:17-47](file://src/api/notifications.js#L17-L47)
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
 
 ### Nginx Proxy Configuration for Central Master API
 The nginx proxy configuration provides production support for Central Master API endpoints, enabling company registration functionality without CORS issues.
@@ -347,36 +404,51 @@ Key components:
 **Section sources**
 - [src/config/projectFlags.js:1-57](file://src/config/projectFlags.js#L1-L57)
 
-### Backend Mailer Integration
-The mailer integration provides secure email delivery through a PHP script that handles SMTP communication with Hostinger's mail service.
+### Enhanced Backend Mailer Integration
+**Updated** The mailer integration has been significantly enhanced with improved security, better error handling, and support for multiple delivery methods.
 
 ```mermaid
 sequenceDiagram
 participant Frontend as "Frontend App"
-participant Mailer as "PHP Mailer"
-participant SMTP as "Hostinger SMTP"
+participant Mailer as "Enhanced Mail System"
+participant PHPMailer as "PHP Mailer"
+participant EmailJS as "EmailJS Service"
+participant Gmail as "Gmail API"
 participant Recipient as "Email Recipient"
-Frontend->>Mailer : POST /mailer/send.php with credentials
-Mailer->>SMTP : Authenticate and send email
-SMTP-->>Mailer : Delivery confirmation
-Mailer-->>Frontend : Success response with message ID
+Frontend->>Mailer : POST credentials email
+alt PHP Mailer Available
+Mailer->>PHPMailer : Authenticate and send email
+PHPMailer->>SMTP : Connect to Hostinger SMTP
+SMTP-->>PHPMailer : Delivery confirmation
+PHPMailer-->>Mailer : Success response with message ID
+else EmailJS Configured
+Mailer->>EmailJS : Send via EmailJS service
+EmailJS-->>Mailer : Delivery confirmation
+else Gmail API Available
+Mailer->>Gmail : OAuth authentication
+Gmail-->>Mailer : Access token
+Mailer->>Gmail : Send message via Gmail API
+Gmail-->>Mailer : Message sent
+end
+Mailer-->>Frontend : Success response
 SMTP->>Recipient : Deliver email
 ```
 
 **Diagram sources**
-- [src/api/notifications.js:363-399](file://src/api/notifications.js#L363-L399)
-- [mailer/send.php:204-243](file://mailer/send.php#L204-L243)
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
+- [mailer/send.php:202-243](file://mailer/send.php#L202-L243)
 
-Key features:
-- Authentication via bearer token or X-Mail-Token header
-- CORS support for frontend integration
-- Secure SMTP connection with SSL verification
-- Input validation and sanitization
-- Error handling and status reporting
+Key enhancements:
+- **Multi-transport support**: PHP mailer relay, EmailJS, and Gmail API
+- **Improved security**: Enhanced token validation and CORS handling
+- **Better error handling**: Comprehensive error messages and debugging information
+- **Development support**: Built-in development server for PHP mailer testing
+- **Configuration flexibility**: Multiple environment variables for different transport methods
+- **Robust fallback**: Automatic retry mechanism across different delivery methods
 
 **Section sources**
-- [src/api/notifications.js:22-26](file://src/api/notifications.js#L22-L26)
-- [src/api/notifications.js:363-399](file://src/api/notifications.js#L363-L399)
+- [src/api/notifications.js:17-47](file://src/api/notifications.js#L17-L47)
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
 - [mailer/send.php:1-257](file://mailer/send.php#L1-L257)
 
 ### Development Server Setup and Proxy Configuration
@@ -413,6 +485,7 @@ Central --> Resp
 - Scripts:
   - build: vite build
   - preview: vite preview
+  - **mailer: php -S 127.0.0.1:8081 -t mailer** (for development mailer testing)
 - Behavior:
   - Vite performs standard production optimizations (minification, tree-shaking, etc.).
   - Environment variables are baked into the bundle at build time.
@@ -428,11 +501,11 @@ Output --> Preview["npm run preview"]
 ```
 
 **Diagram sources**
-- [package.json:6-10](file://package.json#L6-L10)
+- [package.json:6-11](file://package.json#L6-L11)
 - [src/api/client.js:10-16](file://src/api/client.js#L10-L16)
 
 **Section sources**
-- [package.json:6-10](file://package.json#L6-L10)
+- [package.json:6-11](file://package.json#L6-L11)
 - [src/api/client.js:10-16](file://src/api/client.js#L10-L16)
 
 ### ESLint Configuration for Code Quality
@@ -480,10 +553,12 @@ class ESLintConfig {
   - Automatically routes through /central-api proxy prefix in development
   - Supports custom VITE_COMPANY_MASTER_API_URL for direct access
   - Integrates with nginx proxy configuration for production
-- Mailer integration:
-  - Uses VITE_MAIL_API_URL for PHP mailer endpoint
-  - Requires VITE_MAIL_API_TOKEN for authentication
-  - Supports multiple email delivery methods (EmailJS, Gmail API, direct SMTP)
+- **Enhanced Mailer integration**:
+  - **Primary: VITE_MAIL_API_URL for PHP mailer endpoint**
+  - **Secondary: VITE_EMAILJS_* variables for EmailJS service**
+  - **Tertiary: VITE_GMAIL_CLIENT_ID and VITE_GMAIL_SENDER for Gmail API**
+  - **Supports multiple email delivery methods with automatic fallback**
+  - **Includes VITE_MAIL_RELAY_PATH for custom mail relay configuration**
 
 ```mermaid
 sequenceDiagram
@@ -492,6 +567,7 @@ participant Env as "import.meta.env"
 participant Fetch as "fetch()"
 participant API as "T-ERP API"
 participant Central as "Central Master API"
+participant Mailer as "Enhanced Mail System"
 UI->>Env : Read VITE_TERP_PROJECTS_API_URL or DEV path
 UI->>Fetch : GET projects endpoint
 Fetch->>API : HTTP request
@@ -502,12 +578,22 @@ UI->>Fetch : POST license creation
 Fetch->>API : HTTP request
 API-->>Fetch : Success/Failure
 Fetch-->>UI : Show success/error
+UI->>Mailer : Send credentials email
+Mailer->>Env : Check available transports
+Mailer->>PHPMailer : Try primary transport
+alt Primary fails
+Mailer->>EmailJS : Try secondary transport
+alt Secondary fails
+Mailer->>Gmail : Try tertiary transport
+end
+end
 ```
 
 **Diagram sources**
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 - [src/pages/TERPLogin.jsx:94-112](file://src/pages/TERPLogin.jsx#L94-L112)
 - [src/pages/TERPLogin.jsx:161-189](file://src/pages/TERPLogin.jsx#L161-L189)
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
 
 **Section sources**
 - [src/config/config.js:1-3](file://src/config/config.js#L1-L3)
@@ -575,11 +661,13 @@ App --> React["react, react-dom"]
   - Use the dev server with hot module replacement (HMR) via Vite.
   - Keep proxy rules minimal and targeted to reduce overhead.
   - Central Master API calls benefit from retry logic for improved reliability.
+  - **Use the built-in mailer development server (`npm run mailer`) for efficient email testing**.
 - Production:
   - Ensure all required environment variables are set to avoid runtime failures.
   - Leverage Vite's default production optimizations (minification, tree-shaking).
   - Avoid unnecessary large assets; consider lazy loading routes where applicable.
   - Configure nginx proxy timeouts appropriately for Central Master API calls.
+  - **Configure appropriate timeout values for email delivery methods to prevent slow responses**.
 - API layer:
   - Reuse Axios instances to minimize overhead.
   - Handle 401 responses gracefully to clear stale tokens.
@@ -588,9 +676,12 @@ App --> React["react, react-dom"]
   - Implement retry logic for network resilience against distributed API instances.
   - Cache company registration data to reduce redundant API calls.
   - Use efficient payload construction for company registration submissions.
-- Mailer integration:
-  - Use the PHP mailer relay instead of direct SMTP connections from the browser.
-  - Implement proper error handling for mail delivery failures.
+- **Enhanced mailer integration**:
+  - **Implement connection pooling for SMTP connections to improve performance**.
+  - **Use asynchronous email sending to avoid blocking the main thread**.
+  - **Implement proper error handling and retry logic for failed email deliveries**.
+  - **Cache email templates and configuration to reduce repeated API calls**.
+  - **Monitor email delivery metrics to identify performance bottlenecks**.
 - Project flags:
   - Cache project flag mappings to avoid repeated calculations.
   - Use efficient flag comparison algorithms for large project lists.
@@ -635,12 +726,28 @@ Common environment-related issues and resolutions:
   - Ensure the user-master API accepts the generated flag combinations.
   - **Updated**: Verify that Trellisco CRM project mapping (trelliscocrm -> trellisco_crm) is properly configured in both PROJECT_FLAG_BY_ENDPOINT and PROJECT_FLAG_BY_NAME objects.
 
-- Mail delivery fails:
-  - Verify that VITE_MAIL_API_URL points to the correct mailer endpoint.
-  - Check that VITE_MAIL_API_TOKEN matches the token configured in mailer/send.php.
-  - Ensure the PHP mailer script is accessible and has proper file permissions.
-  - Validate that the Hostinger SMTP credentials in mailer/send.php are correct.
-  - Check CORS configuration if the mailer is hosted on a different domain.
+- **Enhanced mail delivery issues**:
+  - **Primary transport (PHP mailer)**:
+    - Verify that VITE_MAIL_API_URL points to the correct mailer endpoint.
+    - Check that VITE_MAIL_API_TOKEN matches the token configured in mailer/send.php.
+    - Ensure the PHP mailer script is accessible and has proper file permissions.
+    - Validate that the Hostinger SMTP credentials in mailer/send.php are correct.
+    - Check CORS configuration if the mailer is hosted on a different domain.
+    - **Use `npm run mailer` to test the PHP mailer locally during development**.
+  - **Secondary transport (EmailJS)**:
+    - Verify that VITE_EMAILJS_PUBLIC_KEY, VITE_EMAILJS_SERVICE_ID, and VITE_EMAILJS_TEMPLATE_ID are configured.
+    - Check that EmailJS service is properly set up and template is configured.
+    - Validate CORS settings in EmailJS dashboard.
+  - **Tertiary transport (Gmail API)**:
+    - Verify that VITE_GMAIL_CLIENT_ID and VITE_GMAIL_SENDER are configured.
+    - Check that Google OAuth consent screen is properly configured with gmail.send scope.
+    - Ensure the authorized JavaScript origins include your application domain.
+    - Validate that the Gmail account has permission to send emails.
+  - **General mail delivery issues**:
+    - Check browser console for detailed error messages about which transport failed.
+    - Verify that at least one email transport is properly configured.
+    - Monitor email delivery logs to identify specific failure points.
+    - Test each transport method individually to isolate configuration issues.
 
 - Company registration not working:
   - Verify that VITE_COMPANY_MASTER_API_URL is correctly configured if using direct access.
@@ -663,9 +770,9 @@ Common environment-related issues and resolutions:
 - [src/pages/TERPLogin.jsx:118-120](file://src/pages/TERPLogin.jsx#L118-L120)
 - [.gitignore:9-13](file://.gitignore#L9-L13)
 - [src/config/projectFlags.js:19-38](file://src/config/projectFlags.js#L19-L38)
-- [src/api/notifications.js:363-399](file://src/api/notifications.js#L363-L399)
+- [src/api/notifications.js:357-420](file://src/api/notifications.js#L357-L420)
 - [src/api/companyMaster.js:11-15](file://src/api/companyMaster.js#L11-L15)
 - [mailer/send.php:28-37](file://mailer/send.php#L28-L37)
 
 ## Conclusion
-This application uses Vite's environment variable injection to configure API endpoints and third-party integrations across environments. The enhanced proxy system now provides comprehensive support for both T-ERP and Central Master APIs through unified proxy utilities. The development server proxies API calls to simplify local development, while production builds leverage nginx proxy configuration to handle Central Master API endpoints without CORS issues. The company registration functionality enables statutory compliance management through the Central Master API. ESLint provides consistent code quality checks. The project flags system enables automatic feature activation based on purchased T-ERP projects, including proper Trellisco CRM integration with the trelliscocrm -> trellisco_crm mapping. The mailer integration provides secure email delivery through an SMTP relay. By following the environment setup guidelines and troubleshooting steps, you can reliably configure development, staging, and production environments and maintain a smooth developer experience across all integrated services.
+This application uses Vite's environment variable injection to configure API endpoints and third-party integrations across environments. The enhanced proxy system now provides comprehensive support for both T-ERP and Central Master APIs through unified proxy utilities. The development server proxies API calls to simplify local development, while production builds leverage nginx proxy configuration to handle Central Master API endpoints without CORS issues. The company registration functionality enables statutory compliance management through the Central Master API. ESLint provides consistent code quality checks. The project flags system enables automatic feature activation based on purchased T-ERP projects, including proper Trellisco CRM integration with the trelliscocrm -> trellisco_crm mapping. **The enhanced mailer integration provides robust email delivery through multiple transport methods with intelligent fallback mechanisms, ensuring reliable communication even when individual delivery methods fail. By following the environment setup guidelines and troubleshooting steps, you can reliably configure development, staging, and production environments and maintain a smooth developer experience across all integrated services.**

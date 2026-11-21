@@ -354,67 +354,93 @@ async function sendMailViaEmailjs({ to, cc = MAIL_CC, subject, body }) {
   return { transport: "emailjs" }
 }
 
+// The relay that speaks SMTP (mailer/send.php). It answers {"ok":true,...} only
+// after Hostinger accepted the message, which is the one proof that mail left.
+async function sendMailViaRelay({ to, cc = MAIL_CC, subject, body }) {
+  let response
+  try {
+    response = await fetch(MAIL_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(MAIL_API_TOKEN ? { Authorization: `Bearer ${MAIL_API_TOKEN}` } : {}),
+      },
+      // `from` is the visible sender; the relay must own that mailbox or the
+      // receiving server will treat the message as spoofed.
+      body: JSON.stringify({
+        to,
+        cc: cc || undefined,
+        subject,
+        body,
+        from: MAIL_FROM,
+        from_name: MAIL_FROM_NAME,
+        reply_to: MAIL_FROM,
+      }),
+    })
+  } catch {
+    // A blocked request means the relay is down or the origin is refused.
+    throw new Error(
+      `The mail relay at ${MAIL_API_URL} could not be reached. Check that it is running and allows ${window.location.origin}.`,
+    )
+  }
+
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase()
+  // The SPA's own fallback answers 200 with index.html when the relay file is
+  // not deployed (or PHP is not enabled for it). That must never read as
+  // "delivered" — the customer would get nothing and nobody would notice.
+  if (contentType.includes("text/html")) {
+    throw new Error(
+      `${MAIL_API_URL} is not a working mail relay: it answered with the site's HTML page instead of JSON, ` +
+        "so mailer/send.php is not deployed there (or PHP is not enabled for it).",
+    )
+  }
+
+  const result = await response.json().catch(() => null)
+  if (!response.ok || result?.ok !== true) {
+    throw new Error(result?.error || `Mail relay rejected the message (HTTP ${response.status}).`)
+  }
+  return { transport: "mail-api", messageId: result?.messageId }
+}
+
+/**
+ * Sends the credentials mail through the first transport that accepts it. A
+ * transport that is missing or refuses (a relay file that was never uploaded, a
+ * mailbox password the SMTP server rejects) must not end the delivery attempt:
+ * the next one is tried and only the combined reason is reported.
+ */
 export async function sendCredentialsEmail({ to, cc = MAIL_CC, subject, body }) {
   if (!to) throw new Error("No customer email address is available.")
 
-  if (MAIL_API_URL) {
-    let response
+  const failures = []
+  const attempt = async (label, send) => {
     try {
-      response = await fetch(MAIL_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(MAIL_API_TOKEN ? { Authorization: `Bearer ${MAIL_API_TOKEN}` } : {}),
-        },
-        // `from` is the visible sender; the relay must own that mailbox or the
-        // receiving server will treat the message as spoofed.
-        body: JSON.stringify({
-          to,
-          cc: cc || undefined,
-          subject,
-          body,
-          from: MAIL_FROM,
-          from_name: MAIL_FROM_NAME,
-          reply_to: MAIL_FROM,
-        }),
-      })
-    } catch {
-      // A blocked request means the relay is down or the origin is refused.
-      throw new Error(
-        `The mail relay at ${MAIL_API_URL} could not be reached. Check that it is running and allows ${window.location.origin}.`,
-      )
+      return await send()
+    } catch (error) {
+      failures.push(`${label}: ${error.message}`)
+      return null
     }
-
-    const contentType = String(response.headers.get("content-type") || "").toLowerCase()
-    // The SPA's own fallback answers 200 with index.html when the relay file is
-    // not deployed (or PHP is not enabled for it). That must never read as
-    // "delivered" — the customer would get nothing and nobody would notice.
-    if (contentType.includes("text/html")) {
-      throw new Error(
-        `The mail relay at ${MAIL_API_URL} answered with the site's HTML page instead of JSON — ` +
-          "mailer/send.php is not deployed there, or PHP is not enabled for it.",
-      )
-    }
-
-    const result = await response.json().catch(() => null)
-    // Only the relay's own {"ok":true} proves the mail left.
-    if (!response.ok || result?.ok !== true) {
-      throw new Error(result?.error || `Mail relay rejected the message (HTTP ${response.status}).`)
-    }
-    return { transport: "mail-api", messageId: result?.messageId }
   }
 
+  const relayed = MAIL_API_URL && (await attempt("relay", () => sendMailViaRelay({ to, cc, subject, body })))
+  if (relayed) return relayed
+
   if (isEmailjsConfigured()) {
-    return sendMailViaEmailjs({ to, cc, subject, body })
+    const emailed = await attempt("EmailJS", () => sendMailViaEmailjs({ to, cc, subject, body }))
+    if (emailed) return emailed
   }
 
   if (GMAIL_CLIENT_ID) {
-    await sendMailViaGmail({ to, cc, subject, body })
-    return { transport: "gmail" }
+    const sent = await attempt("Gmail", async () => {
+      await sendMailViaGmail({ to, cc, subject, body })
+      return { transport: "gmail" }
+    })
+    if (sent) return sent
   }
 
   throw new Error(
-    "Email is not configured: point VITE_MAIL_API_URL at mailer/send.php (the relay that speaks SMTP), " +
-      "or set VITE_EMAILJS_* , or VITE_GMAIL_CLIENT_ID in .env.",
+    failures.length
+      ? `No transport delivered the mail — ${failures.join(" · ")}`
+      : "Email is not configured: upload mailer/send.php (the relay that speaks SMTP), " +
+          "or set VITE_EMAILJS_* , or VITE_GMAIL_CLIENT_ID in .env.",
   )
 }
