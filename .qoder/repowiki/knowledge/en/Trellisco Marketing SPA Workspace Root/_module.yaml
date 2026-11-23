@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: ""
-title: Trellisco Marketing SPA Root
+title: Trellisco Marketing SPA Workspace Root
 scope:
     - README.md
     - .gitignore

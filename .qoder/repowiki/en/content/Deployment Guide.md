@@ -13,15 +13,17 @@
 - [src/api/proxy.js](file://src/api/proxy.js)
 - [src/api/terpLicense.js](file://src/api/terpLicense.js)
 - [src/api/userMaster.js](file://src/api/userMaster.js)
+- [mailer/send.php](file://mailer/send.php)
+- [src/api/notifications.js](file://src/api/notifications.js)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive nginx CORS proxy configuration section for production deployment
-- Updated T-ERP Login flow documentation with proxy requirements
-- Enhanced troubleshooting guide with CORS-related issues
-- Added detailed deployment instructions for nginx-based hosting platforms
-- Updated architecture diagrams to reflect production proxy setup
+- Enhanced Nginx CORS proxy configuration documentation with detailed mail relay setup instructions
+- Added comprehensive mail relay configuration section for PHP-based email delivery
+- Updated troubleshooting guide with clearer error scenarios for mail relay issues
+- Expanded nginx deployment instructions to include mail relay server block configuration
+- Added detailed security considerations for mail relay token management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -38,7 +40,7 @@
 ## Introduction
 This guide documents how to build, optimize, deploy, and operate the TRELLISCO_ERP_FRONTEND application. The project is a React application built with Vite. It uses environment variables for API configuration, supports development proxying, and exposes production build artifacts suitable for static hosting, CDN delivery, or containerized deployment.
 
-**Updated** Added critical nginx CORS proxy configuration requirements for production deployment of T-ERP Login feature.
+**Updated** Enhanced with comprehensive Nginx CORS proxy configuration and mail relay setup for production deployment of T-ERP Login feature and credentials email delivery.
 
 Key goals covered:
 - Build process using Vite for production optimization
@@ -46,7 +48,8 @@ Key goals covered:
 - Bundle analysis guidance
 - Deployment strategies for static sites, CDNs, and containers
 - Environment variable configuration and API endpoint setup
-- **New**: Nginx CORS proxy configuration for production
+- **Enhanced**: Nginx CORS proxy configuration for production
+- **New**: Mail relay setup for credentials email delivery
 - Security considerations
 - Monitoring, logging, performance monitoring, and maintenance
 - CI/CD integration, automated testing, and rollback strategies
@@ -63,7 +66,8 @@ The repository follows a standard Vite + React layout:
   - components: reusable UI components
   - assets: static media
 - Root configuration files: package.json, vite.config.js, README.md
-- **New**: Production deployment configurations under deploy/
+- Production deployment configurations under deploy/
+- **New**: Mail relay implementation under mailer/
 
 ```mermaid
 graph TB
@@ -79,13 +83,16 @@ A --> J["vite.config.js"]
 A --> K["README.md"]
 A --> L["deploy/"]
 L --> M["nginx-cors-proxy.conf"]
+A --> N["mailer/"]
+N --> O["send.php"]
 ```
 
 **Section sources**
-- [package.json:1-33](file://package.json#L1-L33)
+- [package.json:1-34](file://package.json#L1-L34)
 - [vite.config.js:1-36](file://vite.config.js#L1-L36)
 - [README.md:1-17](file://README.md#L1-L17)
-- [deploy/nginx-cors-proxy.conf:1-51](file://deploy/nginx-cors-proxy.conf#L1-L51)
+- [deploy/nginx-cors-proxy.conf:1-79](file://deploy/nginx-cors-proxy.conf#L1-L79)
+- [mailer/send.php:1-257](file://mailer/send.php#L1-L257)
 
 ## Core Components
 This section focuses on the build system, configuration, and API client layers that directly affect deployment.
@@ -94,7 +101,8 @@ This section focuses on the build system, configuration, and API client layers t
 - Development server proxy for local API calls
 - Environment-driven API base URLs
 - Axios-based HTTP clients with token handling
-- **New**: Production CORS proxy configuration for external APIs
+- **Enhanced**: Production CORS proxy configuration for external APIs
+- **New**: Mail relay system for credentials email delivery
 
 ```mermaid
 flowchart TD
@@ -106,14 +114,17 @@ Client --> TERP
 Prod["Production Nginx"] --> NginxProxy["Nginx CORS Proxy"]
 NginxProxy --> TERP
 NginxProxy --> Central["Central Master API"]
+Prod --> MailRelay["Mail Relay (PHP)"]
+MailRelay --> SMTP["Hostinger SMTP"]
 ```
 
 **Diagram sources**
 - [vite.config.js:7-33](file://vite.config.js#L7-L33)
-- [deploy/nginx-cors-proxy.conf:24-50](file://deploy/nginx-cors-proxy.conf#L24-L50)
+- [deploy/nginx-cors-proxy.conf:26-52](file://deploy/nginx-cors-proxy.conf#L26-L52)
+- [mailer/send.php:20-26](file://mailer/send.php#L20-L26)
 
 **Section sources**
-- [package.json:6-11](file://package.json#L6-L11)
+- [package.json:6-12](file://package.json#L6-L12)
 - [vite.config.js:1-36](file://vite.config.js#L1-L36)
 
 ## Architecture Overview
@@ -122,8 +133,9 @@ At runtime, the frontend consumes multiple APIs:
 - T-ERP endpoints for projects and license creation
 - Central Master API for user management
 - Google Identity Services for sign-in
+- **New**: Mail relay for credentials email delivery
 
-**Updated** Production architecture now includes nginx CORS proxy for external API access.
+**Updated** Production architecture now includes nginx CORS proxy for external API access and mail relay for email delivery.
 
 ```mermaid
 graph TB
@@ -132,25 +144,31 @@ FE["React App (Vite)"]
 AC["Admin API Client"]
 PC["Public API Client"]
 TL["TERP Login Page"]
+NM["Notifications API"]
 end
 subgraph "Backends"
 BE["Django API"]
 TERP["T-ERP API"]
 CENTRAL["Central Master API"]
 GSI["Google Identity Services"]
+SMTP["Hostinger SMTP"]
 end
 subgraph "Production Infrastructure"
 NGINX["Nginx Server"]
 PROXY["CORS Proxy"]
+MAILRELAY["Mail Relay (PHP)"]
 end
 FE --> AC
 FE --> PC
 FE --> TL
+FE --> NM
 AC --> BE
 PC --> BE
 TL --> PROXY
+NM --> MAILRELAY
 PROXY --> TERP
 PROXY --> CENTRAL
+MAILRELAY --> SMTP
 TL --> GSI
 ```
 
@@ -158,7 +176,9 @@ TL --> GSI
 - [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
 - [src/api/api.js:1-39](file://src/api/api.js#L1-L39)
 - [src/pages/TERPLogin.jsx:1-636](file://src/pages/TERPLogin.jsx#L1-L636)
-- [deploy/nginx-cors-proxy.conf:24-50](file://deploy/nginx-cors-proxy.conf#L24-L50)
+- [deploy/nginx-cors-proxy.conf:26-52](file://deploy/nginx-cors-proxy.conf#L26-L52)
+- [mailer/send.php:204-243](file://mailer/send.php#L204-L243)
+- [src/api/notifications.js:357-403](file://src/api/notifications.js#L357-L403)
 
 ## Detailed Component Analysis
 
@@ -167,6 +187,7 @@ TL --> GSI
   - Development: runs Vite dev server with hot module replacement
   - Build: produces optimized static assets for production
   - Preview: serves the production build locally
+  - **New**: Mailer: starts PHP development server for mail relay testing
 - Plugins:
   - React plugin enables JSX support and optimizations
 - Output:
@@ -175,9 +196,10 @@ TL --> GSI
 Operational notes:
 - Use npm run build to generate production assets
 - Use npm run preview to validate the production build locally before deploying
+- Use npm run mailer to start local mail relay server for development
 
 **Section sources**
-- [package.json:6-11](file://package.json#L6-L11)
+- [package.json:6-12](file://package.json#L6-L12)
 - [package.json:20-31](file://package.json#L20-L31)
 - [README.md:1-17](file://README.md#L1-L17)
 
@@ -188,10 +210,16 @@ Environment variables are used to configure API endpoints at build time:
 - VITE_TERP_PROJECTS_API_URL: T-ERP projects endpoint in production
 - VITE_TERP_LICENSE_CREATE_API_URL: T-ERP license creation endpoint in production
 - VITE_GOOGLE_CLIENT_ID: Google Identity Services client ID
+- **New**: VITE_MAIL_API_URL: Mail relay endpoint URL
+- **New**: VITE_MAIL_API_TOKEN: Mail relay authentication token
+- **New**: VITE_MAIL_FROM: Sender email address
+- **New**: VITE_MAIL_FROM_NAME: Sender display name
+- **New**: VITE_MAIL_CC: CC email address for notifications
 
 Behavior:
 - In development, the Vite dev server proxies /api and /terp-api to local and external backends
 - In production builds, missing required variables can cause explicit errors to prevent misconfiguration
+- **New**: Mail relay configuration allows flexible email delivery through multiple transport methods
 
 ```mermaid
 flowchart TD
@@ -210,6 +238,7 @@ Build --> Deploy["Deploy Static Assets"]
 - [src/api/client.js:1-88](file://src/api/client.js#L1-L88)
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 - [src/pages/TERPLogin.jsx:118-120](file://src/pages/TERPLogin.jsx#L118-L120)
+- [src/api/notifications.js:17-38](file://src/api/notifications.js#L17-L38)
 
 ### API Clients and Authentication Flow
 Two primary HTTP clients are provided:
@@ -276,13 +305,13 @@ NGINX-->>Page : Response
 - [src/pages/TERPLogin.jsx:35-57](file://src/pages/TERPLogin.jsx#L35-L57)
 - [src/pages/TERPLogin.jsx:94-112](file://src/pages/TERPLogin.jsx#L94-L112)
 - [src/pages/TERPLogin.jsx:161-190](file://src/pages/TERPLogin.jsx#L161-L190)
-- [deploy/nginx-cors-proxy.conf:24-37](file://deploy/nginx-cors-proxy.conf#L24-L37)
+- [deploy/nginx-cors-proxy.conf:26-39](file://deploy/nginx-cors-proxy.conf#L26-L39)
 
 **Section sources**
 - [src/pages/TERPLogin.jsx:1-636](file://src/pages/TERPLogin.jsx#L1-L636)
 
 ### Production CORS Proxy Configuration
-**New Section**
+**Enhanced Section**
 
 For production deployment, nginx must be configured as a CORS proxy to handle requests to external APIs that don't send proper CORS headers. The T-ERP and Central Master APIs require this proxy setup because they don't respond with Access-Control-* headers.
 
@@ -326,8 +355,70 @@ The proxy configuration includes:
 - Cloudflare compatibility notes for DNS resolution
 
 **Section sources**
-- [deploy/nginx-cors-proxy.conf:1-51](file://deploy/nginx-cors-proxy.conf#L1-L51)
+- [deploy/nginx-cors-proxy.conf:1-79](file://deploy/nginx-cors-proxy.conf#L1-L79)
 - [src/api/proxy.js:1-56](file://src/api/proxy.js#L1-L56)
+
+### Mail Relay Configuration
+**New Section**
+
+The application includes a PHP-based mail relay system for sending credentials emails through Hostinger's SMTP service. This system provides secure email delivery without exposing SMTP credentials in the browser.
+
+#### Mail Relay Architecture
+
+The mail relay system consists of:
+- PHP script (`mailer/send.php`) that handles SMTP communication
+- Nginx configuration to serve the PHP file securely
+- Frontend integration through the notifications API
+- Multiple transport fallback mechanisms (relay → EmailJS → Gmail API)
+
+#### Installation Steps
+
+1. Install PHP-FPM:
+   ```bash
+   sudo apt install -y php8.3-fpm
+   ```
+
+2. Configure nginx to serve the mail relay:
+   ```nginx
+   location = /mailer/send.php {
+       root           /var/www/TRELLISCO_ERP_FRONTEND;
+       include        snippets/fastcgi-php.conf;
+       fastcgi_pass   unix:/run/php/php8.3-fpm.sock;
+   }
+
+   # Block direct access to mailer directory
+   location /mailer/ {
+       return 403;
+   }
+   ```
+
+3. Test and reload nginx:
+   ```bash
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+
+#### Security Configuration
+
+The mail relay includes several security measures:
+- Token-based authentication using `VITE_MAIL_API_TOKEN`
+- Origin validation for CORS requests
+- Input sanitization to prevent header injection
+- Rate limiting and size restrictions
+- Secure SMTP connection with certificate verification
+
+#### Environment Variables
+
+Configure the following environment variables:
+- `VITE_MAIL_API_URL`: URL to the mail relay endpoint
+- `VITE_MAIL_API_TOKEN`: Secret token for authenticating mail relay requests
+- `VITE_MAIL_FROM`: Sender email address (must match SMTP configuration)
+- `VITE_MAIL_FROM_NAME`: Display name for sender
+- `VITE_MAIL_CC`: CC email address for notifications
+
+**Section sources**
+- [mailer/send.php:1-257](file://mailer/send.php#L1-L257)
+- [src/api/notifications.js:23-38](file://src/api/notifications.js#L23-L38)
+- [src/api/notifications.js:357-403](file://src/api/notifications.js#L357-L403)
 
 ## Dependency Analysis
 Runtime dependencies relevant to deployment:
@@ -373,7 +464,8 @@ Recommendations:
 - Configure long-term caching for hashed assets
 - Monitor bundle sizes and identify large dependencies
 - Use lazy loading for heavy features where possible
-- **New**: Ensure nginx proxy timeouts are appropriate for API response times
+- **Enhanced**: Ensure nginx proxy timeouts are appropriate for API response times
+- **New**: Optimize mail relay performance with proper PHP-FPM configuration
 
 [No sources needed since this section provides general guidance]
 
@@ -393,7 +485,7 @@ Common deployment issues and resolutions:
 - Local development proxy:
   - When running locally, /api and /terp-api are proxied; ensure target hosts are reachable
 
-**New** Production CORS Proxy Issues:
+**Enhanced** Production CORS Proxy Issues:
 - **Symptom**: T-ERP login functionality works in development but fails in production
 - **Cause**: Missing nginx CORS proxy configuration
 - **Resolution**: 
@@ -405,18 +497,38 @@ Common deployment issues and resolutions:
 - **Cause**: Nginx proxy not configured, SPA fallback serving index.html
 - **Resolution**: Ensure nginx proxy locations are properly configured and active
 
+**New** Mail Relay Issues:
+- **Symptom**: Credentials email not sent despite successful account creation
+- **Cause**: Mail relay not properly configured or PHP not enabled
+- **Resolution**:
+  1. Verify PHP-FPM is installed and running: `systemctl status php8.3-fpm`
+  2. Check nginx configuration for mail relay location blocks
+  3. Test mail relay endpoint: `curl -X POST http://localhost/mailer/send.php`
+  4. Verify VITE_MAIL_API_URL and VITE_MAIL_API_TOKEN are correctly configured
+- **Symptom**: Mail relay returns HTML instead of JSON
+- **Cause**: PHP not enabled for the mail relay endpoint or incorrect nginx configuration
+- **Resolution**: Ensure PHP-FPM is properly configured and the mail relay location block is active
+- **Symptom**: SMTP authentication failures
+- **Cause**: Incorrect SMTP credentials in mailer/send.php
+- **Resolution**: Update SMTP_HOST, SMTP_USER, and SMTP_PASS constants in mailer/send.php
+- **Symptom**: CORS errors when calling mail relay
+- **Cause**: Origin not allowed in mail relay configuration
+- **Resolution**: Add your domain to ALLOWED_ORIGINS array in mailer/send.php
+
 **Section sources**
 - [src/api/client.js:10-19](file://src/api/client.js#L10-L19)
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 - [src/pages/TERPLogin.jsx:118-120](file://src/pages/TERPLogin.jsx#L118-L120)
 - [vite.config.js:7-33](file://vite.config.js#L7-L33)
-- [deploy/nginx-cors-proxy.conf:1-51](file://deploy/nginx-cors-proxy.conf#L1-L51)
+- [deploy/nginx-cors-proxy.conf:1-79](file://deploy/nginx-cors-proxy.conf#L1-L79)
 - [src/api/proxy.js:45-55](file://src/api/proxy.js#L45-L55)
+- [mailer/send.php:31-37](file://mailer/send.php#L31-L37)
+- [src/api/notifications.js:387-396](file://src/api/notifications.js#L387-L396)
 
 ## Conclusion
 The TRELLISCO_ERP_FRONTEND application is designed for straightforward deployment across multiple environments. By configuring environment variables for API endpoints and leveraging Vite's production build, you can deliver optimized static assets to any hosting platform. 
 
-**Updated** Proper nginx CORS proxy configuration is essential for production deployment to handle external API requests that don't support CORS. Security practices, such as enforcing required variables and managing tokens securely, along with robust CI/CD pipelines, will ensure reliable releases and easy rollbacks.
+**Updated** Proper nginx CORS proxy configuration is essential for production deployment to handle external API requests that don't support CORS. The enhanced mail relay system provides secure credentials email delivery through Hostinger's SMTP service. Security practices, such as enforcing required variables and managing tokens securely, along with robust CI/CD pipelines, will ensure reliable releases and easy rollbacks.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
@@ -427,9 +539,10 @@ The TRELLISCO_ERP_FRONTEND application is designed for straightforward deploymen
 - Run development server: npm run dev
 - Build production assets: npm run build
 - Preview production build locally: npm run preview
+- **New**: Start mail relay server: npm run mailer
 
 **Section sources**
-- [package.json:6-11](file://package.json#L6-L11)
+- [package.json:6-12](file://package.json#L6-L12)
 
 ### Environment Variables Reference
 - VITE_API_BASE_URL: Required in production; must include /api
@@ -437,12 +550,18 @@ The TRELLISCO_ERP_FRONTEND application is designed for straightforward deploymen
 - VITE_TERP_PROJECTS_API_URL: T-ERP projects endpoint
 - VITE_TERP_LICENSE_CREATE_API_URL: T-ERP license creation endpoint
 - VITE_GOOGLE_CLIENT_ID: Google Identity Services client ID
+- **New**: VITE_MAIL_API_URL: Mail relay endpoint URL
+- **New**: VITE_MAIL_API_TOKEN: Mail relay authentication token
+- **New**: VITE_MAIL_FROM: Sender email address
+- **New**: VITE_MAIL_FROM_NAME: Sender display name
+- **New**: VITE_MAIL_CC: CC email address for notifications
 
 **Section sources**
 - [src/config/config.js:1-3](file://src/config/config.js#L1-L3)
 - [src/api/client.js:4-19](file://src/api/client.js#L4-L19)
 - [src/pages/TERPLogin.jsx:7-12](file://src/pages/TERPLogin.jsx#L7-L12)
 - [src/pages/TERPLogin.jsx:118-120](file://src/pages/TERPLogin.jsx#L118-L120)
+- [src/api/notifications.js:17-38](file://src/api/notifications.js#L17-L38)
 
 ### Deployment Strategies
 
@@ -464,14 +583,15 @@ The TRELLISCO_ERP_FRONTEND application is designed for straightforward deploymen
 - Note: Since variables are baked into the build, inject them before building or use a runtime configuration loader if you need runtime overrides
 
 #### Nginx-Based Deployment
-**New Section**
+**Enhanced Section**
 
-For nginx-based deployments, you must configure both the static file serving and the CORS proxy:
+For nginx-based deployments, you must configure both the static file serving, CORS proxy, and mail relay:
 
 1. **Serve static files**: Configure nginx to serve the dist directory
 2. **Configure CORS proxy**: Add the CORS proxy configuration from `deploy/nginx-cors-proxy.conf`
-3. **Handle SPA routing**: Configure try_files to serve index.html for client-side routing
-4. **SSL termination**: Configure SSL certificates and HTTPS
+3. **Configure mail relay**: Add PHP-FPM configuration for mail relay
+4. **Handle SPA routing**: Configure try_files to serve index.html for client-side routing
+5. **SSL termination**: Configure SSL certificates and HTTPS
 
 Example nginx server block structure:
 ```nginx
@@ -489,13 +609,26 @@ server {
     
     # Include CORS proxy configuration
     include /etc/nginx/conf.d/cors-proxy.conf;
+    
+    # Configure mail relay
+    location = /mailer/send.php {
+        root           /var/www/TRELLISCO_ERP_FRONTEND;
+        include        snippets/fastcgi-php.conf;
+        fastcgi_pass   unix:/run/php/php8.3-fpm.sock;
+    }
+    
+    # Block direct access to mailer directory
+    location /mailer/ {
+        return 403;
+    }
 }
 ```
 
 **Section sources**
-- [package.json:6-11](file://package.json#L6-L11)
+- [package.json:6-12](file://package.json#L6-L12)
 - [vite.config.js:7-33](file://vite.config.js#L7-L33)
-- [deploy/nginx-cors-proxy.conf:1-51](file://deploy/nginx-cors-proxy.conf#L1-L51)
+- [deploy/nginx-cors-proxy.conf:1-79](file://deploy/nginx-cors-proxy.conf#L1-L79)
+- [mailer/send.php:69-78](file://mailer/send.php#L69-L78)
 
 ### CI/CD Pipeline Integration
 Recommended pipeline stages:
@@ -523,7 +656,8 @@ Rollback strategies:
 - Performance monitoring: Track core web vitals and bundle metrics
 - API observability: Log request/response metadata (without sensitive data) and correlate with backend logs
 - Uptime monitoring: Use synthetic checks to verify critical endpoints and pages
-- **New**: Monitor nginx proxy health and CORS proxy functionality
+- **Enhanced**: Monitor nginx proxy health and CORS proxy functionality
+- **New**: Monitor mail relay success/failure rates and SMTP connectivity
 
 [No sources needed since this section provides general guidance]
 
@@ -533,12 +667,13 @@ Rollback strategies:
 - Rotate secrets and credentials regularly
 - Review and prune unused routes and features
 - Periodically test disaster recovery and rollback procedures
-- **New**: Verify nginx CORS proxy configuration remains compatible with upstream API changes
+- **Enhanced**: Verify nginx CORS proxy configuration remains compatible with upstream API changes
+- **New**: Monitor mail relay configuration and SMTP credential validity
 
 [No sources needed since this section provides general guidance]
 
 ### Nginx CORS Proxy Configuration Reference
-**New Section**
+**Enhanced Section**
 
 The complete nginx CORS proxy configuration is available in `deploy/nginx-cors-proxy.conf`. Key configuration elements include:
 
@@ -548,6 +683,7 @@ The complete nginx CORS proxy configuration is available in `deploy/nginx-cors-p
 - **Request forwarding**: Standard proxy headers for IP and protocol information
 - **Timeouts**: Configurable connection and read timeouts
 - **DNS resolution**: Optional resolver configuration for dynamic DNS updates
+- **New**: Mail relay configuration sections for PHP-FPM integration
 
 Installation commands:
 ```bash
@@ -559,4 +695,4 @@ sudo systemctl reload nginx
 ```
 
 **Section sources**
-- [deploy/nginx-cors-proxy.conf:1-51](file://deploy/nginx-cors-proxy.conf#L1-L51)
+- [deploy/nginx-cors-proxy.conf:1-79](file://deploy/nginx-cors-proxy.conf#L1-L79)

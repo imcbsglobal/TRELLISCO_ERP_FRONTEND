@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import TrelliscoLogo from "../assets/Trellisco logo 2.png";
 import HrImg from "../assets/Hr.png";
-// import CrmImg from "../assets/ChatGPT Image Sep 16, 2026, 10_40_36 AM.png"; // hidden
+// import CrmImg from "../assets/ChatGPTT Image Sep 16, 2026, 10_40_36 AM.png"; // hidden
 // import AssetImg from "../assets/ChatGPT Image Sep 16, 2026, 10_44_40 AM.png"; // hidden
 import ClaudesImg from "../assets/ChatGPT Image Sep 14, 2026, 10_23_27 AM.png";
 import MeloneLiteImg from "../assets/ChatGPT Image Sep 16, 2026, 11_09_30 AM.png";
