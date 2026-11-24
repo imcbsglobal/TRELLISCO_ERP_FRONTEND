@@ -7,6 +7,7 @@
 - [src/App.jsx](file://src/App.jsx)
 - [src/pages/AdminDashboard/Login.jsx](file://src/pages/AdminDashboard/Login.jsx)
 - [src/pages/TERPLogin.jsx](file://src/pages/TERPLogin.jsx)
+- [src/pages/TERPLogin.scss](file://src/pages/TERPLogin.scss)
 - [src/components/CredentialsModal.jsx](file://src/components/CredentialsModal.jsx)
 - [src/api/terpLicense.js](file://src/api/terpLicense.js)
 - [src/api/userMaster.js](file://src/api/userMaster.js)
@@ -17,11 +18,10 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced T-ERP login form with stricter validation requirements (GSTIN and PAN now mandatory)
-- Added support for alternateClientIds parameter to handle multiple client ID scenarios
-- Improved logo upload validation accepting only PNG/JPG/WebP formats with enhanced error handling
-- Integrated new pushCompanyMaster function for fresh company registrations during signup flow
-- Strengthened form validation with comprehensive field-level error handling and real-time feedback
+- Enhanced Google Sign-In UI with custom branded button implementation replacing default iframe-based button
+- Added documentation for new custom-styled 'Continue with Google' button with SVG logo
+- Updated accessibility attributes and responsive design considerations
+- Maintained existing OAuth functionality while improving user experience
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -46,7 +46,7 @@
 ## Introduction
 This document explains the comprehensive authentication and authorization system implemented in the TRELLISCO ERP frontend application. The system now supports two distinct authentication flows with enhanced performance optimizations, robust license validation, and integrated company registration:
 
-1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In, project selection, automatic workspace recognition, financial year management, automated credential delivery, and integrated company registration with optimized data loading and enhanced client ID-based license validation
+1. **T-ERP Customer Onboarding**: A sophisticated multi-step process using Google Sign-In with custom branded UI, project selection, automatic workspace recognition, financial year management, automated credential delivery, and integrated company registration with optimized data loading and enhanced client ID-based license validation
 2. **Traditional Admin Authentication**: Standard email/password authentication for administrative access
 
 The system integrates with multiple external services including Google Identity Services, WhatsApp messaging, email delivery systems, Central Master platform for financial year and country management, and the Central Master company register for comprehensive business entity management.
@@ -57,7 +57,7 @@ The application implements a dual authentication architecture with enhanced perf
 ```mermaid
 graph TB
 subgraph "Customer Onboarding Flow"
-GOOGLE["Google Sign-In<br/>(OAuth 2.0)"]
+GOOGLE["Google Sign-In<br/>(OAuth 2.0)<br/>with Custom Branded UI"]
 PREFETCH["Prefetch Registers<br/>(Client Directory + License Register)"]
 PROJECTS["Project Selection<br/>(T-ERP Catalogue)"]
 COUNTRY["Country Selection<br/>(Financial Year Register)"]
@@ -83,35 +83,84 @@ TRADITIONAL --> ADMIN_TOKEN --> PROTECTED
 - [src/App.jsx:15-74](file://src/App.jsx#L15-L74)
 
 ## Google Sign-In Integration
-The Google Sign-In integration provides secure authentication for T-ERP customer onboarding:
+The Google Sign-In integration provides secure authentication for T-ERP customer onboarding with an enhanced custom-branded user interface:
 
-### Google Identity Services Setup
+### Custom Branded Button Implementation
+The system now uses a custom-styled "Continue with Google" button that replaces the default iframe-based button while maintaining full OAuth functionality:
+
 ```javascript
-// Dynamic loading of Google Identity Services
-const GOOGLE_SCRIPT = "https://accounts.google.com/gsi/client"
+// Custom branded button with SVG logo and enhanced accessibility
+<div className="terp-login__google-btn">
+  <svg className="terp-login__google-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+  </svg>
+  <span className="terp-login__google-label">Continue with Google</span>
+  <div className="terp-login__google-hit" ref={googleButtonRef} />
+</div>
+```
 
-function loadGoogleScript() {
-  return new Promise((resolve, reject) => {
-    if (window.google?.accounts?.id) {
-      resolve()
-      return
-    }
+### Hybrid Button Architecture
+The implementation uses a hybrid approach where the custom button serves as the visible UI while an invisible iframe handles the actual Google authentication:
 
-    const existing = document.querySelector(`script[src="${GOOGLE_SCRIPT}"]`)
-    if (existing) {
-      existing.addEventListener("load", resolve, { once: true })
-      existing.addEventListener("error", reject, { once: true })
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = GOOGLE_SCRIPT
-    script.async = true
-    script.defer = true
-    script.onload = resolve
-    script.onerror = reject
-    document.head.appendChild(script)
+```javascript
+const paintGoogleButton = () => {
+  const host = googleButtonRef.current
+  if (!window.google?.accounts?.id || !host) return
+  const width = Math.min(360, Math.max(200, Math.floor(host.clientWidth || 360)))
+  // renderButton appends a fresh iframe on every call, so a resize repaint
+  // has to clear the previous one instead of stacking them.
+  host.replaceChildren()
+  window.google.accounts.id.renderButton(host, {
+    theme: "outline",
+    size: "large",
+    width,
+    text: "continue_with",
+    logo_alignment: "center",
   })
+  // Google personalises this button with the signed-in account ("Continue as
+  // Arun") and offers no switch to turn that off. The iframe is therefore kept
+  // invisible underneath our own label and only serves as the click surface.
+  host.querySelectorAll("iframe").forEach((node) => {
+    node.setAttribute("title", "Continue with Google")
+  })
+}
+```
+
+### Enhanced Accessibility Features
+The custom button includes comprehensive accessibility attributes:
+
+- **ARIA Labels**: Proper `aria-label` attributes for screen readers
+- **Focus Management**: Keyboard navigation support with proper focus states
+- **Screen Reader Support**: Hidden iframe elements with descriptive titles
+- **Semantic HTML**: Proper use of semantic elements and roles
+
+### Responsive Design Implementation
+The button adapts seamlessly across different screen sizes:
+
+```css
+.terp-login__google-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 360px;
+  height: 40px;
+  padding: 0 1.1rem;
+  border: 1px solid #d7dee8;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 34, 64, 0.06);
+  color: #3c4043;
+  font-size: 0.94rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 ```
 
@@ -134,8 +183,10 @@ window.google.accounts.id.initialize({
 ```
 
 **Section sources**
-- [src/pages/TERPLogin.jsx:63-85](file://src/pages/TERPLogin.jsx#L63-L85)
-- [src/pages/TERPLogin.jsx:157-178](file://src/pages/TERPLogin.jsx#L157-L178)
+- [src/pages/TERPLogin.jsx:123-145](file://src/pages/TERPLogin.jsx#L123-L145)
+- [src/pages/TERPLogin.jsx:226-285](file://src/pages/TERPLogin.jsx#L226-L285)
+- [src/pages/TERPLogin.jsx:1112-1121](file://src/pages/TERPLogin.jsx#L1112-L1121)
+- [src/pages/TERPLogin.scss:371-425](file://src/pages/TERPLogin.scss#L371-L425)
 
 ## Financial Year and Country Management System
 The financial year and country management system integrates with Central Master to provide country-specific financial year configurations:
@@ -218,8 +269,10 @@ useEffect(() => {
 ## Enhanced T-ERP Login Flow
 The enhanced login flow now includes financial year management, improved country handling, advanced client ID-based license validation with optimized data loading, and integrated company registration with comprehensive validation requirements:
 
-### Step 1: Google Authentication
+### Step 1: Google Authentication with Custom UI
 - Dynamic loading of Google Identity Services
+- Custom branded "Continue with Google" button with SVG logo
+- Enhanced accessibility and responsive design
 - OAuth 2.0 token exchange
 - User profile extraction from JWT payload
 - Automatic form population with Google identity data
@@ -255,7 +308,7 @@ The enhanced login flow now includes financial year management, improved country
 
 ```mermaid
 flowchart TD
-Start(["TERP Login Page"]) --> GoogleAuth["Google Sign-In"]
+Start(["TERP Login Page"]) --> GoogleAuth["Google Sign-In<br/>(Custom Branded UI)"]
 GoogleAuth --> Prefetch["Prefetch T-ERP Registers"]
 Prefetch --> ProjectSelection["Select Projects & Packages"]
 ProjectSelection --> CountryCheck["Load Available Countries"]
@@ -766,10 +819,12 @@ function RequireAuth({ children }) {
 ## Security Considerations
 The authentication system implements multiple security measures with enhanced financial year protection, client ID-based validation, and comprehensive company data security:
 
-### Google Sign-In Security
-- JWT token verification on server-side recommended
-- Secure handling of OAuth consent popups
-- Proper error handling for authentication failures
+### Enhanced Google Sign-In Security
+- **Custom Branded UI**: Replaces default iframe-based button with custom styled button while maintaining security
+- **JWT token verification on server-side recommended**
+- **Secure handling of OAuth consent popups**
+- **Proper error handling for authentication failures**
+- **Enhanced accessibility with proper ARIA attributes**
 
 ### Financial Year Data Security
 - Country data validation against Central Master registry
@@ -842,9 +897,10 @@ Several optimizations are implemented for better performance:
 Common issues and their solutions:
 
 ### Google Sign-In Issues
-- **Problem**: Google Sign-In button not loading
+- **Problem**: Custom Google Sign-In button not loading
   - **Solution**: Check VITE_GOOGLE_CLIENT_ID environment variable
   - **Solution**: Verify Google Cloud Console OAuth configuration
+  - **Solution**: Ensure custom button styling is properly applied
 
 - **Problem**: OAuth consent popup blocked
   - **Solution**: Allow popups for the site in browser settings
@@ -896,6 +952,17 @@ Common issues and their solutions:
   - **Solution**: Verify file size is under 2MB limit
   - **Solution**: Check that file type is properly detected by browser
 
+### Custom Button Issues
+- **Problem**: Custom Google button not responding to clicks
+  - **Solution**: Verify the invisible iframe hit area is properly positioned
+  - **Solution**: Check CSS z-index and positioning styles
+  - **Solution**: Ensure Google script is properly loaded
+
+- **Problem**: Accessibility issues with custom button
+  - **Solution**: Verify ARIA attributes are properly set
+  - **Solution**: Test with screen readers and keyboard navigation
+  - **Solution**: Ensure proper focus management
+
 ### Credential Delivery Issues
 - **Problem**: WhatsApp messages not delivered
   - **Solution**: Verify VITE_WHATSAPP_SECRET and VITE_WHATSAPP_ACCOUNT
@@ -919,9 +986,11 @@ Common issues and their solutions:
 - [src/api/notifications.js:165-186](file://src/api/notifications.js#L165-L186)
 
 ## Conclusion
-The TRELLISCO ERP frontend now implements a comprehensive authentication and authorization system that supports both traditional admin access and modern customer onboarding through Google Sign-In. The system provides:
+The TRELLISCO ERP frontend now implements a comprehensive authentication and authorization system that supports both traditional admin access and modern customer onboarding through Google Sign-In with enhanced custom-branded UI. The system provides:
 
 - **Dual Authentication Flows**: Supporting both T-ERP customers and administrators
+- **Enhanced Customer Onboarding**: With Google Sign-In featuring custom branded UI, project selection, financial year management, automated credential delivery, and integrated company registration
+- **Custom Branded Google Sign-In**: Replacing default iframe-based button with custom styled "Continue with Google" button featuring SVG logo, enhanced accessibility, and responsive design
 - **Advanced Customer Onboarding**: With Google Sign-In, project selection, financial year management, automated credential delivery, and integrated company registration
 - **Enhanced Form Validation**: With mandatory GSTIN and PAN validation, strict format checking, and comprehensive field-level error handling
 - **Improved Logo Upload Validation**: Accepting only PNG/JPG/WebP formats with enhanced error handling and size limits
@@ -941,4 +1010,4 @@ The TRELLISCO ERP frontend now implements a comprehensive authentication and aut
 - **Integrated Company Master API**: Complete business entity registration with GSTIN, PAN, and comprehensive address management
 - **New pushCompanyMaster Function**: Dedicated function for fresh company registrations during the signup flow
 
-The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements. The enhanced validation requirements and improved error handling make the system more robust and user-friendly, reducing form submission failures and providing clearer feedback to users.
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements. The enhanced validation requirements and improved error handling make the system more robust and user-friendly, reducing form submission failures and providing clearer feedback to users. The custom branded Google Sign-In button provides a professional, accessible, and responsive user experience while maintaining full OAuth functionality and security.
