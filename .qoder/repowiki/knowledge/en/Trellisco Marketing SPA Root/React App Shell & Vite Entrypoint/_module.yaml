@@ -1,6 +1,6 @@
 schema_version: 1
 module_path: app_shell
-title: Trellisco React App Shell
+title: React App Shell & Vite Entrypoint
 scope:
     - src/App.jsx
     - src/main.jsx

@@ -65,12 +65,12 @@ $bp-xl: 1280px; // centred page, roomier gutters
   gap: clamp(1.1rem, 4vw, 1.9rem);
   padding: clamp(1.1rem, 4vw, 2.1rem) clamp(0.9rem, 4vw, 2.5rem)
     calc(clamp(1.6rem, 4vw, 2.6rem) + env(safe-area-inset-bottom));
+  // Bright, near-white surface: the page is the paper, the card is the form.
   background:
-    radial-gradient(1200px 640px at 4% -18%, #dfeaff 0%, rgba(223, 234, 255, 0) 62%),
-    radial-gradient(980px 580px at 104% 4%, #eee8ff 0%, rgba(238, 232, 255, 0) 58%),
-    radial-gradient(1100px 720px at 50% 124%, #e5f2ff 0%, rgba(229, 242, 255, 0) 64%),
-    linear-gradient(152deg, rgba(47, 111, 224, 0.06) 0%, rgba(47, 111, 224, 0) 44%),
-    linear-gradient(180deg, #f8fbff 0%, #f1f6fd 58%, #eaf1fb 100%);
+    radial-gradient(1200px 640px at 4% -18%, #eaf2ff 0%, rgba(234, 242, 255, 0) 62%),
+    radial-gradient(980px 580px at 104% 4%, #f2edff 0%, rgba(242, 237, 255, 0) 58%),
+    radial-gradient(1100px 720px at 50% 124%, #eaf5ff 0%, rgba(234, 245, 255, 0) 62%),
+    linear-gradient(180deg, #fdfeff 0%, #f8fbff 58%, #f2f7fe 100%);
   color: $ink;
   font-family: $font;
   -webkit-font-smoothing: antialiased;
@@ -84,8 +84,8 @@ $bp-xl: 1280px; // centred page, roomier gutters
     z-index: -1;
     inset: 0;
     background-image:
-      linear-gradient(to right, rgba(15, 32, 56, 0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(15, 32, 56, 0.03) 1px, transparent 1px);
+      linear-gradient(to right, rgba(15, 32, 56, 0.022) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 32, 56, 0.022) 1px, transparent 1px);
     background-size: 44px 44px;
     -webkit-mask-image: radial-gradient(125% 95% at 50% 0%, #000 0%, transparent 74%);
     mask-image: radial-gradient(125% 95% at 50% 0%, #000 0%, transparent 74%);
@@ -111,7 +111,7 @@ $bp-xl: 1280px; // centred page, roomier gutters
       -4% -6%,
       106% 10%,
       58% 108%;
-    opacity: 0.65;
+    opacity: 0.42;
     animation: terp-bg-breathe 18s ease-in-out infinite alternate;
     pointer-events: none;
   }
@@ -254,6 +254,38 @@ $bp-xl: 1280px; // centred page, roomier gutters
     box-shadow:
       0 10px 20px -8px rgba(74, 92, 220, 0.7),
       inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  // ── Progress ───────────────────────────────────────────────────────────────
+  // One bar for the whole flow. It eases forward the moment a step is finished,
+  // so the card answers "how much is left?" before the step counter does.
+  &__progress {
+    position: relative;
+    height: 6px;
+    margin: 0 0 clamp(1rem, 3vw, 1.3rem);
+    overflow: hidden;
+    border-radius: 999px;
+    background: #edf2fa;
+    box-shadow: inset 0 1px 2px rgba(15, 32, 56, 0.07);
+
+    span {
+      position: relative;
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #4a86f5 0%, #6a4df0 60%, #37b6d8 100%);
+      box-shadow: 0 0 14px rgba(87, 122, 240, 0.45);
+      transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+
+      // Slow highlight travelling along the filled part.
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+        animation: terp-progress-sheen 2.6s ease-in-out infinite;
+      }
+    }
   }
 
   // ── Messages ───────────────────────────────────────────────────────────────
@@ -484,6 +516,8 @@ $bp-xl: 1280px; // centred page, roomier gutters
     box-shadow:
       0 0 0 3px rgba(23, 134, 90, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    // The tick lands the moment Google returns.
+    animation: terp-dot-check 0.5s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
   &__flow-next {
@@ -590,12 +624,35 @@ $bp-xl: 1280px; // centred page, roomier gutters
 
   // ── Field groups ───────────────────────────────────────────────────────────
   // The form is split by what the register actually stores (business, address,
-  // tax, branding). A title with a hairline gives each block an anchor without
-  // boxing every section into its own card.
+  // tax, branding). Each block is its own soft panel with a ruled title, so it
+  // reads as a short question instead of one long wall of inputs.
   &__group {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.8rem;
     min-width: 0;
+    padding: clamp(0.8rem, 2.4vw, 1.05rem);
+    border: 1px solid #e9f0fa;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fdfeff 0%, #f8fbff 100%);
+    box-shadow: inset 0 1px 0 #fff;
+    animation: terp-group-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  // The blocks assemble themselves top to bottom instead of popping in at once.
+  &__group:nth-child(2) {
+    animation-delay: 0.03s;
+  }
+
+  &__group:nth-child(3) {
+    animation-delay: 0.09s;
+  }
+
+  &__group:nth-child(4) {
+    animation-delay: 0.15s;
+  }
+
+  &__group:nth-child(5) {
+    animation-delay: 0.21s;
   }
 
   &__group-title {
@@ -1087,18 +1144,13 @@ $bp-xl: 1280px; // centred page, roomier gutters
     box-shadow: inset 0 1px 0 #fff;
   }
 
-  // The company form is a stack of field groups: the grid keeps every group and
-  // the actions row on the same rhythm.
+  // The company form is a stack of field groups. The wrapper stays transparent
+  // so the only boxes on screen are the groups themselves.
   &__company-block {
     display: grid;
-    gap: 1.2rem;
-    padding: clamp(0.95rem, 3vw, 1.35rem);
-    border: 1px solid #e7eef9;
-    border-radius: 18px;
-    background:
-      radial-gradient(520px 160px at 0% 0%, #f5f9ff 0, transparent 70%),
-      #fcfdff;
-    box-shadow: inset 0 1px 0 #fff;
+    gap: 0.8rem;
+    // Step 2 slides in under the finished step 1.
+    animation: terp-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   &__product-block &__section {
@@ -1278,33 +1330,45 @@ $bp-xl: 1280px; // centred page, roomier gutters
     padding-block: clamp(1.6rem, 3vw, 2.6rem) clamp(2rem, 3vw, 3rem);
   }
 
-  // The intro becomes the brand panel: deep navy, soft light, white type.
+  // The intro becomes the brand panel: a light glass card, so the page reads as
+  // one bright surface and the form stays the darkest thing on screen.
   .terp-login__intro {
     position: sticky;
     top: clamp(1.5rem, 3vw, 2.5rem);
     overflow: hidden;
     max-width: 460px;
     padding: clamp(1.7rem, 2.6vw, 2.4rem);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #e3ecf9;
     border-radius: 30px;
     background:
-      radial-gradient(540px 320px at 12% -10%, #2a55b8 0, transparent 62%),
-      radial-gradient(420px 280px at 100% 108%, #4a3ea8 0, transparent 60%),
-      linear-gradient(165deg, #0d1e3a 0%, #12294e 48%, #0e1c33 100%);
-    color: rgba(255, 255, 255, 0.72);
+      radial-gradient(560px 340px at 6% -14%, #e8f1ff 0, rgba(232, 241, 255, 0) 62%),
+      radial-gradient(460px 300px at 104% 106%, #f1ecff 0, rgba(241, 236, 255, 0) 62%),
+      radial-gradient(340px 220px at 92% 2%, #e6f7ff 0, rgba(230, 247, 255, 0) 66%),
+      linear-gradient(180deg, #fff 0%, #fbfdff 52%, #f4f9ff 100%);
+    color: $muted;
     box-shadow:
-      0 34px 70px -34px rgba(8, 24, 50, 0.7),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 1px 2px rgba(15, 32, 56, 0.04),
+      0 28px 58px -34px rgba(15, 32, 56, 0.3),
+      inset 0 1px 0 #fff;
     gap: 0.75rem;
+
+    // Hairline of brand colour along the top edge, mirroring the card.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, $blue, $violet 58%, $cyan);
+    }
 
     // Soft halo behind the headline.
     &::before {
       content: "";
       position: absolute;
       z-index: 0;
-      inset: -30% 40% 55% -30%;
+      inset: -32% 38% 52% -32%;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(105, 155, 255, 0.32), transparent 68%);
+      background: radial-gradient(circle, rgba(116, 164, 255, 0.24), transparent 68%);
       pointer-events: none;
     }
 
@@ -1314,67 +1378,74 @@ $bp-xl: 1280px; // centred page, roomier gutters
     }
 
     h1 {
-      color: #fff;
+      color: $ink;
       font-size: clamp(1.85rem, 3vw, 2.75rem);
       line-height: 1.06;
-      text-shadow: 0 12px 34px rgba(4, 14, 32, 0.4);
     }
   }
 
   .terp-login__eyebrow {
-    border-color: rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.08);
-    color: #cfe0ff;
-    box-shadow: none;
+    border-color: #dbe7fa;
+    background: rgba(255, 255, 255, 0.92);
+    color: $blue-dark;
+    box-shadow: 0 6px 16px -10px rgba(47, 111, 224, 0.5);
     backdrop-filter: blur(6px);
 
     &::before {
-      background: #7fb0ff;
-      box-shadow: 0 0 0 3px rgba(127, 176, 255, 0.2);
+      background: linear-gradient(135deg, $blue, $violet);
+      box-shadow: 0 0 0 3px rgba(47, 111, 224, 0.14);
     }
   }
 
   .terp-login__intro > p {
-    color: rgba(255, 255, 255, 0.68);
+    color: $muted;
     font-size: 0.94rem;
     line-height: 1.7;
   }
 
   // ── Step timeline ────────────────────────────────────────────────────────
+  // Each step animates the moment it is ticked off: the dot becomes a green
+  // check, the rail below it draws itself and the row flashes green.
   .terp-login__steps {
     display: grid;
     gap: 0;
     margin-top: 1.5rem;
     padding-top: 1.4rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid #e7eef9;
 
     span {
       position: relative;
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.62rem 0 0.62rem 1.85rem;
-      color: rgba(255, 255, 255, 0.4);
+      padding: 0.62rem 0.5rem 0.62rem 1.85rem;
+      border-radius: 12px;
+      color: $muted-soft;
       font-size: 0.7rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.1em;
-      opacity: 1;
-      transition: color 0.3s ease, opacity 0.3s ease;
+      transition: color 0.3s ease, background 0.4s ease;
     }
 
-    // Dot on the rail.
+    // Dot on the rail. On a finished step the same box holds the tick.
     span::before {
       content: "";
       position: absolute;
       left: 0;
       top: 50%;
+      display: grid;
+      place-items: center;
       width: 11px;
       height: 11px;
       margin-top: -5.5px;
-      border: 1.5px solid rgba(255, 255, 255, 0.28);
+      border: 1.5px solid #cfdaeb;
       border-radius: 50%;
-      background: rgba(13, 30, 58, 0.9);
+      background: #fff;
+      color: #fff;
+      font-size: 0.48rem;
+      font-weight: 800;
+      line-height: 1;
       transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
     }
 
@@ -1386,44 +1457,59 @@ $bp-xl: 1280px; // centred page, roomier gutters
       top: 50%;
       bottom: -50%;
       width: 1.5px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+      transform-origin: top;
+      background: linear-gradient(180deg, #dde7f4, #eef3fa);
     }
 
     b {
-      color: rgba(255, 255, 255, 0.78);
+      color: #6a7b94;
       font-size: 0.92rem;
       font-weight: 700;
       letter-spacing: -0.01em;
       transition: color 0.3s ease;
     }
 
-    span.is-active,
-    span.is-complete {
-      color: #fff;
-      opacity: 1;
-    }
-
     span.is-active {
+      color: $blue-dark;
+      background: linear-gradient(90deg, rgba(47, 111, 224, 0.08), rgba(47, 111, 224, 0) 78%);
+
       b {
-        color: #fff;
+        color: $ink;
       }
 
       &::before {
-        border-color: #9fc4ff;
-        background: linear-gradient(140deg, #6fa4ff, #8f7bff);
-        box-shadow: 0 0 0 4px rgba(127, 176, 255, 0.16), 0 0 18px rgba(127, 176, 255, 0.6);
+        border-color: #8fb4f8;
+        background: linear-gradient(140deg, #4a86f5, #8f7bff);
+        animation: terp-dot-pulse 2.6s ease-in-out infinite;
       }
     }
 
     span.is-complete {
+      color: $green-dark;
+      animation: terp-step-flash 1s ease both;
+
       b {
-        color: #9fe3c2;
+        color: $green-dark;
       }
 
       &::before {
-        border-color: #56d29b;
-        background: #2aa06d;
+        content: "✓";
+        left: -2px;
+        width: 15px;
+        height: 15px;
+        margin-top: -7.5px;
+        border-color: transparent;
+        background: linear-gradient(140deg, #2fbd83, #15865a);
+        box-shadow:
+          0 0 0 4px rgba(42, 160, 109, 0.12),
+          0 6px 14px -6px rgba(21, 134, 90, 0.75);
+        animation: terp-dot-check 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
       }
+    }
+
+    span.is-complete:not(:last-child)::after {
+      background: linear-gradient(180deg, #43c391, #cdeee0);
+      animation: terp-rail-draw 0.7s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
   }
 
@@ -1443,7 +1529,7 @@ $bp-xl: 1280px; // centred page, roomier gutters
       inset: auto 18% 5%;
       height: 13%;
       border-radius: 50%;
-      background: rgba(4, 12, 28, 0.55);
+      background: rgba(96, 128, 176, 0.18);
       filter: blur(18px);
       animation: terp-mascot-shadow 5s ease-in-out infinite;
     }
@@ -1452,7 +1538,9 @@ $bp-xl: 1280px; // centred page, roomier gutters
       display: block;
       width: 100%;
       height: auto;
-      filter: drop-shadow(0 22px 30px rgba(2, 10, 26, 0.45));
+      // The artwork ships on a white plate; multiply drops that plate into the
+      // light panel instead of painting a white rectangle over it.
+      mix-blend-mode: multiply;
     }
   }
 
@@ -1461,7 +1549,7 @@ $bp-xl: 1280px; // centred page, roomier gutters
     z-index: -1;
     inset: 16% 18% 8%;
     border-radius: 50%;
-    background: rgba(110, 160, 255, 0.35);
+    background: rgba(122, 168, 255, 0.24);
     filter: blur(30px);
     animation: terp-mascot-glow 3.5s ease-in-out infinite alternate;
   }
@@ -1614,6 +1702,84 @@ $bp-xl: 1280px; // centred page, roomier gutters
   }
 }
 
+// A form block assembling itself.
+@keyframes terp-group-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Finished step: the dot pops as it turns into a tick.
+@keyframes terp-dot-check {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+
+  62% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Current step: the dot keeps a slow breathing halo.
+@keyframes terp-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(74, 134, 245, 0.16), 0 0 16px rgba(74, 134, 245, 0.45);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(74, 134, 245, 0.1), 0 0 24px rgba(74, 134, 245, 0.6);
+  }
+}
+
+// The rail fills in from the finished dot down to the next one.
+@keyframes terp-rail-draw {
+  from {
+    opacity: 0.35;
+    transform: scaleY(0.15);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+// The finished row flashes green once, then settles.
+@keyframes terp-step-flash {
+  0% {
+    background-color: rgba(42, 160, 109, 0.16);
+  }
+
+  100% {
+    background-color: rgba(42, 160, 109, 0);
+  }
+}
+
+@keyframes terp-progress-sheen {
+  0% {
+    transform: translateX(-140%);
+  }
+
+  55%,
+  100% {
+    transform: translateX(340%);
+  }
+}
+
 @keyframes terp-mascot-float {
   0%,
   100% {
@@ -1661,7 +1827,14 @@ $bp-xl: 1280px; // centred page, roomier gutters
   .terp-login__mascot,
   .terp-login__mascot::after,
   .terp-login__mascot-glow,
-  .terp-login::after {
+  .terp-login::after,
+  .terp-login__progress span::after,
+  .terp-login__group,
+  .terp-login__company-block,
+  .terp-login__flow-dot,
+  .terp-login__steps span,
+  .terp-login__steps span::before,
+  .terp-login__steps span::after {
     animation: none;
   }
 

@@ -109,6 +109,19 @@ async function requestWithRetry(init, { retryNetwork, attempts = RETRY_DELAYS.le
 }
 
 /**
+ * GSTIN and PAN are optional on the signup form, but the register refuses a
+ * blank statutory number ("This field may not be blank"), so an empty value is
+ * written as this placeholder. statutoryNumber() turns it back into "" on the
+ * way out, so a returning client's form still shows both fields empty.
+ */
+const STATUTORY_PLACEHOLDER = "NA"
+
+export function statutoryNumber(value) {
+  const cleaned = String(value || "").trim().toUpperCase()
+  return cleaned === STATUTORY_PLACEHOLDER ? "" : cleaned
+}
+
+/**
  * The body the register expects. `logo` is a bare base64 string — no "data:"
  * prefix — because the register stores the bytes and publishes the file itself
  * under logo_url, which is what the list endpoint returns.
@@ -139,8 +152,8 @@ export function buildCompanyPayload({
     referral_code: String(referralCode || "").trim(),
     company_name: String(companyName || "").trim(),
     license_key: String(licenseKey || "").trim(),
-    gst_number: String(gstNumber || "").trim().toUpperCase(),
-    pan_number: String(panNumber || "").trim().toUpperCase(),
+    gst_number: statutoryNumber(gstNumber) || STATUTORY_PLACEHOLDER,
+    pan_number: statutoryNumber(panNumber) || STATUTORY_PLACEHOLDER,
     email: String(email || "").trim(),
     phone_number: String(phoneNumber || "").replace(/\D/g, ""),
     address_line_1: String(addressLine1 || "").trim(),

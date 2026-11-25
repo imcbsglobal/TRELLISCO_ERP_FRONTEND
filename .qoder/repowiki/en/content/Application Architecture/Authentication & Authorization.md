@@ -18,10 +18,11 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced Google Sign-In UI with custom branded button implementation replacing default iframe-based button
-- Added documentation for new custom-styled 'Continue with Google' button with SVG logo
-- Updated accessibility attributes and responsive design considerations
-- Maintained existing OAuth functionality while improving user experience
+- Enhanced Google Sign-In environment variable validation with improved error handling
+- Added comprehensive aria-label attributes for better accessibility
+- Fixed cross-browser compatibility issues with Google Sign-In iframe overlay by adjusting opacity from 0 to 0.01
+- Improved user experience with clearer error messages when Google client ID is not configured
+- Enhanced security measures for Google Sign-In integration
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -83,13 +84,41 @@ TRADITIONAL --> ADMIN_TOKEN --> PROTECTED
 - [src/App.jsx:15-74](file://src/App.jsx#L15-L74)
 
 ## Google Sign-In Integration
-The Google Sign-In integration provides secure authentication for T-ERP customer onboarding with an enhanced custom-branded user interface:
+The Google Sign-In integration provides secure authentication for T-ERP customer onboarding with an enhanced custom-branded user interface and improved accessibility:
 
-### Custom Branded Button Implementation
-The system now uses a custom-styled "Continue with Google" button that replaces the default iframe-based button while maintaining full OAuth functionality:
+### Environment Variable Validation and Error Handling
+The system now includes comprehensive validation for the Google client ID configuration:
 
 ```javascript
-// Custom branded button with SVG logo and enhanced accessibility
+loadGoogleScript()
+  .then(() => {
+    if (cancelled || !googleButtonRef.current) return
+    if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      setError("Google Sign-In is not configured for this site. Set VITE_GOOGLE_CLIENT_ID and rebuild the production bundle.")
+      return
+    }
+    window.google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      callback: (response) => {
+        // Decode JWT token to extract user profile
+        const [, payload] = response.credential.split(".")
+        const profile = JSON.parse(window.atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
+        setGoogleUser({ 
+          name: profile.name, 
+          email: profile.email, 
+          picture: profile.picture, 
+          credential: response.credential 
+        })
+      },
+    })
+  })
+  .catch(() => setError("Google Sign-In could not be loaded. Check your connection and try again."))
+```
+
+### Custom Branded Button Implementation
+The system uses a custom-styled "Continue with Google" button that replaces the default iframe-based button while maintaining full OAuth functionality:
+
+```jsx
 <div className="terp-login__google-btn">
   <svg className="terp-login__google-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -98,8 +127,39 @@ The system now uses a custom-styled "Continue with Google" button that replaces 
     <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
   </svg>
   <span className="terp-login__google-label">Continue with Google</span>
-  <div className="terp-login__google-hit" ref={googleButtonRef} />
+  <div className="terp-login__google-hit" ref={googleButtonRef} aria-label="Continue with Google" />
 </div>
+```
+
+### Enhanced Accessibility Features
+The custom button includes comprehensive accessibility attributes:
+
+- **ARIA Labels**: Proper `aria-label` attributes for screen readers ("Continue with Google")
+- **Focus Management**: Keyboard navigation support with proper focus states
+- **Screen Reader Support**: Hidden iframe elements with descriptive titles
+- **Semantic HTML**: Proper use of semantic elements and roles
+- **Cross-Browser Compatibility**: Fixed opacity value (0.01 instead of 0) for proper pointer hit-testing across all browsers
+
+### Cross-Browser Compatibility Fix
+The implementation addresses cross-browser compatibility issues with the Google Sign-In iframe overlay:
+
+```css
+.terp-login__google-hit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+  /* Keep this nonzero: some production browsers skip pointer hit-testing
+     for fully transparent cross-origin iframes. */
+  opacity: 0.01; /* Changed from 0 to 0.01 for proper pointer hit-testing */
+
+  iframe {
+    display: block;
+    max-width: 100%;
+  }
+}
 ```
 
 ### Hybrid Button Architecture
@@ -129,64 +189,10 @@ const paintGoogleButton = () => {
 }
 ```
 
-### Enhanced Accessibility Features
-The custom button includes comprehensive accessibility attributes:
-
-- **ARIA Labels**: Proper `aria-label` attributes for screen readers
-- **Focus Management**: Keyboard navigation support with proper focus states
-- **Screen Reader Support**: Hidden iframe elements with descriptive titles
-- **Semantic HTML**: Proper use of semantic elements and roles
-
-### Responsive Design Implementation
-The button adapts seamlessly across different screen sizes:
-
-```css
-.terp-login__google-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  width: 100%;
-  max-width: 360px;
-  height: 40px;
-  padding: 0 1.1rem;
-  border: 1px solid #d7dee8;
-  border-radius: 7px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(16, 34, 64, 0.06);
-  color: #3c4043;
-  font-size: 0.94rem;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-```
-
-### Google User Profile Handling
-```javascript
-window.google.accounts.id.initialize({
-  client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-  callback: (response) => {
-    // Decode JWT token to extract user profile
-    const [, payload] = response.credential.split(".")
-    const profile = JSON.parse(window.atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
-    setGoogleUser({ 
-      name: profile.name, 
-      email: profile.email, 
-      picture: profile.picture, 
-      credential: response.credential 
-    })
-  },
-})
-```
-
 **Section sources**
-- [src/pages/TERPLogin.jsx:123-145](file://src/pages/TERPLogin.jsx#L123-L145)
-- [src/pages/TERPLogin.jsx:226-285](file://src/pages/TERPLogin.jsx#L226-L285)
-- [src/pages/TERPLogin.jsx:1112-1121](file://src/pages/TERPLogin.jsx#L1112-L1121)
-- [src/pages/TERPLogin.scss:371-425](file://src/pages/TERPLogin.scss#L371-L425)
+- [src/pages/TERPLogin.jsx:226-289](file://src/pages/TERPLogin.jsx#L226-L289)
+- [src/pages/TERPLogin.jsx:1116-1125](file://src/pages/TERPLogin.jsx#L1116-L1125)
+- [src/pages/TERPLogin.scss:414-429](file://src/pages/TERPLogin.scss#L414-L429)
 
 ## Financial Year and Country Management System
 The financial year and country management system integrates with Central Master to provide country-specific financial year configurations:
@@ -276,6 +282,7 @@ The enhanced login flow now includes financial year management, improved country
 - OAuth 2.0 token exchange
 - User profile extraction from JWT payload
 - Automatic form population with Google identity data
+- **NEW**: Comprehensive environment variable validation with user-friendly error messages
 
 ### Step 2: Project Selection with Country Context
 - Display available T-ERP projects from catalogue
@@ -825,6 +832,8 @@ The authentication system implements multiple security measures with enhanced fi
 - **Secure handling of OAuth consent popups**
 - **Proper error handling for authentication failures**
 - **Enhanced accessibility with proper ARIA attributes**
+- **Environment variable validation**: Comprehensive validation of VITE_GOOGLE_CLIENT_ID with user-friendly error messages
+- **Cross-browser compatibility**: Fixed opacity values for proper pointer hit-testing across all browsers
 
 ### Financial Year Data Security
 - Country data validation against Central Master registry
@@ -906,6 +915,15 @@ Common issues and their solutions:
   - **Solution**: Allow popups for the site in browser settings
   - **Solution**: Use "Try again" button to retry authentication
 
+- **Problem**: Google Sign-In not configured error message appears
+  - **Solution**: Set VITE_GOOGLE_CLIENT_ID environment variable
+  - **Solution**: Rebuild the production bundle after setting the environment variable
+  - **Solution**: Verify the environment variable is properly loaded in the build process
+
+- **Problem**: Cross-browser compatibility issues with Google Sign-In button
+  - **Solution**: The opacity fix (0.01 instead of 0) should resolve pointer hit-testing issues
+  - **Solution**: Test across different browsers to ensure proper functionality
+
 ### Financial Year and Country Issues
 - **Problem**: Country dropdown not loading
   - **Solution**: Check Central Master API connectivity
@@ -957,9 +975,10 @@ Common issues and their solutions:
   - **Solution**: Verify the invisible iframe hit area is properly positioned
   - **Solution**: Check CSS z-index and positioning styles
   - **Solution**: Ensure Google script is properly loaded
+  - **Solution**: Verify the opacity fix (0.01) is applied for cross-browser compatibility
 
 - **Problem**: Accessibility issues with custom button
-  - **Solution**: Verify ARIA attributes are properly set
+  - **Solution**: Verify ARIA attributes are properly set (including aria-label)
   - **Solution**: Test with screen readers and keyboard navigation
   - **Solution**: Ensure proper focus management
 
@@ -1009,5 +1028,7 @@ The TRELLISCO ERP frontend now implements a comprehensive authentication and aut
 - **Improved Error Recovery**: Comprehensive cleanup mechanisms for problematic license states with clear user guidance
 - **Integrated Company Master API**: Complete business entity registration with GSTIN, PAN, and comprehensive address management
 - **New pushCompanyMaster Function**: Dedicated function for fresh company registrations during the signup flow
+- **Enhanced Google Sign-In Security**: With comprehensive environment variable validation, improved error handling, and cross-browser compatibility fixes
+- **Accessibility Improvements**: With proper ARIA attributes and screen reader support throughout the authentication flow
 
-The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements. The enhanced validation requirements and improved error handling make the system more robust and user-friendly, reducing form submission failures and providing clearer feedback to users. The custom branded Google Sign-In button provides a professional, accessible, and responsive user experience while maintaining full OAuth functionality and security.
+The architecture is designed to be extensible, allowing for additional authentication methods, notification channels, and business logic while maintaining security and performance standards. The integration with Central Master's financial year system ensures compliance with country-specific accounting requirements and provides a solid foundation for international expansion. The enhanced performance optimizations and advanced client ID-based license validation ensure a smooth user experience even with complex multi-step workflows and multiple external service integrations. The sophisticated edge case detection and improved error recovery mechanisms make the system more reliable and user-friendly, providing clear guidance when dealing with problematic license states. The integrated company registration system ensures complete business entity management and compliance with regulatory requirements. The enhanced validation requirements and improved error handling make the system more robust and user-friendly, reducing form submission failures and providing clearer feedback to users. The custom branded Google Sign-In button provides a professional, accessible, and responsive user experience while maintaining full OAuth functionality and security. The recent enhancements to environment variable validation, accessibility features, and cross-browser compatibility ensure a more reliable and user-friendly authentication experience across all platforms and devices.

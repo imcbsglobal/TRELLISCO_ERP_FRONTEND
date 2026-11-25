@@ -19,7 +19,7 @@ import {
 import { USER_MASTER_ENDPOINT, createClientAdmin, enableProjectsForClient, findClientLogins, splitContactName } from "../api/userMaster"
 import { normaliseReferralCode, submitAgentReferral } from "../api/agentReferral"
 import { ensureClientCountry, fetchFinancialYearCountries, findClientFinancialYears } from "../api/financialYear"
-import { findCompanyMaster, pushCompanyMaster } from "../api/companyMaster"
+import { findCompanyMaster, pushCompanyMaster, statutoryNumber } from "../api/companyMaster"
 import {
   buildCredentialsMessage,
   buildCredentialsSubject,
@@ -599,8 +599,8 @@ export default function TERPLogin() {
     put("addressLine2", row?.address_line_2)
     put("district", row?.district)
     put("state", row?.state)
-    put("gstNumber", row?.gst_number)
-    put("panNumber", row?.pan_number)
+    put("gstNumber", statutoryNumber(row?.gst_number))
+    put("panNumber", statutoryNumber(row?.pan_number))
     put("referralCode", row?.referral_code)
 
     return stored
@@ -778,16 +778,15 @@ export default function TERPLogin() {
       if (!form.addressLine1.trim()) missing.addressLine1 = "Enter the street address."
       if (!form.district.trim()) missing.district = "Enter the district."
       if (!form.state.trim()) missing.state = "Enter the state."
-      // The register refuses a blank GSTIN or PAN ("This field may not be
-      // blank"), so leaving them out only made the company record silently
-      // fail. They are required here and whatever is typed has to be the shape
-      // support will see on the certificate.
-      if (!form.gstNumber.trim()) missing.gstNumber = "Enter the GSTIN."
-      else if (!GST_PATTERN.test(form.gstNumber.trim())) {
+      // GSTIN and PAN are optional: a new business may not be registered for
+      // either yet. A blank is accepted, anything typed still has to be the
+      // shape support will see on the certificate. The register has no use for
+      // an empty value, so an omitted one is written as a placeholder there
+      // (see buildCompanyPayload).
+      if (form.gstNumber.trim() && !GST_PATTERN.test(form.gstNumber.trim())) {
         missing.gstNumber = "Enter a valid 15-character GSTIN, for example 32AAACA1234A1Z5."
       }
-      if (!form.panNumber.trim()) missing.panNumber = "Enter the PAN."
-      else if (!PAN_PATTERN.test(form.panNumber.trim())) {
+      if (form.panNumber.trim() && !PAN_PATTERN.test(form.panNumber.trim())) {
         missing.panNumber = "Enter a valid 10-character PAN, for example AAACA1234A."
       }
     }
@@ -1091,6 +1090,14 @@ export default function TERPLogin() {
     }
   }
 
+  // A returning client is done after the products step, a new client still has
+  // the company details to fill in.
+  const totalSteps = workspace ? 2 : 3
+  const currentStep = !googleUser ? 1 : workspace ? 2 : setupStep + 1
+  // The bar is already a third in on the sign-in screen and only reaches 100%
+  // once the license exists, so it never claims more than the visitor has done.
+  const progressPercent = success ? 100 : googleUser ? Math.round((currentStep / totalSteps) * 90) : 8
+
   return (
     <main className={`terp-login${googleUser ? " terp-login--setup" : ""}`}>
       <section className="terp-login__intro">
@@ -1103,6 +1110,7 @@ export default function TERPLogin() {
 
       <section className="terp-login__card">
         <div className="terp-login__card-head"><span className="terp-login__mark">T</span><div><p>Trellisco ERP</p><h2>{!googleUser ? "Trellisco Login" : setupStep === 1 ? "Build your Trellisco suite" : "Company details"}</h2></div></div>
+        <div className="terp-login__progress" aria-hidden="true"><span style={{ width: `${progressPercent}%` }} /></div>
         {error && <div className="terp-login__message terp-login__message--error" role="alert">{error}</div>}
         {success && <div className="terp-login__message terp-login__message--success" role="status">{success}</div>}
 
@@ -1128,7 +1136,7 @@ export default function TERPLogin() {
           </div>
         ) : (
         <form className="terp-login__setup-form" onSubmit={submit}>
-          <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {workspace ? 2 : setupStep + 1} of {workspace ? 2 : 3}</span></div>
+          <div className="terp-login__flow-status"><span className="terp-login__flow-dot">✓</span><span><small>Google authentication complete</small><b>{googleUser.email}</b></span><span className="terp-login__flow-next">Step {currentStep} of {totalSteps}</span></div>
           {setupStep === 1 ? (
             <div className="terp-login__product-block">
               <div className="terp-login__section"><div><span className="terp-login__number">1</span><h3>Build your Trellisco suite</h3><span className="terp-login__selection-count">{tickedOwned ? `${tickedOwned} active · ${selectedProjects.length} new` : `${selectedProjects.length} selected`}</span></div><p>{checkingWorkspace && !tickedOwned ? "Checking which projects you already own…" : workspaceError || (tickedOwned ? "Your active projects are ticked below — add another project to extend the suite." : "Select projects and a package for each.")}</p></div>
@@ -1330,7 +1338,7 @@ export default function TERPLogin() {
                 <h4 className="terp-login__group-title">Tax &amp; referral</h4>
                 <div className="terp-login__fields">
                   <div className="terp-login__field">
-                    <label htmlFor="terp-company-gst">GST number</label>
+                    <label htmlFor="terp-company-gst">GST number <span className="terp-login__optional">Optional</span></label>
                     <input
                       id="terp-company-gst"
                       name="gstNumber"
@@ -1348,7 +1356,7 @@ export default function TERPLogin() {
                     {fieldErrors.gstNumber && <span className="terp-login__field-error" id="terp-company-gst-error">{fieldErrors.gstNumber}</span>}
                   </div>
                   <div className="terp-login__field">
-                    <label htmlFor="terp-company-pan">PAN number</label>
+                    <label htmlFor="terp-company-pan">PAN number <span className="terp-login__optional">Optional</span></label>
                     <input
                       id="terp-company-pan"
                       name="panNumber"
