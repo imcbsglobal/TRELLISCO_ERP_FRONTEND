@@ -10,10 +10,12 @@
 
 ## Update Summary
 **Changes Made**   
-- Simplified company registration process by removing the `ensureCompanyMaster` function
-- Enhanced `pushCompanyMaster` function with clearer documentation and improved error handling
-- Streamlined the company registration workflow to use only the signup-focused approach
-- Improved error handling for company data operations with better validation and retry mechanisms
+- Enhanced statutory number handling with optional GST/PAN fields support
+- Added new `statutoryNumber()` function for placeholder-based validation system
+- Implemented placeholder mechanism ("NA") for empty statutory fields to satisfy backend requirements
+- Updated payload builder to use statutoryNumber() for GSTIN and PAN field processing
+- Improved form validation to handle optional statutory fields while maintaining data integrity
+- Enhanced error handling for statutory field validation with clear user feedback
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -28,6 +30,8 @@
 
 ## Introduction
 This document explains how the frontend integrates with the Central Master company register. The integration is used during T-ERP license registration to persist statutory company details such as GSTIN, PAN, full address, and logo. Because the Central Master service does not send CORS headers, all requests are routed through a same-origin reverse proxy prefix. The frontend provides a streamlined API module that normalizes input, implements robust retry mechanisms with exponential backoff, supports multiple client ID candidates, handles various error scenarios including unknown client IDs, and exposes safe functions for reading and writing company records.
+
+**Updated** Enhanced with advanced statutory number handling that allows optional GSTIN and PAN fields while maintaining backend compatibility through a placeholder-based validation system.
 
 ## Project Structure
 The relevant code lives under two areas:
@@ -61,7 +65,7 @@ VITE --> CENTRAL
 - [vite.config.js:25-32](file://vite.config.js#L25-L32)
 
 **Section sources**
-- [companyMaster.js:1-288](file://src/api/companyMaster.js#L1-L288)
+- [companyMaster.js:1-301](file://src/api/companyMaster.js#L1-L301)
 - [proxy.js:1-56](file://src/api/proxy.js#L1-L56)
 - [TERPLogin.jsx:21](file://src/pages/TERPLogin.jsx#L21)
 - [vite.config.js:1-36](file://vite.config.js#L1-L36)
@@ -73,6 +77,7 @@ VITE --> CENTRAL
 
 Key responsibilities:
 - Normalize and validate company fields before sending them to Central Master.
+- Handle optional statutory fields (GSTIN, PAN) with placeholder-based validation.
 - Avoid duplicate company rows by checking for existing client IDs across multiple candidates.
 - Route requests through the same-origin proxy when needed.
 - Surface clear errors when the backend returns HTML instead of JSON.
@@ -80,11 +85,11 @@ Key responsibilities:
 - Support streamlined signup flows with the simplified `pushCompanyMaster` function.
 
 **Section sources**
-- [companyMaster.js:120-162](file://src/api/companyMaster.js#L120-L162)
-- [companyMaster.js:174-184](file://src/api/companyMaster.js#L174-L184)
-- [companyMaster.js:277-285](file://src/api/companyMaster.js#L277-L285)
+- [companyMaster.js:119-122](file://src/api/companyMaster.js#L119-L122)
+- [companyMaster.js:133-175](file://src/api/companyMaster.js#L133-L175)
+- [companyMaster.js:290-298](file://src/api/companyMaster.js#L290-L298)
 - [proxy.js:17-55](file://src/api/proxy.js#L17-L55)
-- [TERPLogin.jsx:676-719](file://src/pages/TERPLogin.jsx#L676-L719)
+- [TERPLogin.jsx:777-792](file://src/pages/TERPLogin.jsx#L777-L792)
 
 ## Architecture Overview
 The company registration flow runs after a T-ERP license has been created or confirmed. The login page maps form data to the company register payload and calls the enhanced `pushCompanyMaster` function for new signups. This function checks whether a row already exists for any of the provided client ID candidates; if not, it posts the normalized payload. All requests go through `/central-api`, which is proxied locally by Vite and in production by nginx.
@@ -122,8 +127,7 @@ Client-->>Page : { created : true|false, record }
 
 **Diagram sources**
 - [TERPLogin.jsx:676-719](file://src/pages/TERPLogin.jsx#L676-L719)
-- [companyMaster.js:174-184](file://src/api/companyMaster.js#L174-L184)
-- [companyMaster.js:277-285](file://src/api/companyMaster.js#L277-L285)
+- [companyMaster.js:290-298](file://src/api/companyMaster.js#L290-L298)
 - [proxy.js:26-35](file://src/api/proxy.js#L26-L35)
 - [vite.config.js:25-32](file://vite.config.js#L25-L32)
 
@@ -165,9 +169,35 @@ RetryWithoutLogo --> ReturnNew
 ```
 
 **Diagram sources**
-- [companyMaster.js:174-184](file://src/api/companyMaster.js#L174-L184)
-- [companyMaster.js:225-261](file://src/api/companyMaster.js#L225-L261)
-- [companyMaster.js:277-285](file://src/api/companyMaster.js#L277-L285)
+- [companyMaster.js:290-298](file://src/api/companyMaster.js#L290-L298)
+- [companyMaster.js:238-274](file://src/api/companyMaster.js#L238-L274)
+
+#### Statutory Number Handling Enhancement
+**Updated** The system now includes sophisticated statutory number handling with optional GSTIN and PAN fields:
+
+- **Placeholder System**: Empty statutory fields are stored as "NA" placeholder to satisfy backend validation requirements
+- **statutoryNumber() Function**: Converts between placeholder format and actual values for seamless UI display
+- **Optional Field Support**: GSTIN and PAN are now truly optional on the signup form
+- **Validation Integration**: Form validation accepts blank statutory fields while maintaining format requirements for entered values
+
+```mermaid
+flowchart TD
+Input["User Input"] --> Validation["Form Validation"]
+Validation --> Optional{"Field Required?"}
+Optional --> |No| Placeholder["Use 'NA' placeholder"]
+Optional --> |Yes| FormatCheck["Validate Format"]
+FormatCheck --> Valid{"Valid Format?"}
+Valid --> |Yes| Store["Store Actual Value"]
+Valid --> |No| Error["Show Validation Error"]
+Placeholder --> Backend["Send to Backend"]
+Store --> Backend
+Backend --> Display["Display Cleaned Value"]
+```
+
+**Diagram sources**
+- [companyMaster.js:119-122](file://src/api/companyMaster.js#L119-L122)
+- [companyMaster.js:155-156](file://src/api/companyMaster.js#L155-L156)
+- [TERPLogin.jsx:781-791](file://src/pages/TERPLogin.jsx#L781-L791)
 
 #### Payload Builder
 The payload builder converts UI-friendly fields into backend-compatible fields. It also sets a default status and enforces canonical formatting for tax identifiers and country codes.
@@ -175,8 +205,8 @@ The payload builder converts UI-friendly fields into backend-compatible fields. 
 Key mapping highlights:
 - `clientId` → `client_id`
 - `licenseKey` → `license_key`
-- `gstNumber` → `gst_number` (uppercase)
-- `panNumber` → `pan_number` (uppercase)
+- `gstNumber` → `gst_number` (uppercase, with placeholder handling)
+- `panNumber` → `pan_number` (uppercase, with placeholder handling)
 - `phoneNumber` → `phone_number` (digits only)
 - `addressLine1` / `addressLine2` → address lines
 - `city`, `district`, `state`, `country`
@@ -184,7 +214,8 @@ Key mapping highlights:
 - `status` set to `"ACTIVE"`
 
 **Section sources**
-- [companyMaster.js:120-162](file://src/api/companyMaster.js#L120-L162)
+- [companyMaster.js:119-122](file://src/api/companyMaster.js#L119-L122)
+- [companyMaster.js:133-175](file://src/api/companyMaster.js#L133-L175)
 
 #### Enhanced Retry and Error Handling
 The client uses sophisticated retry mechanisms with exponential backoff for network resilience. Key improvements include:
@@ -209,8 +240,8 @@ The system supports multiple client ID candidates to handle different ways clien
 
 **Section sources**
 - [companyMaster.js:72-79](file://src/api/companyMaster.js#L72-L79)
-- [companyMaster.js:174-184](file://src/api/companyMaster.js#L174-L184)
-- [companyMaster.js:225-261](file://src/api/companyMaster.js#L225-L261)
+- [companyMaster.js:290-298](file://src/api/companyMaster.js#L290-L298)
+- [companyMaster.js:238-274](file://src/api/companyMaster.js#L238-L274)
 
 ### Enhanced Push Company Master Function
 The `pushCompanyMaster` function is now the primary interface for company registration, providing a streamlined approach specifically designed for signup flows.
@@ -222,7 +253,7 @@ Key enhancements:
 - **Intelligent retry logic**: Performs one read attempt followed by write operations with proper error handling.
 
 **Section sources**
-- [companyMaster.js:277-285](file://src/api/companyMaster.js#L277-L285)
+- [companyMaster.js:290-298](file://src/api/companyMaster.js#L290-L298)
 
 ### Proxy Helper (`proxy.js`)
 The proxy helper centralizes routing decisions for services that do not support CORS:
@@ -243,6 +274,8 @@ The login page orchestrates the complete signup experience with the simplified c
 - It strips the `data:` prefix from the logo before posting.
 - It passes multiple client ID candidates to handle different identification methods.
 - It captures and displays partial failures so operators can continue using the product even if the company register write fails.
+
+**Updated** Enhanced with optional statutory field validation that allows users to skip GSTIN and PAN entry while maintaining data integrity.
 
 ```mermaid
 sequenceDiagram
@@ -268,10 +301,11 @@ Page->>Page : Update UI and messages
 
 **Diagram sources**
 - [TERPLogin.jsx:676-719](file://src/pages/TERPLogin.jsx#L676-L719)
-- [companyMaster.js:277-285](file://src/api/companyMaster.js#L277-L285)
+- [companyMaster.js:290-298](file://src/api/companyMaster.js#L290-L298)
 
 **Section sources**
 - [TERPLogin.jsx:36-80](file://src/pages/TERPLogin.jsx#L36-L80)
+- [TERPLogin.jsx:777-792](file://src/pages/TERPLogin.jsx#L777-L792)
 - [TERPLogin.jsx:676-719](file://src/pages/TERPLogin.jsx#L676-L719)
 
 ### Development Proxy Configuration (`vite.config.js`)
@@ -318,6 +352,7 @@ CM --> DEV["vite.config.js"]
 - **Minimal round trips**: Functions perform one read followed by at most one write, with smart caching of candidate results.
 - **Cache busting**: Unique URLs for each read request prevent CDN caching of 404 responses.
 - **Simplified workflow**: The removal of the dual-function approach reduces complexity and improves maintainability.
+- **Statutory field optimization**: Placeholder-based validation reduces unnecessary backend calls for optional fields.
 
 ## Troubleshooting Guide
 Common issues and their likely causes:
@@ -326,18 +361,22 @@ Common issues and their likely causes:
 - **Empty result vs unreachable**: A 404 from Central Master is treated as potentially transient and retried; an empty list is represented as a successful response with no rows.
 - **Logo upload problems**: Ensure the image file is valid and under the size limit. The frontend strips the `data:` prefix before posting and validates file types.
 - **Validation errors**: Field-specific validation errors are parsed and displayed clearly to users.
+- **Statutory field issues**: GSTIN and PAN fields now support optional entry with placeholder handling - ensure proper format validation for entered values.
 
 Operational checks:
 - Verify `/central-api` is proxied in both Vite and nginx.
 - Confirm Central Master responds with JSON for `/api/company-master/`.
 - Check that the license creation step produces a valid client id and license key.
 - Monitor retry logs to identify patterns of transient failures.
+- Validate that statutory field placeholders are properly handled in the backend.
 
 **Section sources**
 - [proxy.js:38-55](file://src/api/proxy.js#L38-L55)
 - [companyMaster.js:17-61](file://src/api/companyMaster.js#L17-L61)
 - [companyMaster.js:81-85](file://src/api/companyMaster.js#L81-L85)
-- [TERPLogin.jsx:676-719](file://src/pages/TERPLogin.jsx#L676-L719)
+- [TERPLogin.jsx:777-792](file://src/pages/TERPLogin.jsx#L777-L792)
 
 ## Conclusion
-The Company Master API integration is now a streamlined, resilient client that normalizes company data, supports multiple client identification methods, implements sophisticated retry mechanisms, and routes requests through a same-origin proxy. The simplified architecture with the removal of the `ensureCompanyMaster` function and the enhancement of `pushCompanyMaster` provides a cleaner, more maintainable codebase while preserving all essential functionality. The enhanced error handling provides clear feedback for various failure scenarios, making it easier to diagnose and resolve issues. It integrates cleanly into the T-ERP login flow and surfaces actionable errors when the backend or proxy configuration is unavailable. Maintaining correct proxy configuration and ensuring the license step produces valid client IDs remain the most important operational requirements for reliable operation.
+The Company Master API integration is now a streamlined, resilient client that normalizes company data, supports multiple client identification methods, implements sophisticated retry mechanisms, and routes requests through a same-origin proxy. The enhanced statutory number handling with optional GSTIN and PAN fields provides greater flexibility for users while maintaining backend compatibility through a placeholder-based validation system. The simplified architecture with the removal of the `ensureCompanyMaster` function and the enhancement of `pushCompanyMaster` provides a cleaner, more maintainable codebase while preserving all essential functionality. The enhanced error handling provides clear feedback for various failure scenarios, making it easier to diagnose and resolve issues. It integrates cleanly into the T-ERP login flow and surfaces actionable errors when the backend or proxy configuration is unavailable. Maintaining correct proxy configuration and ensuring the license step produces valid client IDs remain the most important operational requirements for reliable operation.
+
+**Updated** The addition of the `statutoryNumber()` function and placeholder-based validation system significantly improves the user experience by allowing optional statutory field entry while ensuring data integrity and backend compatibility.

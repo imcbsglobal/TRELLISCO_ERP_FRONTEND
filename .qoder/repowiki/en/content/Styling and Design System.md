@@ -4,15 +4,25 @@
 **Referenced Files in This Document**
 - [index.css](file://src/index.css)
 - [App.css](file://src/App.css)
-- [vite.config.js](file://vite.config.js)
-- [package.json](file://package.json)
 - [Nav.scss](file://src/components/Nav.scss)
 - [FloatingChatbot.scss](file://src/components/FloatingChatbot.scss)
 - [Footer.scss](file://src/components/Footer.scss)
 - [sidebar.scss](file://src/components/sidebar.scss)
 - [Home.scss](file://src/pages/Home.scss)
 - [Dashboard.scss](file://src/pages/AdminDashboard/Dashboard.scss)
+- [TERPLogin.scss](file://src/pages/TERPLogin.scss)
+- [vite.config.js](file://vite.config.js)
+- [package.json](file://package.json)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated global color scheme with new accent colors and improved contrast ratios
+- Added comprehensive progress bar animations and step indicators for multi-step forms
+- Enhanced form section organization with modular group layouts and visual hierarchy
+- Implemented advanced accessibility features including focus-visible outlines and aria-labels
+- Introduced sophisticated animation systems with keyframe animations and micro-interactions
+- Expanded responsive design patterns with mobile-first approach and fluid typography
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -20,14 +30,17 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+6. [Progress Bar and Form Organization](#progress-bar-and-form-organization)
+7. [Enhanced Accessibility Features](#enhanced-accessibility-features)
+8. [Animation System](#animation-system)
+9. [Dependency Analysis](#dependency-analysis)
+10. [Performance Considerations](#performance-considerations)
+11. [Troubleshooting Guide](#troubleshooting-guide)
+12. [Conclusion](#conclusion)
+13. [Appendices](#appendices)
 
 ## Introduction
-This document explains the styling and design system used across the application. It covers how SCSS is organized, where global styles live, how responsive behavior is implemented, and what patterns are used for component scoping and naming. It also documents CSS custom properties, theme tokens, accessibility considerations, cross-browser compatibility notes, and performance guidance for animations and transitions. Finally, it provides practical guidelines for extending the design system consistently and keeping the CSS bundle small.
+This document explains the styling and design system used across the application. It covers how SCSS is organized, where global styles live, how responsive behavior is implemented, and what patterns are used for component scoping and naming. The system has been significantly enhanced with new color schemes, sophisticated progress bar animations, organized form sections, and comprehensive accessibility features. It also documents CSS custom properties, theme tokens, cross-browser compatibility notes, and performance guidance for animations and transitions. Finally, it provides practical guidelines for extending the design system consistently and keeping the CSS bundle small.
 
 ## Project Structure
 The styling approach combines:
@@ -43,12 +56,14 @@ C["src/components/*.scss<br/>Component styles"] --> B
 D["src/pages/*.scss<br/>Page styles"] --> B
 E["vite.config.js<br/>Vite config"] --> B
 F["package.json<br/>sass-embedded dependency"] --> E
+G["src/pages/TERPLogin.scss<br/>Advanced form system"] --> B
 ```
 
 **Diagram sources**
 - [index.css:1-43](file://src/index.css#L1-L43)
 - [vite.config.js:1-24](file://vite.config.js#L1-L24)
 - [package.json:20-31](file://package.json#L20-L31)
+- [TERPLogin.scss:1-300](file://src/pages/TERPLogin.scss#L1-L300)
 
 **Section sources**
 - [index.css:1-43](file://src/index.css#L1-L43)
@@ -70,6 +85,9 @@ The design system is built around these core areas:
 - Animations and transitions
   - Lightweight transforms and opacity changes.
   - Respects prefers-reduced-motion where applicable.
+- Advanced form systems
+  - Multi-step progress indicators with animated transitions.
+  - Organized form sections with visual hierarchy.
 
 Key implementation references:
 - Global tokens and base: [index.css:1-43](file://src/index.css#L1-L43)
@@ -81,6 +99,7 @@ Key implementation references:
 - Page examples:
   - Home hero and sections: [Home.scss:1-800](file://src/pages/Home.scss#L1-L800)
   - Admin dashboard shell and cards: [Dashboard.scss:1-366](file://src/pages/AdminDashboard/Dashboard.scss#L1-L366)
+  - Advanced form system: [TERPLogin.scss:1-300](file://src/pages/TERPLogin.scss#L1-L300)
 
 **Section sources**
 - [index.css:1-43](file://src/index.css#L1-L43)
@@ -90,6 +109,7 @@ Key implementation references:
 - [sidebar.scss:1-293](file://src/components/sidebar.scss#L1-L293)
 - [Home.scss:1-800](file://src/pages/Home.scss#L1-L800)
 - [Dashboard.scss:1-366](file://src/pages/AdminDashboard/Dashboard.scss#L1-L366)
+- [TERPLogin.scss:1-300](file://src/pages/TERPLogin.scss#L1-L300)
 
 ## Architecture Overview
 The styling architecture follows a layered model:
@@ -97,6 +117,7 @@ The styling architecture follows a layered model:
 - Layer 1: Global tokens and base (index.css)
 - Layer 2: Shared component styles (components/*.scss)
 - Layer 3: Page-specific styles (pages/*.scss)
+- Layer 4: Advanced interactive components (forms, modals, progress indicators)
 - Build pipeline: Vite compiles SCSS to CSS and bundles it into the app.
 
 ```mermaid
@@ -113,6 +134,7 @@ end
 subgraph "Pages"
 P1["Home.scss"]
 P2["Dashboard.scss"]
+P3["TERPLogin.scss<br/>Advanced Forms"]
 end
 G1 --> C1
 G1 --> C2
@@ -120,6 +142,7 @@ G1 --> C3
 G1 --> C4
 G1 --> P1
 G1 --> P2
+G1 --> P3
 ```
 
 **Diagram sources**
@@ -130,6 +153,7 @@ G1 --> P2
 - [sidebar.scss:1-293](file://src/components/sidebar.scss#L1-L293)
 - [Home.scss:1-800](file://src/pages/Home.scss#L1-L800)
 - [Dashboard.scss:1-366](file://src/pages/AdminDashboard/Dashboard.scss#L1-L366)
+- [TERPLogin.scss:1-300](file://src/pages/TERPLogin.scss#L1-L300)
 
 ## Detailed Component Analysis
 
@@ -267,6 +291,93 @@ Accessibility:
 **Section sources**
 - [Dashboard.scss:1-366](file://src/pages/AdminDashboard/Dashboard.scss#L1-L366)
 
+## Progress Bar and Form Organization
+
+### Advanced Progress Indicators
+The TERPLogin component introduces a sophisticated progress system with multiple visual indicators:
+
+- **Linear Progress Bar**: Animated gradient bar with sheen effect that fills smoothly between steps
+- **Step Indicator**: Visual timeline showing current, completed, and upcoming steps
+- **Animated Transitions**: Smooth width transitions and color changes for progress updates
+
+Key features:
+- Gradient progress bar with animated sheen effect
+- Step-by-step visualization with connecting rails
+- Color-coded states (active, complete, pending)
+- Responsive design that works across all screen sizes
+
+### Form Section Organization
+The form system is organized into logical sections with clear visual hierarchy:
+
+- **Modular Groups**: Each form section is contained in its own panel with distinct styling
+- **Visual Separation**: Soft backgrounds and borders separate different form categories
+- **Staggered Animations**: Sections animate in sequentially for better UX
+- **Consistent Spacing**: Uniform padding and margins throughout
+
+Implementation highlights:
+- Grid-based layout for form sections
+- Animated entrance effects with staggered delays
+- Clear visual distinction between form groups
+- Accessible labels and field organization
+
+**Section sources**
+- [TERPLogin.scss:259-289](file://src/pages/TERPLogin.scss#L259-L289)
+- [TERPLogin.scss:625-667](file://src/pages/TERPLogin.scss#L625-L667)
+- [TERPLogin.scss:1431-1485](file://src/pages/TERPLogin.scss#L1431-L1485)
+
+## Enhanced Accessibility Features
+
+### Focus Management
+- **Focus-visible Outlines**: Comprehensive focus management using focus-visible pseudo-class
+- **Custom Focus Rings**: Consistent focus ring styling across all interactive elements
+- **Keyboard Navigation**: Full keyboard support with logical tab order
+
+### Screen Reader Support
+- **Semantic HTML**: Proper use of semantic elements and ARIA attributes
+- **Descriptive Labels**: Clear aria-labels for icons and interactive elements
+- **Status Announcements**: Dynamic content updates with appropriate ARIA live regions
+
+### Color Contrast and Visibility
+- **High Contrast Ratios**: All text meets WCAG AA standards for readability
+- **Color Independence**: Information conveyed through multiple visual cues beyond color alone
+- **Reduced Motion Support**: Animations respect user preferences for reduced motion
+
+Implementation examples:
+- Focus ring mixins for consistent styling
+- ARIA attributes on all interactive components
+- Semantic markup structure throughout
+- Reduced motion media query support
+
+**Section sources**
+- [Nav.scss:20-25](file://src/components/Nav.scss#L20-L25)
+- [TERPLogin.scss:46-51](file://src/pages/TERPLogin.scss#L46-L51)
+- [TERPLogin.scss:876-893](file://src/pages/TERPLogin.scss#L876-L893)
+
+## Animation System
+
+### Keyframe Animations
+The application uses a comprehensive animation system with multiple keyframe definitions:
+
+- **Progress Animations**: Smooth transitions for progress bars and step indicators
+- **Micro-interactions**: Subtle hover and focus animations for better feedback
+- **Entrance Effects**: Staggered animations for content appearing on screen
+- **Background Effects**: Ambient animations for decorative elements
+
+### Animation Categories
+- **Transform-based**: Using transform properties for smooth GPU-accelerated animations
+- **Opacity transitions**: Fade effects for content visibility changes
+- **Color transitions**: Smooth color changes for state indicators
+- **Complex sequences**: Multi-step animations for advanced interactions
+
+Performance considerations:
+- Uses transform and opacity for optimal performance
+- Respects prefers-reduced-motion for accessibility
+- Optimizes animation timing functions for natural feel
+
+**Section sources**
+- [TERPLogin.scss:1737-1781](file://src/pages/TERPLogin.scss#L1737-L1781)
+- [FloatingChatbot.scss:293-306](file://src/components/FloatingChatbot.scss#L293-L306)
+
 ### Conceptual Overview
 The design system emphasizes:
 - Modular SCSS per component/page.
@@ -275,6 +386,7 @@ The design system emphasizes:
 - Local SCSS variables for component-specific tokens.
 - Responsive design through media queries and fluid typography.
 - Accessibility via focus-visible, semantic markup, and reduced-motion support.
+- Advanced animation systems with performance optimization.
 
 ```mermaid
 flowchart TD
@@ -283,7 +395,8 @@ DefineTokens --> ChooseNaming["Choose BEM-like naming:<br/>.block__element--modi
 ChooseNaming --> ScopeStyles["Scope styles to component/page"]
 ScopeStyles --> AddResponsiveness["Add media queries and fluid typography"]
 AddResponsiveness --> EnsureA11y["Ensure accessibility:<br/>focus-visible, contrast, reduced-motion"]
-EnsureA11y --> ReviewBundle["Review bundle impact:<br/>avoid unused styles"]
+EnsureA11y --> AddAnimations["Add animations:<br/>keyframes, transitions, micro-interactions"]
+AddAnimations --> ReviewBundle["Review bundle impact:<br/>avoid unused styles"]
 ReviewBundle --> End(["Complete"])
 ```
 
@@ -318,14 +431,17 @@ V --> C["vite.config.js"]
 - Respect prefers-reduced-motion to improve UX for sensitive users.
 - Keep SCSS modular to avoid bloating global stylesheets.
 - Minimize deep nesting and overly broad selectors to reduce specificity and improve maintainability.
+- Optimize animation timing functions for smooth performance.
 
 Examples in codebase:
 - Transform-based hover and active states across components.
 - Reduced-motion handling in Home and Dashboard styles.
+- Efficient keyframe animations in TERPLogin progress system.
 
 **Section sources**
 - [Home.scss:393-398](file://src/pages/Home.scss#L393-L398)
 - [Dashboard.scss:362-366](file://src/pages/AdminDashboard/Dashboard.scss#L362-L366)
+- [TERPLogin.scss:1737-1781](file://src/pages/TERPLogin.scss#L1737-L1781)
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -345,15 +461,20 @@ Common issues and resolutions:
   - Symptom: Stuttering during scroll-driven animations.
   - Resolution: Use will-change on animated elements; avoid expensive filters on large animated SVGs.
   - Reference: [Home.scss:364-366](file://src/pages/Home.scss#L364-L366)
+- Progress bar alignment issues
+  - Symptom: Progress indicators not aligning properly on different screen sizes.
+  - Resolution: Use responsive units and flexbox/grid for proper alignment.
+  - Reference: [TERPLogin.scss:259-289](file://src/pages/TERPLogin.scss#L259-L289)
 
 **Section sources**
 - [Home.scss:33-47](file://src/pages/Home.scss#L33-L47)
 - [FloatingChatbot.scss:148-153](file://src/components/FloatingChatbot.scss#L148-L153)
 - [Nav.scss:20-25](file://src/components/Nav.scss#L20-L25)
 - [Home.scss:364-366](file://src/pages/Home.scss#L364-L366)
+- [TERPLogin.scss:259-289](file://src/pages/TERPLogin.scss#L259-L289)
 
 ## Conclusion
-The styling system is modular, component-focused, and accessible. It leverages CSS custom properties for global theming, SCSS variables and mixins for local consistency, and BEM-like naming for clarity. Responsive design is achieved through media queries and fluid typography, while animations remain lightweight and respectful of user preferences. Following the provided guidelines will help maintain consistency, improve performance, and keep the CSS bundle lean.
+The styling system is modular, component-focused, and highly accessible. It leverages CSS custom properties for global theming, SCSS variables and mixins for local consistency, and BEM-like naming for clarity. The recent enhancements include sophisticated progress bar animations, organized form sections, and comprehensive accessibility features. Responsive design is achieved through media queries and fluid typography, while animations remain lightweight and respectful of user preferences. Following the provided guidelines will help maintain consistency, improve performance, and keep the CSS bundle lean.
 
 ## Appendices
 
@@ -368,19 +489,23 @@ The styling system is modular, component-focused, and accessible. It leverages C
 - Add responsive rules inside media queries rather than duplicating styles.
 - Include focus-visible outlines for interactive elements.
 - Respect prefers-reduced-motion for any animations.
+- Implement proper ARIA attributes for accessibility.
 
 ### Theme Customization Options
 - Extend or override CSS custom properties in index.css to change global colors, typography, and shadows.
-- For component-specific themes, introduce local SCSS variables and update the component’s token definitions.
+- For component-specific themes, introduce local SCSS variables and update the component's token definitions.
 - Maintain contrast ratios for accessibility when introducing new colors.
+- Use the established color palette system for consistency.
 
 ### Cross-Browser Compatibility Notes
 - Use vendor prefixes where necessary (e.g., mask-image, scrollbar hiding).
 - Test focus-visible behavior across browsers.
 - Validate transform and opacity animations for smoothness.
+- Ensure progress bar animations work consistently across devices.
 
 ### Optimizing CSS Bundle Size
 - Keep styles scoped to components/pages.
 - Avoid global overrides that duplicate functionality.
 - Remove unused styles and consolidate similar selectors.
-- Leverage Vite’s build process to tree-shake unused CSS.
+- Leverage Vite's build process to tree-shake unused CSS.
+- Use efficient animation techniques that don't impact bundle size.

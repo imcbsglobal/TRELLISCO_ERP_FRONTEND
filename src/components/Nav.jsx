@@ -309,7 +309,7 @@ const PRODUCTS = [
     eyebrow: "Melone Suite",
     desc: "A hybrid, cloud-based point of sale for large-scale operations — works online or offline, and syncs the moment you're back online.",
     accent: "#7b5cff",
-    link: "https://melone.in/",
+    link: "https://trelliscoerp.com/MELONE/",
     badge: {
       text: "Built for Large Operations",
       color: "#7b5cff",
@@ -1756,11 +1756,7 @@ export default function Nav() {
                         }}
                         onClick={() => {
                           setActiveKey(itemKey);
-                          if (
-                            itemKey === "hrms" &&
-                            product.link &&
-                            product.link !== "#"
-                          ) {
+                          if (product.link && product.link !== "#") {
                             window.location.href = product.link;
                           }
                         }}
@@ -1880,18 +1876,6 @@ export default function Nav() {
                         <a
                           className="mega__feature-cta"
                           href={active.link || "#"}
-                          target={
-                            active.link &&
-                            active.link !== "#"
-                              ? "_blank"
-                              : undefined
-                          }
-                          rel={
-                            active.link &&
-                            active.link !== "#"
-                              ? "noopener noreferrer"
-                              : undefined
-                          }
                           style={{
                             "--accent": active.accent,
                             borderRadius: 0,
@@ -1918,18 +1902,6 @@ export default function Nav() {
                         <a
                           className="mega__learn-more"
                           href={active.link || "#"}
-                          target={
-                            active.link &&
-                            active.link !== "#"
-                              ? "_blank"
-                              : undefined
-                          }
-                          rel={
-                            active.link &&
-                            active.link !== "#"
-                              ? "noopener noreferrer"
-                              : undefined
-                          }
                           style={{
                             "--accent": active.accent,
                             borderRadius: 0,

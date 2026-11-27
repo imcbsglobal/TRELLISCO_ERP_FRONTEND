@@ -57,7 +57,7 @@ const ABOUT_INDUSTRIES = [
     tint: '#fdf1de',
     text: 'Keep orders, inventory, staff schedules, and reports moving without leaving the floor.',
     includes: ['Orders', 'Inventory', 'Staff'],
-    href: 'https://melone.in/',
+    href: 'https://trelliscoerp.com/MELONE/',
     icon: (
       <AboutIcon>
         <path d="M3.5 17.5h17M5 17.5a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
