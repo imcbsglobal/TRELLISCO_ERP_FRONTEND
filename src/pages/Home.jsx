@@ -73,7 +73,7 @@ const ABOUT_INDUSTRIES = [
     tint: '#e3f9ef',
     text: 'Track units, tenants, and maintenance requests across your whole portfolio.',
     includes: ['Units', 'Tenants', 'Maintenance'],
-    href: 'https://www.venuekart.co.in/',
+    href: 'https://trelliscoerp.com/VENUEKART/',
     icon: (
       <AboutIcon>
         <path d="M5 20.5V5.5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15M15 10.5h3a1 1 0 0 1 1 1v9M3.5 20.5h17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
