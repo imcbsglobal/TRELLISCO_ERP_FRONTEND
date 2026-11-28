@@ -12,6 +12,7 @@ export const USER_MASTER_FLAGS = [
   "melone_stay",
   "trellisco_books",
   "fee_flow",
+  "seaman",
 ]
 
 // /t-erp/mobileapp/api/projects/ returns an `api_endpoint` per project, which is
@@ -24,6 +25,7 @@ export const PROJECT_FLAG_BY_ENDPOINT = {
   tixelise: "tixelise",
   trelliscocrm: "trellisco_crm",
   feeflow: "fee_flow",
+  seaman: "seaman",
 }
 
 // Fallback for payloads that only carry a display name.
@@ -35,6 +37,7 @@ export const PROJECT_FLAG_BY_NAME = {
   tixelise: "tixelise",
   "trellisco crm": "trellisco_crm",
   "fee flow": "fee_flow",
+  seaman: "seaman",
 }
 
 // Trellisco IMS and VenueKart have no user-master flag yet: their license is

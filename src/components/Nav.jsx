@@ -507,7 +507,7 @@ const PRODUCTS = [
     eyebrow: "Trellisco Suite",
     desc: "Create events, sell tickets online, and check guests in at the gate, all from one ticketing platform.",
     accent: "#d9336b",
-    link: "https://tixelise.trelliscoerp.com/login",
+    link: "https://trelliscoerp.com/TIXELISE/",
     badge: {
       text: "Built for Event Organizers",
       color: "#d9336b",
